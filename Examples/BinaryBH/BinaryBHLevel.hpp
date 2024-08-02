@@ -19,6 +19,8 @@ class BinaryBHLevel : public GRAMRLevel
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
+    BHAMR *get_bhamr_ptr();
+
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
     void specificAdvance() override;
@@ -38,6 +40,19 @@ class BinaryBHLevel : public GRAMRLevel
 
     void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
+
+    //! Things to do after a restart
+    void specific_post_restart() override;
+
+    //! Things to do after init
+    void specific_post_init() override;
+
+    //! Things to do after writing a checkpoint
+    void specificPostCheckpoint(const std::string &a_dir,
+                                std::ostream & /*a_os*/) override;
+
+  private:
+    void restart_punctures();
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */
