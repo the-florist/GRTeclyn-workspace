@@ -29,7 +29,8 @@ run: tests
 	$(info ################# Running Tests #################)
 	$(ECHO)$(MAKE) -C $(TestsDir) --no-print-directory run
 
-examples: $(ExampleDirs)
+examples:
+	$(ECHO)$(MAKE) -C $(GRTECLYN_HOME)/Examples/KleinGordon --no-print-directory
 
 all: tests examples
 
