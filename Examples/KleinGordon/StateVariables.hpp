@@ -26,10 +26,8 @@ static const amrex::Vector<std::string> names{"phi", "Pi"};
 
 static const std::array<BCParity, NUM_VARS> parities = {BCParity::even,
                                                         BCParity::even};
-  //The parities aren't really used, I just had to fill something in
+// The parities aren't really used, I just had to fill something in
 
-  
 } // namespace StateVariables
-
 
 #endif /* STATEVARIABLES_HPP */
