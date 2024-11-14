@@ -47,6 +47,7 @@ KleinGordonRHS<deriv_t, potential_t>::rhs_equation(
     // add on the potential
     data_t V_of_phi = 0.0;
     data_t dVdphi   = 0.0;
+
     m_potential.compute_sine_gordon(V_of_phi, dVdphi, vars);
 
     rhs.Pi += dVdphi;
