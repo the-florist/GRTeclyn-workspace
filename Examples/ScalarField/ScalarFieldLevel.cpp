@@ -22,7 +22,7 @@
 #include "FixedGridsTaggingCriterion.hpp"
 
 // // Problem specific includes
-#include "InitialScalarData.hpp"
+#include "InitialBackgroundData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
@@ -48,7 +48,7 @@ void ScalarFieldLevel::variableSetUp()
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
 
     // Add Weyl4 to the derive list
-    derive_lst.add(
+    /*derive_lst.add(
         "Weyl4", amrex::IndexType::TheCellType(),
         static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
         amrex::DeriveFuncFab(), // null function because we won't use it
@@ -56,7 +56,7 @@ void ScalarFieldLevel::variableSetUp()
         &amrex::cell_quartic_interp);
 
     // We need all of the CCZ4 variables to calculate Weyl4 (except B)
-    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);*/
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -95,8 +95,7 @@ void ScalarFieldLevel::initData()
         amrex::Print() << "ScalarFieldLevel::initialData " << Level()
                        << std::endl;
 
-    const auto dx = geom.CellSizeArray();
-    InitialScalarData gaussian_pulse(simParams().initial_params, dx[0]);
+    InitialBackgroundData FLRW_background(simParams().background_params);
 
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();
@@ -112,7 +111,7 @@ void ScalarFieldLevel::initData()
                 cell[n] = 0.;
             }
 
-            gaussian_pulse.compute(i, j, k, state_array[box_ind]);
+            FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
     if (simParams().nan_check)
@@ -339,7 +338,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                                         src_arrays[box_no]);
                 });
         }
-        else if (name == "Weyl4")
+        /*else if (name == "Weyl4")
         {
             const auto &out_arrays = multifab.arrays();
 
@@ -354,7 +353,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                     weyl4.compute(i, j, k, out_arrays[box_no],
                                   src_arrays[box_no]);
                 });
-        }
+        }*/
         else
         {
             amrex::Abort("Unknown derived variable");
@@ -366,3 +365,14 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
     }
     amrex::Gpu::streamSynchronize();
 }
+
+/*void ScalarFieldLevel::specificPostTimeStep()
+{
+	BL_PROFILE("ScalarFieldLevel::specificPostTimeStep");
+
+	bool first_step = (m_time == 0);
+
+	AMRReductions<VariableType::state> amr_reductions_evolution(m_gr_amr);
+
+	double vol = amr_reductions_evolution.get_domain_volume();
+}*/

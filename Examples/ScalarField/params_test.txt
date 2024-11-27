@@ -13,7 +13,7 @@ amr.plot_file = plt_
 checkpoint_interval = 500
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
+plot_interval = -1
 amr.plot_int = 1
 amr.check_int = -1
 num_plot_vars = 2
@@ -40,12 +40,13 @@ print_progress_only_to_rank_0 = 1
 # Here we decouple the evolution so the scalar evolved on the
 # metric background without backreaction (this avoids the need
 # to solve the constaints)
-G_Newton = 0.0
+G_Newton = 1.0
 
 # Scalar field initial data
-scalar_amplitude = 0.1
-scalar_width = 5.0
-scalar_mass = 0.2
+scalar_amplitude = 4.
+scalar_velocity = -0.00001627328880468423
+# scalar_width = 5.0
+scalar_mass = 1.e-4
 
 
 #################################################
