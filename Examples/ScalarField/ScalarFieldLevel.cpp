@@ -23,6 +23,7 @@
 
 // // Problem specific includes
 #include "InitialBackgroundData.hpp"
+#include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 
@@ -48,7 +49,7 @@ void ScalarFieldLevel::variableSetUp()
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
 
     // Add Weyl4 to the derive list
-    /*derive_lst.add(
+    derive_lst.add(
         "Weyl4", amrex::IndexType::TheCellType(),
         static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
         amrex::DeriveFuncFab(), // null function because we won't use it
@@ -56,7 +57,7 @@ void ScalarFieldLevel::variableSetUp()
         &amrex::cell_quartic_interp);
 
     // We need all of the CCZ4 variables to calculate Weyl4 (except B)
-    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);*/
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -95,7 +96,9 @@ void ScalarFieldLevel::initData()
         amrex::Print() << "ScalarFieldLevel::initialData " << Level()
                        << std::endl;
 
+    const auto dx = geom.CellSizeArray();
     InitialBackgroundData FLRW_background(simParams().background_params);
+    InitialScalarData scalar_profile(simParams().initial_params, dx[0]);
 
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();
@@ -338,7 +341,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                                         src_arrays[box_no]);
                 });
         }
-        /*else if (name == "Weyl4")
+        else if (name == "Weyl4")
         {
             const auto &out_arrays = multifab.arrays();
 
@@ -353,7 +356,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                     weyl4.compute(i, j, k, out_arrays[box_no],
                                   src_arrays[box_no]);
                 });
-        }*/
+        }
         else
         {
             amrex::Abort("Unknown derived variable");
@@ -366,13 +369,30 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
     amrex::Gpu::streamSynchronize();
 }
 
-/*void ScalarFieldLevel::specificPostTimeStep()
+void ScalarFieldLevel::specificPostTimeStep(amrex::Real m_dt)
 {
 	BL_PROFILE("ScalarFieldLevel::specificPostTimeStep");
 
-	bool first_step = (m_time == 0);
+	amrex::MultiFab &state_new = get_new_data(State_Type);
+	const auto cur_time        = get_state_data(State_Type).curTime();
+	//const auto dt 		   = get_state_data(State_Type).dT();
 
-	AMRReductions<VariableType::state> amr_reductions_evolution(m_gr_amr);
+	auto first_step = (cur_time == 0);
+	const double volume = Geom().ProbSize(); // (!!) unitless volume
 
-	double vol = amr_reductions_evolution.get_domain_volume();
-}*/
+	const double phi_avg = state_new.sum(c_phi)/volume;
+	const double Pi_avg = state_new.sum(c_Pi)/volume;
+	const double scale_fact_avg = 1./sqrt(state_new.sum(c_chi)/volume);
+	const double Hubble_fact_avg = -state_new.sum(c_K)/volume/3.;
+
+	const double lapse_avg = state_new.sum(c_lapse)/volume;
+
+	std::cout << "Time step: " << m_dt << "\n";
+	//SmallDataIO means_file(simParams().data_path+"means_file", 
+	/*std::cout << "State data: \n";
+	std::cout << "Average: " << phi_avg << "\n";
+	std::cout << "Volume: " << volume << "\n";*/
+
+
+	amrex::Error("ScalarFieldLevel::specificPostTimeStep end");
+}

@@ -43,7 +43,7 @@ print_progress_only_to_rank_0 = 1
 G_Newton = 1.0
 
 # Scalar field initial data
-scalar_amplitude = 4.
+scalar_amplitude = 4.0000000000000000000
 scalar_velocity = -0.00001627328880468423
 # scalar_width = 5.0
 scalar_mass = 1.e-4
@@ -113,7 +113,7 @@ extrapolating_vars = phi Pi
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 stop_time = 1.0
-max_steps = 3
+max_steps = 1
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
