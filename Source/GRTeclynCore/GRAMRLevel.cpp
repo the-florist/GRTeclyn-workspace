@@ -206,7 +206,8 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         FourthOrderInterpFromFineToCoarse(S_crse, 0, NUM_VARS, S_fine, ratio);
     }
 
-    specificPostTimeStep();
+    amrex::Real dt = parent->dtLevel(level);
+    specificPostTimeStep(dt);
 }
 
 void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)

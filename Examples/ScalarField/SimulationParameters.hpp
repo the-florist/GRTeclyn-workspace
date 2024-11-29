@@ -27,6 +27,14 @@ class SimulationParameters : public SimulationParametersBase
 
     void read_params(GRParmParse &pp)
     {
+	    initial_params.center =
+            center; // already read in SimulationParametersBase
+         pp.load("G_Newton", G_Newton,
+                 0.0); // for now the example neglects backreaction
+        pp.load("scalar_amplitude", initial_params.amplitude, 0.1);
+        pp.load("scalar_width", initial_params.width, 1.0);
+	pp.load("scalar_mass", potential_params.scalar_mass, 0.1);	
+
         // Initial scalar field data
         pp.load("G_Newton", G_Newton,
                 0.0); // for now the example neglects backreaction
