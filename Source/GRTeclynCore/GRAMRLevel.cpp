@@ -207,7 +207,7 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     }
 
     amrex::Real dt = parent->dtLevel(level);
-    specificPostTimeStep(dt);
+    specificPostTimeStep();
 }
 
 void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)

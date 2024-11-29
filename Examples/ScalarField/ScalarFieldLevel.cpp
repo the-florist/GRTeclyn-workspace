@@ -369,7 +369,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificPostTimeStep(amrex::Real m_dt)
+void ScalarFieldLevel::specificPostTimeStep()
 {
 	BL_PROFILE("ScalarFieldLevel::specificPostTimeStep");
 
@@ -387,7 +387,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real m_dt)
 
 	const double lapse_avg = state_new.sum(c_lapse)/volume;
 
-	std::cout << "Time step: " << m_dt << "\n";
+	//std::cout << "Time step: " << 1 << "\n";
 	//SmallDataIO means_file(simParams().data_path+"means_file", 
 	/*std::cout << "State data: \n";
 	std::cout << "Average: " << phi_avg << "\n";
