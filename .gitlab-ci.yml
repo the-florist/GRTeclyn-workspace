@@ -26,20 +26,22 @@ variables:
     --time=00:10:00 
     --account=SHELLARD-SL3-GPU 
     --partition=ampere
-  AMREX_HOME: ${HOME}/${CI_PROJECT_DIR}/amrex
+
 
 csd3-a100:
   stage: test
   tags:
     - csd3
   script:
-    - if [[ -d ${AMREX_HOME} ]]; then
-    -   cd ${AMREX_HOME}
+    - if [[ -d ../amrex ]]; then
+    -   cd ../amrex
     -   git fetch --depth 1
     -   git reset --hard origin/development
     - else
-    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ${AMREX_HOME}
+    -   git clone --depth 1 https://github.com/AMReX-Codes/amrex.git ../amrex
     - fi
+    - AMREX_HOME="$PWD"
+    - echo $AMREX_HOME
     - cd ${HOME}/${CI_PROJECT_DIR}/Tests
     - module purge
     - module use ${MODULEPATHS_A100}
