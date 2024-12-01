@@ -142,6 +142,26 @@ class AMReXParameters
             output_path = default_path;
         }
 
+        std::string hdf5_path;
+        if (pp.contains("hdf5_subpath"))
+        {
+            pp.load("hdf5_subpath", hdf5_path);
+        }
+        else
+        {
+            hdf5_path = hdf5_path;
+        }
+
+        std::string data_path;
+        if (pp.contains("data_subpath"))
+        {
+            pp.load("data_subpath", data_path);
+        }
+        else
+        {
+            data_path = default_path;
+        }
+
 #ifdef AMREX_USE_MPI
         // user sets the 'subpath', we prepend 'output_path'
         if (pp.contains("pout_subpath"))
@@ -165,16 +185,32 @@ class AMReXParameters
             pout_path += "/";
         }
 #endif
-#if 0 
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
+        {
             hdf5_path += "/";
-#endif
+        }
+
+        // add backslash to paths
+        if (!data_path.empty() && data_path.back() != '/')
+        {
+            data_path += "/";
+        }
 
         if (output_path != "./" && !output_path.empty())
         {
 #ifdef AMREX_USE_MPI
             pout_path = output_path + pout_path;
 #endif
+        }
+
+        if (output_path != "./" && !output_path.empty())
+        {
+            hdf5_path = output_path + hdf5_path;
+        }
+
+        if (output_path != "./" && !output_path.empty())
+        {
+            data_path = output_path + data_path;
         }
 
 #ifdef AMREX_USE_MPI
@@ -185,6 +221,16 @@ class AMReXParameters
         }
         // xxxxx setPoutBaseName(pout_path + pout_prefix);
 #endif
+
+        if (!FilesystemTools::directory_exists(hdf5_path))
+        {
+            FilesystemTools::mkdir_recursive(hdf5_path);
+        }
+
+        if (!FilesystemTools::directory_exists(data_path))
+        {
+            FilesystemTools::mkdir_recursive(data_path);
+        }
 
         // only create hdf5 directory in setupAMRObject (when it becomes needed)
     }

@@ -369,7 +369,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificPostTimeStep()
+void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 {
 	BL_PROFILE("ScalarFieldLevel::specificPostTimeStep");
 
@@ -387,12 +387,15 @@ void ScalarFieldLevel::specificPostTimeStep()
 
 	const double lapse_avg = state_new.sum(c_lapse)/volume;
 
-	//std::cout << "Time step: " << 1 << "\n";
-	//SmallDataIO means_file(simParams().data_path+"means_file", 
-	/*std::cout << "State data: \n";
-	std::cout << "Average: " << phi_avg << "\n";
-	std::cout << "Volume: " << volume << "\n";*/
+	SmallDataIO means_file(simParams().data_path+"means_file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
 
+    if(first_step) 
+    {
+        //constrs_file.write_header_line({"HamMean","HamSTD","HamAbsMean","HamNormMean","HamNormSTD","MomBar","MomAAD"});
+        means_file.write_header_line({"PhiMean","PiMean","SFMean","HubbleMean","LapseMean"});
+    }
 
-	amrex::Error("ScalarFieldLevel::specificPostTimeStep end");
+    //constrs_file.write_time_data_line({hamBar, sqrt(hamVar), hamAbsBar, hamNormBar, sqrt(hamNormVar), momBar, momAAD});
+    means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 }

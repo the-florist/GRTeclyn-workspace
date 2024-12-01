@@ -62,7 +62,7 @@ class ScalarFieldLevel : public GRAMRLevel
     void derive(const std::string &name, amrex::Real time,
                 amrex::MultiFab &multifab, int dcomp) override;
 
-    void specificPostTimeStep() override;
+    void specificPostTimeStep(amrex::Real dt, int restart_time) override;
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */
