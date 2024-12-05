@@ -44,8 +44,6 @@ void BinaryBHLevel::specificAdvance()
                            PositiveChiAndAlpha()(cell);
                        });
 
-    amrex::Gpu::streamSynchronize();
-
     // Check for nan's
     if (simParams().nan_check)
     {
@@ -96,7 +94,6 @@ void BinaryBHLevel::initData()
                            binary.init_data(i, j, k, cell);
                        });
 #endif
-    amrex::Gpu::streamSynchronize();
 }
 
 // Calculate RHS during RK4 substeps
@@ -118,8 +115,6 @@ void BinaryBHLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            TraceARemoval()(cell);
                            PositiveChiAndAlpha()(cell);
                        });
-
-    amrex::Gpu::streamSynchronize();
 
     // Calculate CCZ4 right hand side
     if (simParams().max_spatial_derivative_order == 4)
@@ -164,8 +159,6 @@ void BinaryBHLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
                        });
-
-    amrex::Gpu::streamSynchronize();
 }
 
 void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
