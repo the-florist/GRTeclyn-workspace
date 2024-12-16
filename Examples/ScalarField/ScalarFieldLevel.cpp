@@ -381,11 +381,11 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     const int nghost = simParams().num_ghosts;
 
 	const double phi_avg = state_new.sum(c_phi)/volume;
-	/*const double Pi_avg = state_new.sum(c_Pi)/volume;
+	const double Pi_avg = state_new.sum(c_Pi)/volume;
     const double chi_avg = state_new.sum(c_chi)/volume;
 	const double scale_fact_avg = 1./sqrt(chi_avg);
 	const double Hubble_fact_avg = -state_new.sum(c_K)/volume/3.;
-	const double lapse_avg = state_new.sum(c_lapse)/volume;*/
+	const double lapse_avg = state_new.sum(c_lapse)/volume;
 
     const amrex::BoxArray& ba = state_new.boxArray();
     const amrex::DistributionMapping& dm = state_new.DistributionMap();
@@ -393,22 +393,17 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     int ngrow = state_new.nGrow();
 
     amrex::MultiFab phi_alias(ba, dm, ncomp, ngrow);
+    amrex::MultiFab chi_alias(ba, dm, ncomp, ngrow);
     amrex::MultiFab::Copy(phi_alias, state_new, c_phi, c_phi, 1, ngrow);
+    amrex::MultiFab::Copy(chi_alias, state_new, c_chi, c_chi, 1, ngrow);
 
     if(phi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
-    const double sum = phi_alias.sum(c_phi)/volume;
+    else if(chi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
 
-    std::cout << "phi avg 1: " << phi_avg << "\n";
-    std::cout << "phi avg 2: " << sum << "\n";
-    amrex::Error("Check phi.");
-
-	//Multiply(state_new, state_new, c_phi, c_phi, 1, nghost);
-    /*Multiply(state_new, state_new, c_chi, c_chi, 1, nghost);
-    Multiply(state_new, state_new, c_lapse, c_lapse, 1, nghost);
-
-    const double phi_var = state_new.sum(c_phi)/volume - std::pow(phi_avg, 2.);
-    /*const double chi_var = state_new.sum(c_chi)/volume - std::pow(chi_avg, 2.);
-    const double lapse_var = state_new.sum(c_lapse)/volume - std::pow(lapse_avg, 2.);
+    Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
+    Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
+    const double phi_var = phi_alias.sum(c_phi)/volume - std::pow(phi_avg, 2.);
+    const double chi_var = chi_alias.sum(c_chi)/volume - std::pow(chi_avg, 2.);
 
 	SmallDataIO means_file(simParams().data_path+"means_file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
@@ -416,10 +411,9 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     if(first_step) 
     {
         //constrs_file.write_header_line({"HamMean","HamSTD","HamAbsMean","HamNormMean","HamNormSTD","MomBar","MomAAD"});
-        means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiMean","ChiVar","HubbleMean","LapseMean","LapseVar"});
+        means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiMean","ChiVar","HubbleMean","LapseMean"});
     }
 
     //constrs_file.write_time_data_line({hamBar, sqrt(hamVar), hamAbsBar, hamNormBar, sqrt(hamNormVar), momBar, momAAD});
-    //means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_avg, chi_var, Hubble_fact_avg, lapse_avg, lapse_var});
-    means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_avg, 1, Hubble_fact_avg, lapse_avg, 1});*/
+    means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_avg, chi_var, Hubble_fact_avg, lapse_avg});
 }

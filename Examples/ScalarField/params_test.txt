@@ -45,7 +45,6 @@ G_Newton = 1.0
 # Scalar field initial data
 scalar_amplitude = 4.0000000000000000000
 scalar_velocity = -0.00001627328880468423
-# scalar_width = 5.0
 scalar_mass = 1.e-4
 
 
