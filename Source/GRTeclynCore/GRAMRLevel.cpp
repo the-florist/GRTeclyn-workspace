@@ -11,7 +11,7 @@ void GRAMRLevel::stateVariableSetUp()
     const int nghost = simParams().num_ghosts;
     desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
-                           &amrex::cell_quartic_interp);
+                           &amrex::quartic_interp);
 
     BoundaryConditions::params_t bparms = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
@@ -202,7 +202,9 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         FourthOrderInterpFromFineToCoarse(S_crse, 0, NUM_VARS, S_fine, ratio);
     }
 
-    specificPostTimeStep();
+    amrex::Real dt = parent->dtLevel(level);
+    int restart_time = get_gramr_ptr()->get_restart_time();
+    specificPostTimeStep(dt, restart_time);
 }
 
 void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)
@@ -216,6 +218,10 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
+
+    amrex::Real dt = parent->dtLevel(level);
+    int restart_time = get_gramr_ptr()->get_restart_time();
+    specificPostTimeStep(dt, restart_time);
 }
 
 void GRAMRLevel::post_restart()

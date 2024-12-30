@@ -11,9 +11,10 @@
 #include "SimulationParametersBase.hpp"
 
 // Problem specific includes:
+#include "InitialBackgroundData.hpp"
 #include "InitialScalarData.hpp"
-#include "KerrBH.hpp"
 #include "Potential.hpp"
+#include "RandomField.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -27,53 +28,40 @@ class SimulationParameters : public SimulationParametersBase
 
     void read_params(GRParmParse &pp)
     {
-        // Initial scalar field data
-        initial_params.center =
+	    initial_params.center =
             center; // already read in SimulationParametersBase
-        pp.load("G_Newton", G_Newton,
-                0.0); // for now the example neglects backreaction
-        pp.load("scalar_amplitude", initial_params.amplitude, 0.1);
-        pp.load("scalar_width", initial_params.width, 1.0);
-        pp.load("scalar_mass", potential_params.scalar_mass, 0.1);
+         pp.load("G_Newton", G_Newton,
+                 0.0); // for now the example neglects backreaction
+	    pp.load("scalar_mass", potential_params.scalar_mass, 0.1);	
 
-        // Initial Kerr data
-        pp.load("kerr_mass", kerr_params.mass, 1.0);
-        pp.load("kerr_spin", kerr_params.spin, 0.0);
-        pp.load("kerr_center", kerr_params.center, center);
+	    pp.load("scalar_amplitude", background_params.phi0, 0.0);
+	    pp.load("scalar_velocity", background_params.Pi0, 0.0);
+        pp.load("scalar_mass", background_params.m, 0.0);
+
+        pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);
+        pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
+        pp.load("L_full", random_field_params.L, 1.);
+        pp.load("A", random_field_params.A, 1.);
+        pp.load("which_seed", random_field_params.which_seed, 1);
+        pp.load("N_full", random_field_params.N_readin, 32);
+        pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
     }
 
     void check_params()
     {
-        warn_parameter("scalar_mass", potential_params.scalar_mass,
-                       potential_params.scalar_mass <
+        warn_parameter("scalar_mass", background_params.m,
+                       background_params.m <
                            0.2 / coarsest_dx / dt_multiplier,
                        "oscillations of scalar field do not appear to be "
                        "resolved on coarsest level");
-        warn_parameter("scalar_width", initial_params.width,
-                       initial_params.width < 0.5 * L,
-                       "is greater than half the domain size");
-        warn_parameter("kerr_mass", kerr_params.mass, kerr_params.mass >= 0.0,
-                       "should be >= 0.0");
-        check_parameter("kerr_spin", kerr_params.spin,
-                        std::abs(kerr_params.spin) <= kerr_params.mass,
-                        "must satisfy |a| <= M = " +
-                            std::to_string(kerr_params.mass));
-        FOR (idir)
-        {
-            std::string name = "kerr_center[" + std::to_string(idir) + "]";
-            warn_parameter(
-                name, kerr_params.center[idir],
-                (kerr_params.center[idir] >= 0) &&
-                    (kerr_params.center[idir] <= (ivN[idir] + 1) * coarsest_dx),
-                "should be within the computational domain");
-        }
     }
 
     // Initial data for matter and potential and BH
     double G_Newton;
-    InitialScalarData::params_t initial_params;
     Potential::params_t potential_params;
-    KerrBH::params_t kerr_params;
+    InitialBackgroundData::params_t background_params;
+    InitialScalarData::params_t initial_params;
+    RandomField::params_t random_field_params;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */

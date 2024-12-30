@@ -1,5 +1,7 @@
 GRTECLYN_HOME = $(realpath ..)
 
+# We can switch to using Make.base once we have tests that depend on the
+# non-base AMReX components
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 # We don't want to use MPI by default for the tests
@@ -22,6 +24,7 @@ GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 src_dirs := $(GRTECLYN_SOURCE)/utils \
             $(GRTECLYN_SOURCE)/CCZ4  \
             $(GRTECLYN_SOURCE)/BoxUtils  \
+            $(GRTECLYN_SOURCE)/Matter  \
             $(GRTECLYN_SOURCE)/simd
 
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests

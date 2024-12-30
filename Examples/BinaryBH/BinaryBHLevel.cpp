@@ -81,7 +81,7 @@ void BinaryBHLevel::initData()
     // First set everything to zero (to avoid undefinded values in constraints)
     // then calculate initial data
     amrex::MultiFab &state = get_new_data(State_Type);
-    const auto &arrs       = state.arrays();
+    const auto &arrs = state.arrays();
     amrex::ParallelFor(state, state.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
                        {
@@ -199,6 +199,80 @@ void BinaryBHLevel::errorEst(amrex::TagBoxArray &tag_box_array,
                                tags[box_no](i, j, k) = tagval;
                            }
                        });
+    amrex::Gpu::streamSynchronize();
+}
+
+void BinaryBHLevel::derive(const std::string &name, amrex::Real time,
+                           amrex::MultiFab &multifab, int dcomp)
+{
+    BL_ASSERT(dcomp < multifab.nComp());
+
+    const int num_ghosts = multifab.nGrow();
+
+    const amrex::DeriveRec *rec = derive_lst.get(name);
+    if (rec != nullptr)
+    {
+        int state_idx, derive_scomp, derive_ncomp;
+
+        // we only have one state so state_idx will be State_Type = 0
+        rec->getRange(0, state_idx, derive_scomp, derive_ncomp);
+
+        // work out how many extra ghost cells we need
+        const amrex::BoxArray &src_ba = state[state_idx].boxArray();
+
+        int num_extra_ghosts = num_ghosts;
+        {
+            amrex::Box box0   = src_ba[0];
+            amrex::Box box1   = rec->boxMap()(box0);
+            num_extra_ghosts += box0.smallEnd(0) - box1.smallEnd(0);
+        }
+
+        // Make a Multifab with enough extra ghosts to calculated derived
+        // quantity. For now use NUM_VARS in case the enum mapping loads more
+        // vars than is actually needed
+        amrex::MultiFab src_mf(src_ba, dmap, NUM_VARS, num_extra_ghosts,
+                               amrex::MFInfo(), *m_factory);
+
+        // Fill the multifab with the needed state data including the ghost
+        // cells
+        FillPatch(*this, src_mf, num_extra_ghosts, time, state_idx,
+                  derive_scomp, derive_ncomp);
+
+        const auto &src_arrays = src_mf.const_arrays();
+        if (name == "constraints")
+        {
+            const auto &out_arrays = multifab.arrays();
+            int iham               = dcomp;
+            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+            Constraints constraints(Geom().CellSize(0), iham, imom);
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    constraints.compute(i, j, k, out_arrays[box_no],
+                                        src_arrays[box_no]);
+                });
+        }
+        else if (name == "Weyl4")
+        {
+            const auto &out_arrays = multifab.arrays();
+            Weyl4 weyl4(simParams().extraction_params.center,
+                        Geom().CellSize(0), dcomp, simParams().formulation);
+            amrex::ParallelFor(
+                multifab, multifab.nGrowVect(),
+                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
+                    weyl4.compute(i, j, k, out_arrays[box_no],
+                                  src_arrays[box_no]);
+                });
+        }
+        else
+        {
+            amrex::Abort("Unknown derived variable");
+        }
+    }
+    else
+    {
+        amrex::Abort("Unknown derived variable");
+    }
     amrex::Gpu::streamSynchronize();
 }
 

@@ -9,7 +9,7 @@
 #include "CCZ4Geometry.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
-#include "Interval.H"
+#include "Interval.hpp"
 #include "MatterCCZ4.hpp"
 #include "simd.hpp"
 
@@ -26,7 +26,10 @@ template <class matter_t> class EMTensor
              const Interval a_c_Si  = Interval(),
              const Interval a_c_Sij = Interval());
 
-    template <class data_t> void compute(Cell<data_t> current_cell) const;
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    compute(int i, int j, int k, const amrex::Array4<data_t> &out_mf,
+            const amrex::Array4<const data_t> &in_mf) const;
 
   protected:
     const matter_t &m_matter;
