@@ -39,3 +39,4 @@ static const std::array<BCParity, NUM_VARS> parities =
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */
+

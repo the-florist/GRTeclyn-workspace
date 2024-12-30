@@ -26,6 +26,7 @@
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
+#include "RandomField.hpp"
 
 void ScalarFieldLevel::variableSetUp()
 {
@@ -98,7 +99,6 @@ void ScalarFieldLevel::initData()
 
     const auto dx = geom.CellSizeArray();
     InitialBackgroundData FLRW_background(simParams().background_params);
-    InitialScalarData scalar_profile(simParams().initial_params, dx[0]);
 
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();
@@ -116,6 +116,9 @@ void ScalarFieldLevel::initData()
 
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
+
+    RandomField random_field(simParams().random_field_params, simParams().background_params, "field");
+    random_field.init();
 
     if (simParams().nan_check)
     {

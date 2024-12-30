@@ -14,6 +14,7 @@
 #include "InitialBackgroundData.hpp"
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
+#include "RandomField.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -31,13 +32,21 @@ class SimulationParameters : public SimulationParametersBase
             center; // already read in SimulationParametersBase
          pp.load("G_Newton", G_Newton,
                  0.0); // for now the example neglects backreaction
-        pp.load("scalar_amplitude", initial_params.amplitude, 0.1);
-        pp.load("scalar_width", initial_params.width, 1.0);
 	    pp.load("scalar_mass", potential_params.scalar_mass, 0.1);	
 
 	    pp.load("scalar_amplitude", background_params.phi0, 0.0);
 	    pp.load("scalar_velocity", background_params.Pi0, 0.0);
         pp.load("scalar_mass", background_params.m, 0.0);
+
+        pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);
+        pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
+        pp.load("L_full", random_field_params.L, 1.);
+        pp.load("A", random_field_params.A, 1.);
+        pp.load("which_seed", random_field_params.which_seed, 1);
+        pp.load("N_full", random_field_params.N_readin, 32);
+        pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
+        pp.load("kstar", random_field_params.kstar, 0.);
+        pp.load("Delta", random_field_params.Delta, 1.);
     }
 
     void check_params()
@@ -47,6 +56,14 @@ class SimulationParameters : public SimulationParametersBase
                            0.2 / coarsest_dx / dt_multiplier,
                        "oscillations of scalar field do not appear to be "
                        "resolved on coarsest level");
+
+        warn_parameter("kstar", random_field_params.kstar,
+                       random_field_params.kstar > 0,
+                       "cut-off frequency index must be positive");
+
+        check_parameter("Delta", random_field_params.Delta,
+                       random_field_params.Delta > 0,
+                       "cut-off width must be positive and non-zero");
     }
 
     // Initial data for matter and potential and BH
@@ -54,6 +71,7 @@ class SimulationParameters : public SimulationParametersBase
     Potential::params_t potential_params;
     InitialBackgroundData::params_t background_params;
     InitialScalarData::params_t initial_params;
+    RandomField::params_t random_field_params;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */
