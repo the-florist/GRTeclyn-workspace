@@ -15,31 +15,35 @@ inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2
 
 inline GpuComplex<Real> RandomField::calculate_mode_function(Real km, std::string spec_type)
 {
-    // Vars to store real/imaginary parts
-    Real ms_mag = 0.;
-    Real ms_arg = 0.;
-
-    // Find Hubble parameter at t=0 (tensors)
-    Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
-                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
-                    + pow(m_background_params.Pi0, 2.)));
-
-    Real kpr = km/H0;
-    if (spec_type == "position") // Mode fn for the field
+    if (km == 0) { return 0.; }
+    else
     {
-        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
-        ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
-    }
-    else if (spec_type == "velocity") // Mode fn for the field velocity
-    {
-        ms_mag = sqrt(km/2.);
-        ms_arg = -atan2(cos(kpr), sin(kpr));
-    }
-    else { Error("RandomField::calculate_power_spectrum Value of spec_type not allowed."); }
+        // Vars to store real/imaginary parts
+        Real ms_mag = 0.;
+        Real ms_arg = 0.;
 
-    // Return the mode fn in modulus/argument form
-    GpuComplex<Real> ps(ms_mag * cos(ms_arg), ms_mag * sin(ms_arg));
-    return ps;
+        // Find Hubble parameter at t=0 (tensors)
+        Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
+                    * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
+                        + pow(m_background_params.Pi0, 2.)));
+
+        Real kpr = km/H0;
+        if (spec_type == "position") // Mode fn for the field
+        {
+            ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
+            ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
+        }
+        else if (spec_type == "velocity") // Mode fn for the field velocity
+        {
+            ms_mag = sqrt(km/2.);
+            ms_arg = -atan2(cos(kpr), sin(kpr));
+        }
+        else { Error("RandomField::calculate_power_spectrum Value of spec_type not allowed."); }
+
+        // Return the mode fn in modulus/argument form
+        GpuComplex<Real> ps(ms_mag * cos(ms_arg), ms_mag * sin(ms_arg));
+        return ps;
+    }
 }
 
 inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k, std::string spectrum_type)
