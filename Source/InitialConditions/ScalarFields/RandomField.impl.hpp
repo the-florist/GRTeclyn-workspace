@@ -15,6 +15,8 @@ inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2
 
 inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
 {
+    if(km < 1.e-23) { return 0.; }
+    
     Real ms_mag = 0.;
     Real ms_arg = 0.;
 
