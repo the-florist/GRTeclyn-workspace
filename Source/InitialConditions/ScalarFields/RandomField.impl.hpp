@@ -52,11 +52,22 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
 
     value = calculate_mode_function(kmag, spectrum_type);
 
-    /*if(use_rand)
+    if(m_params.use_rand)
     {
-        double rand_mod = 0.;
-        double rand_arg = 0.;
-    }*/
+        // Make one random draw for the amplitude and phase
+        Real rand_mod = sqrt(-2. * log(amrex::Random())); // Rayleigh distribution about |h|
+        Real rand_arg = 2. * M_PI * amrex::Random();      // Uniform random phase
+
+        // Multiply amplitude by Rayleigh draw
+        value *= rand_mod;
+
+        // Apply the random phase, assuming MS phase is accounted for
+        Real new_real = value.real() * cos(rand_arg) - value.imag() * sin(rand_arg);
+        Real new_imag = value.real() * sin(rand_arg) + value.imag() * cos(rand_arg);
+        GpuComplex<Real> new_value(new_real, new_imag);
+	
+        value = new_value;
+    }
 
     if(m_params.use_window) 
     { 
