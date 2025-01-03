@@ -13,75 +13,53 @@
 
 inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
 
-inline GpuComplex<Real> RandomField::calculate_mode_function(Real km, std::string spec_type)
+inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
 {
-    if (km == 0) { return 0.; }
-    else
+    Real ms_mag = 0.;
+    Real ms_arg = 0.;
+
+    Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
+                * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
+                    + pow(m_background_params.Pi0, 2.)));
+
+    double kpr = km/H0;
+    if (spec_type == "position")
     {
-        // Vars to store real/imaginary parts
-        Real ms_mag = 0.;
-        Real ms_arg = 0.;
-
-        // Find Hubble parameter at t=0 (tensors)
-        Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
-                    * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
-                        + pow(m_background_params.Pi0, 2.)));
-
-        Real kpr = km/H0;
-        if (spec_type == "position") // Mode fn for the field
-        {
-            ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
-            ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
-        }
-        else if (spec_type == "velocity") // Mode fn for the field velocity
-        {
-            ms_mag = sqrt(km/2.);
-            ms_arg = -atan2(cos(kpr), sin(kpr));
-        }
-        else { Error("RandomField::calculate_power_spectrum Value of spec_type not allowed."); }
-
-        // Return the mode fn in modulus/argument form
-        GpuComplex<Real> ps(ms_mag * cos(ms_arg), ms_mag * sin(ms_arg));
-        return ps;
+        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
+        ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
+    else if (spec_type == "velocity")
+    {
+        ms_mag = sqrt(km/2.);
+        ms_arg = -atan2(cos(kpr), sin(kpr));
+    }
+    else { Error("RandomField::calculate_power_spectrum Value of spec_type not allowed."); }
+
+
+    GpuComplex<Real> ps(ms_mag * cos(ms_arg), ms_mag * sin(ms_arg));
+    return ps;
 }
 
 inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k, std::string spectrum_type)
 {
-    // Create variable to store the mode fn at this point
     GpuComplex<Real> value(0., 0.);
 
-    // Find |k| with inverted indexing (FFTW style)
     int i = invert_index(I);
     int j = invert_index(J);
-    Real kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
+    double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 
-    // Assign the mode fn based on the linear solution
     value = calculate_mode_function(kmag, spectrum_type);
 
-    // Add stochastic perturbations (produces an approx. GRF)
-    if(m_params.use_rand)
+    /*if(use_rand)
     {
-        // Make one random draw for the amplitude and phase
-        Real rand_mod = sqrt(-2. * log(amrex::Random())); // Rayleigh distribution about |h|
-        Real rand_arg = 2. * M_PI * amrex::Random();      // Uniform random phase
+        double rand_mod = 0.;
+        double rand_arg = 0.;
+    }*/
 
-        // Multiply amplitude by Rayleigh draw
-        value *= rand_mod;
-
-        // Apply the random phase, assuming MS phase is accounted for
-        Real new_real = value.real() * cos(rand_arg) - value.imag() * sin(rand_arg);
-        Real new_imag = value.real() * sin(rand_arg) + value.imag() * cos(rand_arg);
-        GpuComplex<Real> new_value(new_real, new_imag);
-
-        value = new_value;
-    }
-
-    // Apply a tanh-like window function to high k
     if(m_params.use_window) 
     { 
-        Real ks = m_params.kstar * 2. * M_PI/m_params.L;
-        Real Dt = m_params.L/m_params.Delta;
+        double ks = m_params.kstar * 2. * M_PI/m_params.L;
+        double Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1. - tanh(Dt * (kmag - ks))); 
     }
 
