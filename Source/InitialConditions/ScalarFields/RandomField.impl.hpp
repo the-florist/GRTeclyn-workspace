@@ -117,14 +117,16 @@ inline void RandomField::init()
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
 
-            std::cout << i << "," << Geometry(bx).ProbLo(0) << "\n";
+            std::cout << i << ",";
+            std::cout << Geometry(bx).ProbLo(0) << ",";
+            std::cout << Geometry(bx).ProbHi(0) << "\n";
 
             //PrintToFile(filename, 0) << mfi.index() << "\n"; //i << "," << j << "," << k << ",";
             //PrintToFile(filename, 0) << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << ",";
             //PrintToFile(filename, 0) << hs_ptr(i, j, k, 1).real() << "," << hs_ptr(i, j, k, 1).imag() << "\n";
         });
 
-	Error("End of first box loop.");
+	    Error("End of first box loop.");
     }
 }
 
