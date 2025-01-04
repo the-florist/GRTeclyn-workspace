@@ -102,7 +102,7 @@ inline void RandomField::init()
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
-    std::ofstream mode_fns("~/rds/hpc-work/GRTeclyn-dump/GRTeclyn-mode-fns.dat");
+    std::ofstream mode_fns("~/rds/hpc-work/GRTeclyn-dump/GRTeclyn-mode-fns.dat", std::ofstream::out);
 
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
@@ -117,8 +117,8 @@ inline void RandomField::init()
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
 
-            mode_fns << i << "," << j << "," << k << ",";
-            mode_fns << hs_ptr(i, j, k, 0) << "," << hs_ptr(i, j, k, 1) << "\n";
+            Print(mode_fns) << i << "," << j << "," << k << ",";
+            Print(mode_fns) << hs_ptr(i, j, k, 0) << "," << hs_ptr(i, j, k, 1) << "\n";
         });
     }
 
