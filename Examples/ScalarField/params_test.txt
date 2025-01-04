@@ -70,7 +70,7 @@ Delta = 30
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
 N_full = 32 # 64
-L_full = 32 # 3000
+L_full = 3000 # 3000
 
 # Maximum number of times you can regrid above coarsest level
 max_level = 0 # There are (max_level+1) grids, so min is zero
