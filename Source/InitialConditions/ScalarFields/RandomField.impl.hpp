@@ -132,8 +132,8 @@ inline Real RandomField::basis_vector(int I, int J, int k, int l, int which)
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    if (which_vector == 0) { return mhat[l]; }
-    else if (which_vector == 1) { return nhat[l]; }
+    if (which == 0) { return mhat[l]; }
+    else if (which == 1) { return nhat[l]; }
     else { Error("RandomField::calculate_polarisation_tensors Basis vector choice invalid."); }
 }
 
