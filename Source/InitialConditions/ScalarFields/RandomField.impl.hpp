@@ -11,7 +11,11 @@
 #ifndef RANDOMFIELD_IMPL_HPP_
 #define RANDOMFIELD_IMPL_HPP_
 
-inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
+inline int RandomField::invert_index(int indx) 
+{ 
+    if(indx <= N/2) { return indx; }
+    else { return std::abs(N/2 - indx) - N/2; }
+}
 
 inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
 {
@@ -89,10 +93,53 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
+inline Real RandomField::basis_vector(int I, int J, int k, int l, int which)
+{
+    // Find kmag with FFTW-style inversion on the first two indices
+    int i = invert_index(I);
+    int j = invert_index(J);
+
+    Vector<Real> mhat(3, 0.);
+    Vector<Real> nhat(3, 0.);
+
+    if (k > 0.) 
+    {
+        if (i == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
+                                  nhat[0] = 0.; nhat[1] = 1.; nhat[2] = 0.; 
+                                }
+
+        else { mhat[0] = j/sqrt(i*i+j*j); mhat[1] = -i/sqrt(i*i+j*j); mhat[2] = 0.L;
+               nhat[0] = k*i/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
+               nhat[1] = k*j/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
+               nhat[2] = -(i*i + j*j)/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.)); 
+             }
+    }
+
+    else if (std::abs(j) > 0) { mhat[0] = 0.; mhat[1] = 0.; mhat[2] = -1.;
+                      nhat[0] = -j/sqrt(j*j + i*i);
+                      nhat[1] = i/sqrt(j*j + i*i);
+                      nhat[2] = 0.; 
+                    }
+
+    else if (std::abs(i) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
+                      nhat[0] = 0.; nhat[1] = 0.; nhat[2] = 1.;
+                    }
+
+    else if (i==0 && j==0 && k==0) { ; }
+
+    else 
+    {
+        Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
+    }
+
+    if (which == 0) { return mhat[l]; }
+    else if (which == 1) { return nhat[l]; }
+    else { Error("RandomField::calculate_polarisation_tensors Basis vector choice invalid."); }
+}
+
 inline void RandomField::init()
 {
     BL_PROFILE("RandomField::init_random_field");
-    N = m_params.N_readin;
 
     // Set up the problem domain and MF ingredients (Real space)
     IntVect domain_low(0, 0, 0);
@@ -110,8 +157,6 @@ inline void RandomField::init()
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
-    std::string filename = "GRTeclyn-mode-fns";
-
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -125,9 +170,15 @@ inline void RandomField::init()
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
 
-            PrintToFile(filename, 0) << i << "," << j << "," << k << ",";
-            PrintToFile(filename, 0).SetPrecision(12) << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << ",";
-            PrintToFile(filename, 0).SetPrecision(12) << hs_ptr(i, j, k, 1).real() << "," << hs_ptr(i, j, k, 1).imag() << "\n";
+            Vector<Real> eplus(6, 0.);
+            Vector<Real> ecross(6, 0.);
+            for (int l=0; l<3; l++) for (int p=l; p<3; p++)
+            {
+                eplus[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 0) 
+                                    - basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 1);
+                ecross[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 1) 
+                                    + basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 0);
+            }
         });
 
 	    Error("End of first box loop.");

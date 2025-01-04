@@ -16,6 +16,7 @@
 #include <AMReX_FFT.H>
 #include <AMReX_Random.H>
 #include <AMReX_Print.H>
+#include <AMReX_Vector.H>
 
 using namespace amrex;
 
@@ -51,15 +52,29 @@ class RandomField
                 : m_params(a_params), m_background_params(a_background_params), 
                   m_spec_type(a_spec_type)
         {
+            // Set protected class parameters
+            N = m_params.N_readin;
+
+            lut[0][0] = 0;
+            lut[0][1] = 1;
+            lut[0][2] = 2;
+            lut[1][0] = 1;
+            lut[1][1] = 3;
+            lut[1][2] = 4;
+            lut[2][0] = 2;
+            lut[2][1] = 4;
+            lut[2][2] = 5;
         }
 
         int invert_index(int indx);
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
+        Real basis_vector(int I, int J, int k, int l, int which);
         void init();
         
     private:
         int N;                 //<! Grid resolution
+        int lut[3][3];
 
     protected:
         const params_t m_params;
