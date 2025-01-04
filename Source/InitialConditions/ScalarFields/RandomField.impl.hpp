@@ -52,8 +52,9 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
 
     value = calculate_mode_function(kmag, spectrum_type);
 
-    if(m_params.use_rand)
+    if(m_params.use_rand == 1)
     {
+        BL_PROFILE("RandomField::calculate_random_field Random initialisation is used")
         // Make one random draw for the amplitude and phase
         Real rand_mod = sqrt(-2. * log(amrex::Random())); // Rayleigh distribution about |h|
         Real rand_arg = 2. * M_PI * amrex::Random();      // Uniform random phase
@@ -69,8 +70,9 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
         value = new_value;
     }
 
-    if(m_params.use_window) 
+    if(m_params.use_window == 1) 
     { 
+        BL_PROFILE("RandomField::calculate_random_field Window function is used")
         double ks = m_params.kstar * 2. * M_PI/m_params.L;
         double Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1. - tanh(Dt * (kmag - ks))); 
@@ -100,6 +102,8 @@ inline void RandomField::init()
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
+    std::string filename = "GRTeclyn-mode-fns";
+
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -112,7 +116,13 @@ inline void RandomField::init()
         {
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
+
+            PrintToFile(filename, 0) << i << "," << j << "," << k << ",";
+            PrintToFile(filename, 0).SetPrecision(12) << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << ",";
+            PrintToFile(filename, 0).SetPrecision(12) << hs_ptr(i, j, k, 1).real() << "," << hs_ptr(i, j, k, 1).imag() << "\n";
         });
+
+	    Error("End of first box loop.");
     }
 }
 

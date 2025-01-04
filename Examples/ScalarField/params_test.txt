@@ -42,17 +42,20 @@ print_progress_only_to_rank_0 = 1
 # to solve the constaints)
 G_Newton = 1.0
 
-# Scalar field initial data
+# Homogeneous scalar field initial data
 scalar_amplitude = 4.0000000000000000000
 scalar_velocity = -0.00001627328880468423
 scalar_mass = 1.e-4
 
+# Random Field initial data
 num_scalar_fields = 0
 calc_tensor_field = 1
 A = 1.
 which_seed = 1
 # N_fine = 256
+use_rand = 0
 
+# Window function parameters
 kstar = 16
 Delta = 30
 
@@ -67,7 +70,7 @@ Delta = 30
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
 N_full = 32 # 64
-L_full = 32 # 3000
+L_full = 3000 # 3000
 
 # Maximum number of times you can regrid above coarsest level
 max_level = 0 # There are (max_level+1) grids, so min is zero
