@@ -11,7 +11,11 @@
 #ifndef RANDOMFIELD_IMPL_HPP_
 #define RANDOMFIELD_IMPL_HPP_
 
-inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
+inline int RandomField::invert_index(int indx) 
+{ 
+    if(indx <= N/2) { return indx; }
+    else { return abs(N/2 - indx) - N/2; }
+}
 
 inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
 {
@@ -89,14 +93,51 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
-void calculate_polarisation_tensors(int I, int J, int k, Vector<Real> epsilon_plus, Vector<Real> epsilon_cross)
+inline void RandomField::calculate_polarisation_tensors(int I, int J, int k,
+    Vector<Real> epsilon_plus, Vector<Real> epsilon_cross)
 {
     // Find kmag with FFTW-style inversion on the first two indices
     int i = invert_index(I);
     int j = invert_index(J);
 
     Vector<Real> mhat(3, 0.);
-    Vector<Real> mhat(3, 0.);    
+    Vector<Real> mhat(3, 0.);
+
+    if (k > 0.) 
+    {
+        if (i == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
+                                  nhat[0] = 0.; nhat[1] = 1.; nhat[2] = 0.; 
+                                }
+
+        else { mhat[0] = j/sqrt(i*i+j*j); mhat[1] = -i/sqrt(i*i+j*j); mhat[2] = 0.L;
+               nhat[0] = k*i/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
+               nhat[1] = k*j/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
+               nhat[2] = -(i*i + j*j)/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.)); 
+             }
+    }
+
+    else if (abs(j) > 0) { mhat[0] = 0.; mhat[1] = 0.; mhat[2] = -1.;
+                      nhat[0] = -j/sqrt(j*j + i*i);
+                      nhat[1] = i/sqrt(j*j + i*i);
+                      nhat[2] = 0.; 
+                    }
+
+    else if (abs(i) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
+                      nhat[0] = 0.; nhat[1] = 0.; nhat[2] = 1.;
+                    }
+
+    else if (i==0 && j==0 && k==0) { ; }
+
+    else 
+    {
+        Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
+    }
+
+    for (int l=0; l<3; l++) for (int p=l; p<3; p++)
+    {
+        epsilon_plus[lut[l][p]] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+        epsilon_cross[lut[l][p]] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+    }
 }
 
 inline void RandomField::init()
@@ -134,7 +175,24 @@ inline void RandomField::init()
 
             Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
+
+            if(k != 0) 
+            { 
+                std::cout << "Pol. tensor 1 before assignment: ";
+                std::cout << eplus[0] << ",";
+                std::cout << eplus[1] << ",";
+                std::cout << eplus[2] << "\n";
+            }
+            
             calculate_polarisation_tensors(i, j, k, eplus, ecross);
+
+            if(k != 0) 
+            { 
+                std::cout << "Pol. tensor 1 after assignment: ";
+                std::cout << eplus[0] << ",";
+                std::cout << eplus[1] << ",";
+                std::cout << eplus[2] << "\n";
+            }
         });
 
 	    Error("End of first box loop.");
