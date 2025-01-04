@@ -176,7 +176,7 @@ inline void RandomField::init()
             Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
 
-            if(k != 0) 
+            if(i==2 && j==4 && k==3) 
             { 
                 std::cout << "Pol. tensor 1 before assignment: ";
                 std::cout << eplus[0] << ",";
@@ -186,7 +186,7 @@ inline void RandomField::init()
             
             calculate_polarisation_tensors(i, j, k, eplus, ecross);
 
-            if(k != 0) 
+            if(i==2 && j==4 && k==3) 
             { 
                 std::cout << "Pol. tensor 1 after assignment: ";
                 std::cout << eplus[0] << ",";
