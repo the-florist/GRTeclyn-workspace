@@ -89,10 +89,19 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
+void calculate_polarisation_tensors(int I, int J, int k, Vector<Real> epsilon_plus, Vector<Real> epsilon_cross)
+{
+    // Find kmag with FFTW-style inversion on the first two indices
+    int i = invert_index(I);
+    int j = invert_index(J);
+
+    Vector<Real> mhat(3, 0.);
+    Vector<Real> mhat(3, 0.);    
+}
+
 inline void RandomField::init()
 {
     BL_PROFILE("RandomField::init_random_field");
-    N = m_params.N_readin;
 
     // Set up the problem domain and MF ingredients (Real space)
     IntVect domain_low(0, 0, 0);
@@ -110,8 +119,6 @@ inline void RandomField::init()
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
-    std::string filename = "GRTeclyn-mode-fns";
-
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -125,9 +132,9 @@ inline void RandomField::init()
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
 
-            PrintToFile(filename, 0) << i << "," << j << "," << k << ",";
-            PrintToFile(filename, 0).SetPrecision(12) << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << ",";
-            PrintToFile(filename, 0).SetPrecision(12) << hs_ptr(i, j, k, 1).real() << "," << hs_ptr(i, j, k, 1).imag() << "\n";
+            Vector<Real> eplus(6, 0.);
+            Vector<Real> ecross(6, 0.);
+            calculate_polarisation_tensors(i, j, k, eplus, ecross);
         });
 
 	    Error("End of first box loop.");
