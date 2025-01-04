@@ -138,6 +138,14 @@ inline void RandomField::calculate_polarisation_tensors(int I, int J, int k,
         epsilon_plus[lut[l][p]] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
         epsilon_cross[lut[l][p]] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
     }
+
+    if(i==2 && j==4 && k==3) 
+    { 
+        std::cout << "Pol. tensor 1 during assignment: ";
+        std::cout << epsilon_plus[0] << ",";
+        std::cout << epsilon_plus[1] << ",";
+        std::cout << epsilon_plus[2] << "\n";
+    }
 }
 
 inline void RandomField::init()
