@@ -29,7 +29,7 @@ class RandomField
         {
             int num_scalar_fields; //!< Number of fields to generate
             int calc_tensor_field; //!< Determines whether tensor perts are calculated
-            bool use_rand = true;  //!< Flag choosing whether to use random inits
+            int use_rand = 1;  //!< Flag choosing whether to use random inits
 
             double L;          //!< Length of the box
             double A;          //!< Amplitude factor (for basic tests)
@@ -40,7 +40,7 @@ class RandomField
             int N_fine;            //!< Fine resolution to downsample from, 
                                 //! used for convergence testing
 
-            bool use_window = false;//!< Flag choosing whether to use window function
+            int use_window = 0;//!< Flag choosing whether to use window function
             double kstar;          //!< cut-off mode, measured in units of 2pi/L
             double Delta;          //!< cut-off width, measured like L/Delta
         };

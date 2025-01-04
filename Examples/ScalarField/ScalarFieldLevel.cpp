@@ -119,6 +119,7 @@ void ScalarFieldLevel::initData()
 
     RandomField random_field(simParams().random_field_params, simParams().background_params, "field");
     random_field.init();
+    amrex::Error("RF init finalised");
 
     if (simParams().nan_check)
     {
