@@ -93,8 +93,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
-inline void RandomField::calculate_polarisation_tensors(int I, int J, int k,
-    Vector<Real> epsilon_plus, Vector<Real> epsilon_cross)
+inline void RandomField::basis_vector(int I, int J, int k, int l, int which)
 {
     // Find kmag with FFTW-style inversion on the first two indices
     int i = invert_index(I);
@@ -133,19 +132,9 @@ inline void RandomField::calculate_polarisation_tensors(int I, int J, int k,
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    for (int l=0; l<3; l++) for (int p=l; p<3; p++)
-    {
-        epsilon_plus[lut[l][p]] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-        epsilon_cross[lut[l][p]] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
-    }
-
-    if(i==2 && j==4 && k==3) 
-    { 
-        std::cout << "Pol. tensor 1 during assignment: ";
-        std::cout << epsilon_plus[0] << ",";
-        std::cout << epsilon_plus[1] << ",";
-        std::cout << epsilon_plus[2] << "\n";
-    }
+    if (which_vector == 0) { return mhat[l]; }
+    else if (which_vector == 1) { return nhat[l]; }
+    else { Error("RandomField::calculate_polarisation_tensors Basis vector choice invalid."); }
 }
 
 inline void RandomField::init()
@@ -183,16 +172,13 @@ inline void RandomField::init()
 
             Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
-
-            if(i==2 && j==4 && k==3) 
-            { 
-                std::cout << "Pol. tensor 1 before assignment: ";
-                std::cout << eplus[0] << ",";
-                std::cout << eplus[1] << ",";
-                std::cout << eplus[2] << "\n";
+            for (int l=0; l<3; l++) for (int p=l; p<3; p++)
+            {
+                eplus[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 0) 
+                                    - basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 1);
+                ecross[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 1) 
+                                    + basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 0);
             }
-            
-            calculate_polarisation_tensors(i, j, k, eplus, ecross);
 
             if(i==2 && j==4 && k==3) 
             { 
