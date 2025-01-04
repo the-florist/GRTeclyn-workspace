@@ -93,7 +93,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
-inline void RandomField::basis_vector(int I, int J, int k, int l, int which)
+inline Real RandomField::basis_vector(int I, int J, int k, int l, int which)
 {
     // Find kmag with FFTW-style inversion on the first two indices
     int i = invert_index(I);
