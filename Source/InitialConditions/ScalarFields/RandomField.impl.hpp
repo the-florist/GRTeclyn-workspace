@@ -14,7 +14,7 @@
 inline int RandomField::invert_index(int indx) 
 { 
     if(indx <= N/2) { return indx; }
-    else { return abs(N/2 - indx) - N/2; }
+    else { return std::abs(N/2 - indx) - N/2; }
 }
 
 inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
@@ -101,7 +101,7 @@ inline void RandomField::calculate_polarisation_tensors(int I, int J, int k,
     int j = invert_index(J);
 
     Vector<Real> mhat(3, 0.);
-    Vector<Real> mhat(3, 0.);
+    Vector<Real> nhat(3, 0.);
 
     if (k > 0.) 
     {
