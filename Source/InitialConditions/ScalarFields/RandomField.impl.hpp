@@ -119,7 +119,7 @@ inline void RandomField::init()
 
             std::cout << i << ",";
             std::cout << j << ",";
-            std::cout << k << ",";
+            std::cout << k << "\n";
             //std::cout << Geometry(bx).ProbLo(0) << ",";
             //std::cout << Geometry(bx).ProbHi(0) << "\n";
 
