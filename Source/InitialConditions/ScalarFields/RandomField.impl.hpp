@@ -111,16 +111,28 @@ inline void RandomField::init()
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
         const Box& bx = mfi.fabbox();
 
+	/*std::cout << mfi.index() << ",";
+	std::cout << mfi.length() << ",";
+	std::cout << mfi.LocalTileIndex() << ",";
+	std::cout << mfi.LocalIndex() << "\n";*/
+
         // Loop to create mode functions then hij(k)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
 
-            PrintToFile(filename, 0) << mfi.index() << "\n"; //i << "," << j << "," << k << ",";
+		const auto lx = lbound(bx);
+		const auto hx = ubound(bx);
+		std::cout << i << ",";
+		std::cout << lx.x << ",";
+		std::cout << hx.x << "\n";
+            //PrintToFile(filename, 0) << mfi.index() << "\n"; //i << "," << j << "," << k << ",";
             //PrintToFile(filename, 0) << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << ",";
             //PrintToFile(filename, 0) << hs_ptr(i, j, k, 1).real() << "," << hs_ptr(i, j, k, 1).imag() << "\n";
         });
+
+	Error("End of first box loop.");
     }
 }
 
