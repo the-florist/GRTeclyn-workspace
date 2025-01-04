@@ -117,8 +117,8 @@ inline void RandomField::init()
             hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
             hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
 
-            PrintToFile(filename, 0) << i << "\n";// << j << "," << k << ",";
-            //mode_fns << hs_ptr(i, j, k, 0) << "," << hs_ptr(i, j, k, 1) << "\n";
+            PrintToFile(filename, 0) << i << "," << j << "," << k << ",";
+            PrintToFile(filename, 0) << hs_ptr(i, j, k, 0) << "," << hs_ptr(i, j, k, 1) << "\n";
         });
     }
 }
