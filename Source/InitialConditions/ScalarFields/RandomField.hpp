@@ -69,8 +69,7 @@ class RandomField
         int invert_index(int indx);
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
-        void calculate_polarisation_tensors(int I, int J, int k, 
-            Vector<Real> epsilon_plus, Vector<Real> epsilon_cross);
+        void basis_vector(int I, int J, int k, int l, int which);
         void init();
         
     private:
