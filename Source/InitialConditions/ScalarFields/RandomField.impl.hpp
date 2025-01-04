@@ -15,43 +15,50 @@ inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2
 
 inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
 {
+    // Deals with k=0 case, undefined if m=0
     if(km < 1.e-23) { return 0.; }
     
+    // Stores modulus and argument 
     Real ms_mag = 0.;
     Real ms_arg = 0.;
 
+    // Hubble at t=0, needed for tensor solution
     Real H0 = sqrt((4.0 * M_PI/3.0/pow(m_params.Mp, 2.))
                 * (pow(m_background_params.m * m_background_params.phi0, 2.0) 
                     + pow(m_background_params.Pi0, 2.)));
 
     double kpr = km/H0;
-    if (spec_type == "position")
+    if (spec_type == "position") // Position mode funcion
     {
         ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
-    else if (spec_type == "velocity")
+    else if (spec_type == "velocity") // Velocity mode funcion
     {
         ms_mag = sqrt(km/2.);
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
     else { Error("RandomField::calculate_power_spectrum Value of spec_type not allowed."); }
 
-
+    // Construct the mode function and return it
     GpuComplex<Real> ps(ms_mag * cos(ms_arg), ms_mag * sin(ms_arg));
     return ps;
 }
 
 inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k, std::string spectrum_type)
 {
+    // Storage for the returned value
     GpuComplex<Real> value(0., 0.);
 
+    // Find kmag with FFTW-style inversion on the first two indices
     int i = invert_index(I);
     int j = invert_index(J);
     double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 
+    // Find the linearised solution
     value = calculate_mode_function(kmag, spectrum_type);
 
+    // Add stochastic perturbations
     if(m_params.use_rand == 1)
     {
         BL_PROFILE("RandomField::calculate_random_field Random initialisation is used")
@@ -70,6 +77,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
         value = new_value;
     }
 
+    // Apply a window function
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
