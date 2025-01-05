@@ -161,7 +161,7 @@ inline void RandomField::init()
 
     // Set up the arrays to store the in/out data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
-    cMultiFab hs_x(xba, xdm, 2, 0);
+    MultiFab hs_x(xba, xdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
