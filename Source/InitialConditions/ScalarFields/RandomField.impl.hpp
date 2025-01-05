@@ -268,15 +268,15 @@ inline void RandomField::init()
     //random_field_fft.backward(hij_k, hij_x);
 
     std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
-    for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(hx_test); mfi.isValid(); ++mfi) 
     {
-        Array4<Real> const& hs_ptr_x = hs_x.array(mfi);
+        Array4<Real> const& hx_test_ptr = hx_test.array(mfi);
         const Box& bx = mfi.fabbox();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             PrintToFile(filename, 0) << i << "," << j << "," << k;
-            PrintToFile(filename, 0) << "," << hx_test(i, j, k);
+            PrintToFile(filename, 0) << "," << hx_test_ptr(i, j, k);
             /*for(int s=0; s<2; s++)
             {
                 PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k, s) ;
