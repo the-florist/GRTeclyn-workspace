@@ -248,12 +248,12 @@ inline void RandomField::init()
                 }
             }
 
-            /*PrintToFile(Filename, 0) << i << "," << j << "," << k;
-            for(int s=0; s<6; s++)
+            PrintToFile(Filename, 0) << i << "," << j << "," << k;
+            for(int s=0; s<2; s++)
             {
-                PrintToFile(Filename, 0) << "," << hij_ptr(i, j, k, s) ;
+                PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, s) ;
             }
-            PrintToFile(Filename, 0) << "\n";*/
+            PrintToFile(Filename, 0) << "\n";
         });
     }
 
