@@ -56,14 +56,14 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::str
     return ps;
 }
 
-inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k, std::string spectrum_type)
+inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K, std::string spectrum_type)
 {
     // Storage for the returned value
     GpuComplex<Real> value(0., 0.);
 
     // Find kmag with FFTW-style inversion on the first two indices
-    int i = invert_index(I);
     int j = invert_index(J);
+    int k = invert_index(K);
     double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 
     // Find the linearised solution
@@ -100,35 +100,35 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
-inline Real RandomField::basis_vector(int I, int J, int k, int l, int which)
+inline Real RandomField::basis_vector(int i, int J, int K, int l, int which)
 {
     // Find kmag with FFTW-style inversion on the first two indices
-    int i = invert_index_with_sign(I);
     int j = invert_index_with_sign(J);
+    int k = invert_index_with_sign(K);
 
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
 
-    if (k > 0.) 
+    if (i > 0.) 
     {
-        if (i == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
+        if (k == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
                                   nhat[0] = 0.; nhat[1] = 1.; nhat[2] = 0.; 
                                 }
 
-        else { mhat[0] = j/sqrt(i*i+j*j); mhat[1] = -i/sqrt(i*i+j*j); mhat[2] = 0.L;
-               nhat[0] = k*i/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
-               nhat[1] = k*j/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
-               nhat[2] = -(i*i + j*j)/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.)); 
+        else { mhat[0] = j/sqrt(k*k+j*j); mhat[1] = -k/sqrt(k*k+j*j); mhat[2] = 0.L;
+               nhat[0] = k*i/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
+               nhat[1] = i*j/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
+               nhat[2] = -(k*k + j*j)/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.)); 
              }
     }
 
     else if (std::abs(j) > 0) { mhat[0] = 0.; mhat[1] = 0.; mhat[2] = -1.;
-                      nhat[0] = -j/sqrt(j*j + i*i);
-                      nhat[1] = i/sqrt(j*j + i*i);
+                      nhat[0] = -j/sqrt(j*j + k*k);
+                      nhat[1] = k/sqrt(j*j + k*k);
                       nhat[2] = 0.; 
                     }
 
-    else if (std::abs(i) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
+    else if (std::abs(k) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
                       nhat[0] = 0.; nhat[1] = 0.; nhat[2] = 1.;
                     }
 
@@ -156,19 +156,25 @@ inline void RandomField::init()
     DistributionMapping xdm(xba);
 
     // Make the fft and store the problem domain and MF ingredients (Fourier space)
-    FFT::R2C random_field_fft(domain);
+    FFT::R2C<Real> random_field_fft(domain);
     auto const& [kba, kdm] = random_field_fft.getSpectralDataLayout();
 
     // Set up the arrays to store the in/out data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
+    MultiFab hs_x(xba, xdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
+    //cMultiFab hk_test(kba, kdm, 1, 0);
+    //MultiFab hx_test(kba, kdm, 1, 0);
+
+    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij-k";
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
+        //Array4<GpuComplex<Real>> const& hk_test_ptr = hk_test.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
         const Box& bx = mfi.fabbox();
 
@@ -196,7 +202,7 @@ inline void RandomField::init()
             }
 
             // Nyquist node condition
-            if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
+            /*if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
             {
                 for(int p=0; p<2; p++) 
                 { 
@@ -212,20 +218,20 @@ inline void RandomField::init()
             }
 
             // Nyquist axis condition
-            if (k==0 || k==N/2) 
+            if (i==0 || i==N/2) 
             {
-                if((i>N/2 && j==N/2) || (i==0 && j>N/2) || (i>N/2 && j==0) || (i==N/2 && j>N/2))
+                if((k>N/2 && j==N/2) || (k==0 && j>N/2) || (k>N/2 && j==0) || (k==N/2 && j>N/2))
                 {
                     for(int p=0; p<2; p++) 
                     {
-                        GpuComplex<Real> temp(hs_ptr(invert_index(i), invert_index(j), k, p).real(), 
-                                                -hs_ptr(invert_index(i), invert_index(j), k, p).imag());
+                        GpuComplex<Real> temp(hs_ptr(i, invert_index(j), invert_index(k), p).real(), 
+                                                -hs_ptr(i, invert_index(j), invert_index(k), p).imag());
                         hs_ptr(i, j, k, p) = temp;
                     }
                     for (int l=0; l<3; l++) for (int p=l; p<3; p++)
                     {
-                        GpuComplex<Real> temp(hij_ptr(invert_index(i), invert_index(j), k, lut[l][p]).real(), 
-                                                -hij_ptr(invert_index(i), invert_index(j), k, lut[l][p]).imag());
+                        GpuComplex<Real> temp(hij_ptr(i, invert_index(j), invert_index(k), lut[l][p]).real(), 
+                                                -hij_ptr(i, invert_index(j), invert_index(k), lut[l][p]).imag());
                         hij_ptr(i, j, k, lut[l][p]) = temp;
                     }
                 }
@@ -233,21 +239,65 @@ inline void RandomField::init()
                 {
                     for(int p=0; p<2; p++) 
                     {
-                        GpuComplex<Real> temp(hs_ptr(flip_index(i), invert_index(j), k, p).real(), 
-                                                -hs_ptr(flip_index(i), invert_index(j), k, p).imag());
+                        GpuComplex<Real> temp(hs_ptr(i, invert_index(j), flip_index(k), p).real(), 
+                                                -hs_ptr(i, invert_index(j), flip_index(k), p).imag());
                         hs_ptr(i, j, k, p) = temp;
                     }
                     for (int l=0; l<3; l++) for (int p=l; p<3; p++)
                     {
-                        GpuComplex<Real> temp(hij_ptr(flip_index(i), invert_index(j), k, lut[l][p]).real(), 
-                                                -hij_ptr(flip_index(i), invert_index(j), k, lut[l][p]).imag());
+                        GpuComplex<Real> temp(hij_ptr(i, invert_index(j), flip_index(k), lut[l][p]).real(), 
+                                                -hij_ptr(i, invert_index(j), flip_index(k), lut[l][p]).imag());
                         hij_ptr(i, j, k, lut[l][p]) = temp;
                     }
                 }
-            }
-        });
+            }*/
 
+            //hk_test_ptr(i, j, k) = hs_ptr(i, j, k, 0);
+
+            //PrintToFile(Filename, 0) << i << "," << j << "," << k;
+            //PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0);
+            /*for(int s=0; s<2; s++)
+            {
+                PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0).real();
+                PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0).imag();
+            }
+            PrintToFile(Filename, 0) << "\n";*/
+        });
     }
+
+    for(int fcomp = 0; fcomp < hij_k.nComp(); fcomp++)
+    {
+        cMultiFab hij_k_slice(hij_k, make_alias, fcomp, 1);
+        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
+        random_field_fft.backward(hij_k_slice, hij_x_slice);
+    }
+
+    /*for(int fcomp = 0; fcomp < hs_k.nComp(); fcomp++)
+    {
+        cMultiFab hk_slice(hs_k, make_alias, fcomp, 1);
+        MultiFab hx_slice(hs_x, make_alias, fcomp, 1);
+        random_field_fft.backward(hk_slice, hx_slice);
+    }*/
+
+    std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
+    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
+    {
+        Array4<Real> const& hij_ptr_x = hij_x.array(mfi);
+        const Box& bx = mfi.fabbox();
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            PrintToFile(filename, 0) << i << "," << j << "," << k;
+            //PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k);
+            for(int s=0; s<6; s++)
+            {
+                PrintToFile(filename, 0) << "," << hij_ptr_x(i, j, k, s) ;
+            }
+            PrintToFile(filename, 0) << "\n";
+        });
+    }
+
+    //Error("End of first box loop.");
 }
 
 #endif /* RANDOMFIELD_IMPL_HPP_*/
