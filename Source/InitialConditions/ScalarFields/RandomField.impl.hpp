@@ -162,14 +162,19 @@ inline void RandomField::init()
     {
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
+        Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
         const Box& bx = mfi.fabbox();
 
         // Loop to create mode functions then hij(k)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            hs_ptr(i, j, k, 0) = calculate_random_field(i, j, k, "position");
-            hs_ptr(i, j, k, 1) = calculate_random_field(i, j, k, "position");
+            // Find the mode function realisation
+            for(int p=0: p<2; p++)
+            {
+                hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
+            }
 
+            // Find basis tensors and initial tensor realisation
             Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
             for (int l=0; l<3; l++) for (int p=l; p<3; p++)
@@ -178,6 +183,9 @@ inline void RandomField::init()
                                     - basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 1);
                 ecross[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 1) 
                                     + basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 0);
+
+                hij_ptr(i, j, k, lut[l][p]) = (eplus[lut[l][p]] * hs_ptr(i, j, k, 0)
+                                                + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
             }
         });
 
