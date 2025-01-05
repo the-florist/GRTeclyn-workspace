@@ -161,10 +161,11 @@ inline void RandomField::init()
 
     // Set up the arrays to store the in/out data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
+    cMultiFab hs_x(xba, xdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
-    std::string filename = "./GRTeclyn-hij-k";
+    std::string Filename = "./GRTeclyn-hij-k";
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -247,29 +248,30 @@ inline void RandomField::init()
                 }
             }
 
-            /*PrintToFile(filename, 0) << i << "," << j << "," << k;
+            /*PrintToFile(Filename, 0) << i << "," << j << "," << k;
             for(int s=0; s<6; s++)
             {
-                PrintToFile(filename, 0) << "," << hij_ptr(i, j, k, s) ;
+                PrintToFile(Filename, 0) << "," << hij_ptr(i, j, k, s) ;
             }
-            PrintToFile(filename, 0) << "\n";*/
+            PrintToFile(Filename, 0) << "\n";*/
         });
     }
 
-    random_field_fft.forward(hij_k, hij_x);
+    random_field_fft.backward(hs_k, hs_x);
+    //random_field_fft.backward(hij_k, hij_x);
 
     std::string filename = "./GRTeclyn-hij";
-    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
     {
-        Array4<Real> const& hij_ptr = hij_x.array(mfi);
+        Array4<Real> const& hs_ptr_x = hs_x.array(mfi);
         const Box& bx = mfi.fabbox();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             PrintToFile(filename, 0) << i << "," << j << "," << k;
-            for(int s=0; s<6; s++)
+            for(int s=0; s<2; s++)
             {
-                PrintToFile(filename, 0) << "," << hij_ptr(i, j, k, s) ;
+                PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k, s) ;
             }
             PrintToFile(filename, 0) << "\n";
         });
