@@ -246,11 +246,28 @@ inline void RandomField::init()
                 }
             }
         });
-
-        random_field_fft.backward(hij_k, hij_x);
-
-	    //Error("End of first box loop.");
     }
+
+    random_field_fft.backward(hij_k, hij_x);
+
+    std::string filename = "./GRTeclyn-hij";
+    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
+    {
+        Array4<GpuComplex<Real>> const& hij_ptr = hij_x.array(mfi);
+        const Box& bx = mfi.fabbox();
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            PrintToFile(filename, 0) << i << "," << j << "," << k;
+            for(int s=0; s<6; s++)
+            {
+                PrintToFile(filename, 0) << "," << hij_ptr(i, j, k, s) ;
+            }
+            PrintToFile(filename, 0) << "\n";
+        });
+    }
+
+    //Error("End of first box loop.");
 }
 
 #endif /* RANDOMFIELD_IMPL_HPP_*/
