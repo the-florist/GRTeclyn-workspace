@@ -253,7 +253,7 @@ inline void RandomField::init()
     std::string filename = "./GRTeclyn-hij";
     for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
     {
-        Array4<GpuComplex<Real>> const& hij_ptr = hij_x.array(mfi);
+        Array4<Real> const& hij_ptr = hij_x.array(mfi);
         const Box& bx = mfi.fabbox();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
