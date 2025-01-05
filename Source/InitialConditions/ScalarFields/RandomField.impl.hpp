@@ -179,14 +179,6 @@ inline void RandomField::init()
                 ecross[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 1) 
                                     + basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 0);
             }
-
-            if(i==2 && j==4 && k==3) 
-            { 
-                std::cout << "Pol. tensor 1 after assignment: ";
-                std::cout << eplus[0] << ",";
-                std::cout << eplus[1] << ",";
-                std::cout << eplus[2] << "\n";
-            }
         });
 
 	    Error("End of first box loop.");
