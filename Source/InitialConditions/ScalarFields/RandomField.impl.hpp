@@ -157,7 +157,7 @@ inline void RandomField::init()
 
     // Make the fft and store the problem domain and MF ingredients (Fourier space)
     FFT::R2C<Real, FFT::Direction::backward> backward_fft(domain);
-    auto const& [kba, kdm] = random_field_fft.getSpectralDataLayout();
+    auto const& [kba, kdm] = backward_fft.getSpectralDataLayout();
 
     // Set up the arrays to store the in/out data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
