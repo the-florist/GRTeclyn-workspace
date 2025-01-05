@@ -247,6 +247,8 @@ inline void RandomField::init()
             }
         });
 
+        random_field_fft.backward(hij_k, hij_x);
+
 	    //Error("End of first box loop.");
     }
 }
