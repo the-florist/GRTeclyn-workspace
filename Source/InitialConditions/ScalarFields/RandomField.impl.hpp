@@ -169,7 +169,7 @@ inline void RandomField::init()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Find the mode function realisation
-            for(int p=0: p<2; p++)
+            for(int p=0; p<2; p++)
             {
                 hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
             }
@@ -189,7 +189,7 @@ inline void RandomField::init()
             }
         });
 
-	    Error("End of first box loop.");
+	    //Error("End of first box loop.");
     }
 }
 
