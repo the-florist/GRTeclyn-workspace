@@ -156,7 +156,7 @@ inline void RandomField::init()
     DistributionMapping xdm(xba);
 
     // Make the fft and store the problem domain and MF ingredients (Fourier space)
-    FFT::R2C random_field_fft(domain);
+    FFT::R2C<Real, FFT::Direction::backward> backward_fft(domain);
     auto const& [kba, kdm] = random_field_fft.getSpectralDataLayout();
 
     // Set up the arrays to store the in/out data sets
@@ -257,7 +257,7 @@ inline void RandomField::init()
         });
     }
 
-    random_field_fft.backward(hs_k, hs_x);
+    backward_fft.backward(hs_k, hs_x);
     //random_field_fft.backward(hij_k, hij_x);
 
     std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
