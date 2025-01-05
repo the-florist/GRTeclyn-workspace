@@ -66,7 +66,9 @@ class RandomField
             lut[2][2] = 5;
         }
 
+        int flip_index(int indx);
         int invert_index(int indx);
+        int invert_index_with_sign(int indx);
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
         Real basis_vector(int I, int J, int k, int l, int which);
