@@ -260,7 +260,7 @@ inline void RandomField::init()
     random_field_fft.backward(hs_k, hs_x);
     //random_field_fft.backward(hij_k, hij_x);
 
-    std::string filename = "./GRTeclyn-hij";
+    std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
     for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
     {
         Array4<Real> const& hs_ptr_x = hs_x.array(mfi);
