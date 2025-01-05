@@ -161,9 +161,12 @@ inline void RandomField::init()
 
     // Set up the arrays to store the in/out data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
-    MultiFab hs_x(xba, xdm, 2, 0);
+    //MultiFab hs_x(xba, xdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
+
+    cMultiFab hk_test(kba, kdm, 1, 0);
+    MultiFab hx_test(kba, kdm, 1, 0);
 
     std::string Filename = "./GRTeclyn-hij-k";
     // Loop to create Fourier-space tensor object
@@ -171,6 +174,7 @@ inline void RandomField::init()
     {
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
+        Array4<GpuComplex<Real>> const& hk_test_ptr = hk_test.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
         const Box& bx = mfi.fabbox();
 
@@ -248,16 +252,19 @@ inline void RandomField::init()
                 }
             }
 
-            PrintToFile(Filename, 0) << i << "," << j << "," << k;
+            hk_test_ptr(i, j, k) = hs_ptr(i, j, k, 0);
+
+            /*PrintToFile(Filename, 0) << i << "," << j << "," << k;
             for(int s=0; s<2; s++)
             {
                 PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, s) ;
             }
-            PrintToFile(Filename, 0) << "\n";
+            PrintToFile(Filename, 0) << "\n";*/
         });
     }
 
-    backward_fft.backward(hs_k, hs_x);
+    backward_fft.backward(hk_test, hx_test);
+    //backward_fft.backward(hs_k, hs_x);
     //random_field_fft.backward(hij_k, hij_x);
 
     std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
@@ -269,10 +276,11 @@ inline void RandomField::init()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             PrintToFile(filename, 0) << i << "," << j << "," << k;
-            for(int s=0; s<2; s++)
+            PrintToFile(filename, 0) << "," << hx_test(i, j, k);
+            /*for(int s=0; s<2; s++)
             {
                 PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k, s) ;
-            }
+            }*/
             PrintToFile(filename, 0) << "\n";
         });
     }
