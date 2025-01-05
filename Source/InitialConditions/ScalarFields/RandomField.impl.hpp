@@ -11,7 +11,14 @@
 #ifndef RANDOMFIELD_IMPL_HPP_
 #define RANDOMFIELD_IMPL_HPP_
 
-inline int RandomField::invert_index(int indx) 
+// Used for symmetry condition
+inline int RandomField::flip_index(int indx) { return std::abs(N - indx); }
+
+// Used for symmetry condition and calculation of kmag
+inline int RandomField::invert_index(int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
+
+// Used for calculation of polarisation tensors
+inline int RandomField::invert_index_with_sign(int indx) 
 { 
     if(indx <= N/2) { return indx; }
     else { return std::abs(N/2 - indx) - N/2; }
@@ -96,8 +103,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
 inline Real RandomField::basis_vector(int I, int J, int k, int l, int which)
 {
     // Find kmag with FFTW-style inversion on the first two indices
-    int i = invert_index(I);
-    int j = invert_index(J);
+    int i = invert_index_with_sign(I);
+    int j = invert_index_with_sign(J);
 
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
@@ -186,6 +193,57 @@ inline void RandomField::init()
 
                 hij_ptr(i, j, k, lut[l][p]) = (eplus[lut[l][p]] * hs_ptr(i, j, k, 0)
                                                 + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
+            }
+
+            // Nyquist node condition
+            if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
+            {
+                for(int p=0; p<2; p++) 
+                { 
+                    GpuComplex<Real> temp(hs_ptr(i, j, k, p).real(), 0.);
+                    hs_ptr(i, j, k, p) = temp;
+                }
+
+                for (int l=0; l<3; l++) for (int p=l; p<3; p++)
+                {
+                    GpuComplex<Real> temp(hij_ptr(i, j, k, lut[l][p]).real(), 0.);
+                    hij_ptr(i, j, k, lut[l][p]) = temp;
+                }
+            }
+
+            // Nyquist axis condition
+            if (k==0 || k==N/2) 
+            {
+                if((i>N/2 && j==N/2) || (i==0 && j>N/2) || (i>N/2 && j==0) || (i==N/2 && j>N/2))
+                {
+                    for(int p=0; p<2; p++) 
+                    {
+                        GpuComplex<Real> temp(hs_ptr(invert_index(i), invert_index(j), k, p).real(), 
+                                                -hs_ptr(invert_index(i), invert_index(j), k, p).imag());
+                        hs_ptr(i, j, k, p) = temp;
+                    }
+                    for (int l=0; l<3; l++) for (int p=l; p<3; p++)
+                    {
+                        GpuComplex<Real> temp(hij_ptr(invert_index(i), invert_index(j), k, lut[l][p]).real(), 
+                                                -hij_ptr(invert_index(i), invert_index(j), k, lut[l][p]).imag());
+                        hij_ptr(i, j, k, lut[l][p]) = temp;
+                    }
+                }
+                else if(j > N/2)
+                {
+                    for(int p=0; p<2; p++) 
+                    {
+                        GpuComplex<Real> temp(hs_ptr(flip_index(i), invert_index(j), k, p).real(), 
+                                                -hs_ptr(flip_index(i), invert_index(j), k, p).imag());
+                        hs_ptr(i, j, k, p) = temp;
+                    }
+                    for (int l=0; l<3; l++) for (int p=l; p<3; p++)
+                    {
+                        GpuComplex<Real> temp(hij_ptr(flip_index(i), invert_index(j), k, lut[l][p]).real(), 
+                                                -hij_ptr(flip_index(i), invert_index(j), k, lut[l][p]).imag());
+                        hij_ptr(i, j, k, lut[l][p]) = temp;
+                    }
+                }
             }
         });
 
