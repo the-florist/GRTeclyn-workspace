@@ -190,6 +190,9 @@ inline void RandomField::init()
                 }
             }
 
+            Print() << "Mode function here is: ";
+            Print() << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << "\n";
+
             // Find basis tensors and initial tensor realisation
             /*Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
@@ -257,14 +260,14 @@ inline void RandomField::init()
 
             //hk_test_ptr(i, j, k) = hs_ptr(i, j, k, 0);
 
-            PrintToFile(Filename, 0) << i << "," << j << "," << k;
+            //PrintToFile(Filename, 0) << i << "," << j << "," << k;
             //PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0);
-            for(int s=0; s<2; s++)
+            /*for(int s=0; s<2; s++)
             {
                 PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0).real();
                 PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0).imag();
             }
-            PrintToFile(Filename, 0) << "\n";
+            PrintToFile(Filename, 0) << "\n";*/
         });
     }
 
