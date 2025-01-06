@@ -168,7 +168,7 @@ inline void RandomField::init()
     cMultiFab hk_test(kba, kdm, 1, 0);
     MultiFab hx_test(kba, kdm, 1, 0);
 
-    std::string Filename = "./GRTeclyn-hij-k";
+    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij-k";
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -254,12 +254,13 @@ inline void RandomField::init()
 
             hk_test_ptr(i, j, k) = hs_ptr(i, j, k, 0);
 
-            /*PrintToFile(Filename, 0) << i << "," << j << "," << k;
-            for(int s=0; s<2; s++)
+            PrintToFile(Filename, 0) << i << "," << j << "," << k;
+            PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0);
+            /*for(int s=0; s<2; s++)
             {
                 PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, s) ;
-            }
-            PrintToFile(Filename, 0) << "\n";*/
+            }*/
+            PrintToFile(Filename, 0) << "\n";
         });
     }
 
