@@ -202,7 +202,7 @@ inline void RandomField::init()
             }
 
             // Nyquist node condition
-            if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
+            /*if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
             {
                 for(int p=0; p<2; p++) 
                 { 
@@ -250,7 +250,7 @@ inline void RandomField::init()
                         hij_ptr(i, j, k, lut[l][p]) = temp;
                     }
                 }
-            }
+            }*/
 
             //hk_test_ptr(i, j, k) = hs_ptr(i, j, k, 0);
 
