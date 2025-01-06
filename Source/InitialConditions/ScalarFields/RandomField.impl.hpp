@@ -309,7 +309,6 @@ inline void RandomField::init()
     Real tolerance = 1.e-6;
     for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
     {
-        Array4<Real> const& hij_ptr_k = hij_k.array(mfi);
         Array4<Real> const& hij_ptr_k_rev = hij_k_reverse.array(mfi);
         const Box& bx = mfi.fabbox();
 
@@ -317,12 +316,12 @@ inline void RandomField::init()
         {
             for(int s=0; s<6; s++)
             {
-                if (std::abs(hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s)) > tolerance)
+                if (std::abs(hij_ptr(i, j, k, s) - hij_ptr_k_rev(i, j, k, s)) > tolerance)
                 {
                     Print() << "The FFT was not recovered here: ";
                     Print() << i << "," << j << "," << k << "\n";
                     Print() << "Field values are: ";
-                    Print() << hij_ptr_k(i, j, k, s).real() << "," << hij_ptr_k(i, j, k, s).imag() << "\n";
+                    Print() << hij_ptr(i, j, k, s).real() << "," << hij_ptr(i, j, k, s).imag() << "\n";
                     Print() << hij_ptr_k_rev(i, j, k, s).real() << "," << hij_ptr_k_rev(i, j, k, s).imag() << "\n";
                     Print() << "Difference is: " << std::abs(hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s)) << "\n";
                     Error();
