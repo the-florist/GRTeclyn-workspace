@@ -187,11 +187,8 @@ inline void RandomField::init()
                 hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
             }
 
-            //Print() << "Mode function here is: ";
-            //Print() << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << "\n";
-
             // Find basis tensors and initial tensor realisation
-            /*Vector<Real> eplus(6, 0.);
+            Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
             for (int l=0; l<3; l++) for (int p=l; p<3; p++)
             {
@@ -202,7 +199,7 @@ inline void RandomField::init()
 
                 hij_ptr(i, j, k, lut[l][p]) = (eplus[lut[l][p]] * hs_ptr(i, j, k, 0)
                                                 + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
-            }*/
+            }
 
             // Nyquist node condition
             /*if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
@@ -268,26 +265,33 @@ inline void RandomField::init()
         });
     }
 
-    for(int fcomp = 0; fcomp < hs_k.nComp(); fcomp++)
+    for(int fcomp = 0; fcomp < hij_k.nComp(); fcomp++)
+    {
+        cMultiFab hij_k_slice(hij_k, make_alias, fcomp, 1);
+        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
+        random_field_fft.backward(hij_k_slice, hij_x_slice);
+    }
+
+    /*for(int fcomp = 0; fcomp < hs_k.nComp(); fcomp++)
     {
         cMultiFab hk_slice(hs_k, make_alias, fcomp, 1);
         MultiFab hx_slice(hs_x, make_alias, fcomp, 1);
         random_field_fft.backward(hk_slice, hx_slice);
-    }
+    }*/
 
     std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
-    for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
     {
-        Array4<Real> const& hs_ptr_x = hs_x.array(mfi);
+        Array4<Real> const& hij_ptr_x = hij_x.array(mfi);
         const Box& bx = mfi.fabbox();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             PrintToFile(filename, 0) << i << "," << j << "," << k;
             //PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k);
-            for(int s=0; s<2; s++)
+            for(int s=0; s<6; s++)
             {
-                PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k, s) ;
+                PrintToFile(filename, 0) << "," << hij_ptr_x(i, j, k, s) ;
             }
             PrintToFile(filename, 0) << "\n";
         });
