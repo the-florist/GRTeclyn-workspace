@@ -56,14 +56,14 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::str
     return ps;
 }
 
-inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k, std::string spectrum_type)
+inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K, std::string spectrum_type)
 {
     // Storage for the returned value
     GpuComplex<Real> value(0., 0.);
 
     // Find kmag with FFTW-style inversion on the first two indices
-    int i = invert_index(I);
     int j = invert_index(J);
+    int k = invert_index(K);
     double kmag = std::sqrt(i*i + j*j + k*k) * 2 * M_PI / m_params.L;
 
     // Find the linearised solution
@@ -100,35 +100,35 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int I, int J, int k,
     return value;
 }
 
-inline Real RandomField::basis_vector(int I, int J, int k, int l, int which)
+inline Real RandomField::basis_vector(int i, int J, int K, int l, int which)
 {
     // Find kmag with FFTW-style inversion on the first two indices
-    int i = invert_index_with_sign(I);
     int j = invert_index_with_sign(J);
+    int k = invert_index_with_sign(K);
 
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
 
-    if (k > 0.) 
+    if (i > 0.) 
     {
-        if (i == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
+        if (k == 0. && j == 0.) { mhat[0] = 1.; mhat[1] = 0.; mhat[2] = 0.; 
                                   nhat[0] = 0.; nhat[1] = 1.; nhat[2] = 0.; 
                                 }
 
-        else { mhat[0] = j/sqrt(i*i+j*j); mhat[1] = -i/sqrt(i*i+j*j); mhat[2] = 0.L;
-               nhat[0] = k*i/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
-               nhat[1] = k*j/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.));
-               nhat[2] = -(i*i + j*j)/sqrt(k*k*(i*i + j*j) + pow(i*i + j*j, 2.)); 
+        else { mhat[0] = j/sqrt(k*k+j*j); mhat[1] = -k/sqrt(k*k+j*j); mhat[2] = 0.L;
+               nhat[0] = k*i/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
+               nhat[1] = i*j/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.));
+               nhat[2] = -(k*k + j*j)/sqrt(i*i*(k*k + j*j) + pow(k*k + j*j, 2.)); 
              }
     }
 
     else if (std::abs(j) > 0) { mhat[0] = 0.; mhat[1] = 0.; mhat[2] = -1.;
-                      nhat[0] = -j/sqrt(j*j + i*i);
-                      nhat[1] = i/sqrt(j*j + i*i);
+                      nhat[0] = -j/sqrt(j*j + k*k);
+                      nhat[1] = k/sqrt(j*j + k*k);
                       nhat[2] = 0.; 
                     }
 
-    else if (std::abs(i) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
+    else if (std::abs(k) > 0) { mhat[0] = 0.; mhat[1] = 1.; mhat[2] = 0.;
                       nhat[0] = 0.; nhat[1] = 0.; nhat[2] = 1.;
                     }
 
