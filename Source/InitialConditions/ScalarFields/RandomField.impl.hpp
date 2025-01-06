@@ -182,16 +182,13 @@ inline void RandomField::init()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Find the mode function realisation
-            if(i==0 && j==0 && k==4)
+            for(int p=0; p<2; p++)
             {
-                for(int p=0; p<2; p++)
-                {
-                    hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
-                }
+                hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
             }
 
-            Print() << "Mode function here is: ";
-            Print() << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << "\n";
+            //Print() << "Mode function here is: ";
+            //Print() << hs_ptr(i, j, k, 0).real() << "," << hs_ptr(i, j, k, 0).imag() << "\n";
 
             // Find basis tensors and initial tensor realisation
             /*Vector<Real> eplus(6, 0.);
