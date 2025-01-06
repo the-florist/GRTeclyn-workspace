@@ -221,20 +221,20 @@ inline void RandomField::init()
             }
 
             // Nyquist axis condition
-            if (k==0 || k==N/2) 
+            if (i==0 || i==N/2) 
             {
-                if((i>N/2 && j==N/2) || (i==0 && j>N/2) || (i>N/2 && j==0) || (i==N/2 && j>N/2))
+                if((k>N/2 && j==N/2) || (k==0 && j>N/2) || (k>N/2 && j==0) || (k==N/2 && j>N/2))
                 {
                     for(int p=0; p<2; p++) 
                     {
-                        GpuComplex<Real> temp(hs_ptr(invert_index(i), invert_index(j), k, p).real(), 
-                                                -hs_ptr(invert_index(i), invert_index(j), k, p).imag());
+                        GpuComplex<Real> temp(hs_ptr(i, invert_index(j), invert_index(k), p).real(), 
+                                                -hs_ptr(i, invert_index(j), invert_index(k), p).imag());
                         hs_ptr(i, j, k, p) = temp;
                     }
                     for (int l=0; l<3; l++) for (int p=l; p<3; p++)
                     {
-                        GpuComplex<Real> temp(hij_ptr(invert_index(i), invert_index(j), k, lut[l][p]).real(), 
-                                                -hij_ptr(invert_index(i), invert_index(j), k, lut[l][p]).imag());
+                        GpuComplex<Real> temp(hij_ptr(i, invert_index(j), invert_index(k), lut[l][p]).real(), 
+                                                -hij_ptr(i, invert_index(j), invert_index(k), lut[l][p]).imag());
                         hij_ptr(i, j, k, lut[l][p]) = temp;
                     }
                 }
@@ -242,14 +242,14 @@ inline void RandomField::init()
                 {
                     for(int p=0; p<2; p++) 
                     {
-                        GpuComplex<Real> temp(hs_ptr(flip_index(i), invert_index(j), k, p).real(), 
-                                                -hs_ptr(flip_index(i), invert_index(j), k, p).imag());
+                        GpuComplex<Real> temp(hs_ptr(i, invert_index(j), flip_index(k), p).real(), 
+                                                -hs_ptr(i, invert_index(j), flip_index(k), p).imag());
                         hs_ptr(i, j, k, p) = temp;
                     }
                     for (int l=0; l<3; l++) for (int p=l; p<3; p++)
                     {
-                        GpuComplex<Real> temp(hij_ptr(flip_index(i), invert_index(j), k, lut[l][p]).real(), 
-                                                -hij_ptr(flip_index(i), invert_index(j), k, lut[l][p]).imag());
+                        GpuComplex<Real> temp(hij_ptr(i, invert_index(j), flip_index(k), lut[l][p]).real(), 
+                                                -hij_ptr(i, invert_index(j), flip_index(k), lut[l][p]).imag());
                         hij_ptr(i, j, k, lut[l][p]) = temp;
                     }
                 }
