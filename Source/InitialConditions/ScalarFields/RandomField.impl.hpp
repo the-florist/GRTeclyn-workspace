@@ -165,16 +165,12 @@ inline void RandomField::init()
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
 
-    //cMultiFab hk_test(kba, kdm, 1, 0);
-    //MultiFab hx_test(kba, kdm, 1, 0);
-
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij-k";
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
-        //Array4<GpuComplex<Real>> const& hk_test_ptr = hk_test.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
         const Box& bx = mfi.fabbox();
 
@@ -202,7 +198,7 @@ inline void RandomField::init()
             }
 
             // Nyquist node condition
-            /*if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
+            if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
             {
                 for(int p=0; p<2; p++) 
                 { 
@@ -250,18 +246,7 @@ inline void RandomField::init()
                         hij_ptr(i, j, k, lut[l][p]) = temp;
                     }
                 }
-            }*/
-
-            //hk_test_ptr(i, j, k) = hs_ptr(i, j, k, 0);
-
-            //PrintToFile(Filename, 0) << i << "," << j << "," << k;
-            //PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0);
-            /*for(int s=0; s<2; s++)
-            {
-                PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0).real();
-                PrintToFile(Filename, 0) << "," << hs_ptr(i, j, k, 0).imag();
             }
-            PrintToFile(Filename, 0) << "\n";*/
         });
     }
 
@@ -272,14 +257,7 @@ inline void RandomField::init()
         random_field_fft.backward(hij_k_slice, hij_x_slice);
     }
 
-    /*for(int fcomp = 0; fcomp < hs_k.nComp(); fcomp++)
-    {
-        cMultiFab hk_slice(hs_k, make_alias, fcomp, 1);
-        MultiFab hx_slice(hs_x, make_alias, fcomp, 1);
-        random_field_fft.backward(hk_slice, hx_slice);
-    }*/
-
-    std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
+    /*std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
     for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
     {
         Array4<Real> const& hij_ptr_x = hij_x.array(mfi);
@@ -288,13 +266,49 @@ inline void RandomField::init()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             PrintToFile(filename, 0) << i << "," << j << "," << k;
-            //PrintToFile(filename, 0) << "," << hs_ptr_x(i, j, k);
             for(int s=0; s<6; s++)
             {
                 PrintToFile(filename, 0) << "," << hij_ptr_x(i, j, k, s) ;
             }
             PrintToFile(filename, 0) << "\n";
         });
+    }*/
+
+    cMultiFab hij_k_reverse(kba, kdm, 6, 0);
+
+    for(int fcomp = 0; fcomp < hij_x.nComp(); fcomp++)
+    {
+        cMultiFab hij_k_slice(hij_k_reverse, make_alias, fcomp, 1);
+        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
+        random_field_fft.forward(hij_x_slice, hij_k_slice);
+    }
+
+    Real tolerance = 1.e-6;
+    for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
+    {
+        Array4<GpuComplex<Real>> const& hij_ptr_k = hij_k.array(mfi);
+        Array4<GpuComplex<Real>> const& hij_ptr_k_rev = hij_k_reverse.array(mfi);
+        const Box& bx = mfi.fabbox();
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            for(int s=0; s<6; s++)
+            {
+                hij_ptr_k_rev(i, j, k, s) /= std::pow(N, 3.);
+                if (std::abs(hij_ptr_k(i, j, k, s).real() - hij_ptr_k_rev(i, j, k, s).real()) > tolerance
+                    || std::abs(hij_ptr_k(i, j, k, s).imag() - hij_ptr_k_rev(i, j, k, s).imag()) > tolerance)
+                {
+                    Print() << "The FFT was not recovered here: ";
+                    Print() << i << "," << j << "," << k << "\n";
+                    Print() << "Field values are: ";
+                    Print() << hij_ptr_k(i, j, k, s).real() << "," << hij_ptr_k(i, j, k, s).imag() << "\n";
+                    Print() << hij_ptr_k_rev(i, j, k, s).real() << "," << hij_ptr_k_rev(i, j, k, s).imag() << "\n";
+                    Print() << "Difference is: " << hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s) << "\n";
+                    Error();
+                }
+            }
+        });
+
     }
 
     //Error("End of first box loop.");
