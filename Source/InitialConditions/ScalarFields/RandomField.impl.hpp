@@ -182,7 +182,7 @@ inline void RandomField::init()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Find the mode function realisation
-            if(i==4 && j==0 && k==0)
+            if(i==0 && j==0 && k==4)
             {
                 for(int p=0; p<2; p++)
                 {
