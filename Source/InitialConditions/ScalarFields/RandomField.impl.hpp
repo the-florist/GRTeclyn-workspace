@@ -317,14 +317,15 @@ inline void RandomField::init()
         {
             for(int s=0; s<6; s++)
             {
-                if (std::abs(hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s)) > tolerance)
+                if (std::abs(hij_ptr_k(i, j, k, s).real() - hij_ptr_k_rev(i, j, k, s).real()) > tolerance
+                    || std::abs(hij_ptr_k(i, j, k, s).imag() - hij_ptr_k_rev(i, j, k, s).imag()) > tolerance)
                 {
                     Print() << "The FFT was not recovered here: ";
                     Print() << i << "," << j << "," << k << "\n";
                     Print() << "Field values are: ";
                     Print() << hij_ptr_k(i, j, k, s).real() << "," << hij_ptr_k(i, j, k, s).imag() << "\n";
                     Print() << hij_ptr_k_rev(i, j, k, s).real() << "," << hij_ptr_k_rev(i, j, k, s).imag() << "\n";
-                    Print() << "Difference is: " << std::abs(hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s)) << "\n";
+                    Print() << "Difference is: " << hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s) << "\n";
                     Error();
                 }
             }
