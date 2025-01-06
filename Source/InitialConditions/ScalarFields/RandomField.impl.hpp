@@ -182,13 +182,16 @@ inline void RandomField::init()
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Find the mode function realisation
-            for(int p=0; p<2; p++)
+            if(i==4 && j=0 && k==0)
             {
-                hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
+                for(int p=0; p<2; p++)
+                {
+                    hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
+                }
             }
 
             // Find basis tensors and initial tensor realisation
-            Vector<Real> eplus(6, 0.);
+            /*Vector<Real> eplus(6, 0.);
             Vector<Real> ecross(6, 0.);
             for (int l=0; l<3; l++) for (int p=l; p<3; p++)
             {
@@ -199,7 +202,7 @@ inline void RandomField::init()
 
                 hij_ptr(i, j, k, lut[l][p]) = (eplus[lut[l][p]] * hs_ptr(i, j, k, 0)
                                                 + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
-            }
+            }*/
 
             // Nyquist node condition
             /*if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
