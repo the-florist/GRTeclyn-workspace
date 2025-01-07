@@ -298,50 +298,6 @@ inline void RandomField::init()
         });
 
     }
-
-    cMultiFab hij_k_reverse(kba, kdm, 6, 0);
-
-    for(int fcomp = 0; fcomp < hij_x.nComp(); fcomp++)
-    {
-        cMultiFab hij_k_slice(hij_k_reverse, make_alias, fcomp, 1);
-        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
-        random_field_fft.forward(hij_x_slice, hij_k_slice);
-    }
-
-    Real tolerance = 1.e-6;
-    for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
-    {
-        Array4<GpuComplex<Real>> const& hij_ptr_k = hij_k.array(mfi);
-        Array4<GpuComplex<Real>> const& hij_ptr_k_rev = hij_k_reverse.array(mfi);
-        const Box& bx = mfi.fabbox();
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            for(int s=0; s<6; s++)
-            {
-                if (std::abs(hij_ptr_k(i, j, k, s).real() - hij_ptr_k_rev(i, j, k, s).real()) > tolerance
-                    || std::abs(hij_ptr_k(i, j, k, s).imag() - hij_ptr_k_rev(i, j, k, s).imag()) > tolerance)
-                {
-                    Print() << "The FFT was not recovered here: ";
-                    Print() << i << "," << j << "," << k << "\n";
-                    Print() << "Field values are: ";
-                    Print() << hij_ptr_k(i, j, k, s).real() << "," << hij_ptr_k(i, j, k, s).imag() << "\n";
-                    Print() << hij_ptr_k_rev(i, j, k, s).real() << "," << hij_ptr_k_rev(i, j, k, s).imag() << "\n";
-                    Print() << "Difference is: " << hij_ptr_k(i, j, k, s) - hij_ptr_k_rev(i, j, k, s) << "\n";
-                    Error();
-                }
-            }
-        });
-    }
-
-    for(int fcomp = 0; fcomp < hij_k.nComp(); fcomp++)
-    {
-        cMultiFab hij_k_slice(hij_k, make_alias, fcomp, 1);
-        MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
-        random_field_fft.backward(hij_k_slice, hij_x_slice);
-    }
-
-    //Error("End of first box loop.");
 }
 
 #endif /* RANDOMFIELD_IMPL_HPP_*/
