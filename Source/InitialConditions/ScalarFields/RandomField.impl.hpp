@@ -144,6 +144,42 @@ inline Real RandomField::basis_vector(int i, int J, int K, int l, int which)
     else { Error("RandomField::calculate_polarisation_tensors Basis vector choice invalid."); }
 }
 
+inline void RandomField::apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field)
+{
+    // Nyquist node condition
+    if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
+    {
+        for(int comp = 0; comp < field.nComp(); comp++)
+        {
+            GpuComplex<Real> temp(field(i, j, k, comp).real(), 0.);
+            field(i, j, k, comp) = temp;
+        }
+    }
+
+    // Nyquist axis condition
+    if (i==0 || i==N/2) 
+    {
+        if((k>N/2 && j==N/2) || (k==0 && j>N/2) || (k>N/2 && j==0) || (k==N/2 && j>N/2))
+        {
+            for(int comp = 0; comp < field.nComp(); comp++) 
+            {
+                GpuComplex<Real> temp(field(i, invert_index(j), invert_index(k), comp).real(), 
+                                        -field(i, invert_index(j), invert_index(k), comp).imag());
+                field(i, j, k, comp) = temp;
+            }
+        }
+        else if(j > N/2)
+        {
+            for(int comp = 0; comp < field.nComp(); comp++) 
+            {
+                GpuComplex<Real> temp(field(i, invert_index(j), flip_index(k), comp).real(), 
+                                        -field(i, invert_index(j), flip_index(k), comp).imag());
+                field(i, j, k, comp) = temp;
+            }
+        }
+    }
+}
+
 inline void RandomField::init()
 {
     BL_PROFILE("RandomField::init_random_field");
@@ -197,56 +233,8 @@ inline void RandomField::init()
                                                 + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
             }
 
-            // Nyquist node condition
-            if ((i==0 || i==N/2) && (j==0 || j==N/2) && (k==0 || k== N/2))
-            {
-                for(int p=0; p<2; p++) 
-                { 
-                    GpuComplex<Real> temp(hs_ptr(i, j, k, p).real(), 0.);
-                    hs_ptr(i, j, k, p) = temp;
-                }
-
-                for (int l=0; l<3; l++) for (int p=l; p<3; p++)
-                {
-                    GpuComplex<Real> temp(hij_ptr(i, j, k, lut[l][p]).real(), 0.);
-                    hij_ptr(i, j, k, lut[l][p]) = temp;
-                }
-            }
-
-            // Nyquist axis condition
-            if (i==0 || i==N/2) 
-            {
-                if((k>N/2 && j==N/2) || (k==0 && j>N/2) || (k>N/2 && j==0) || (k==N/2 && j>N/2))
-                {
-                    for(int p=0; p<2; p++) 
-                    {
-                        GpuComplex<Real> temp(hs_ptr(i, invert_index(j), invert_index(k), p).real(), 
-                                                -hs_ptr(i, invert_index(j), invert_index(k), p).imag());
-                        hs_ptr(i, j, k, p) = temp;
-                    }
-                    for (int l=0; l<3; l++) for (int p=l; p<3; p++)
-                    {
-                        GpuComplex<Real> temp(hij_ptr(i, invert_index(j), invert_index(k), lut[l][p]).real(), 
-                                                -hij_ptr(i, invert_index(j), invert_index(k), lut[l][p]).imag());
-                        hij_ptr(i, j, k, lut[l][p]) = temp;
-                    }
-                }
-                else if(j > N/2)
-                {
-                    for(int p=0; p<2; p++) 
-                    {
-                        GpuComplex<Real> temp(hs_ptr(i, invert_index(j), flip_index(k), p).real(), 
-                                                -hs_ptr(i, invert_index(j), flip_index(k), p).imag());
-                        hs_ptr(i, j, k, p) = temp;
-                    }
-                    for (int l=0; l<3; l++) for (int p=l; p<3; p++)
-                    {
-                        GpuComplex<Real> temp(hij_ptr(i, invert_index(j), flip_index(k), lut[l][p]).real(), 
-                                                -hij_ptr(i, invert_index(j), flip_index(k), lut[l][p]).imag());
-                        hij_ptr(i, j, k, lut[l][p]) = temp;
-                    }
-                }
-            }
+            apply_nyquist_conditions(i, j, k, hs_ptr);
+            apply_nyquist_conditions(i, j, k, hij_ptr);
         });
     }
 

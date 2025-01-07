@@ -72,6 +72,7 @@ class RandomField
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
         GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
         Real basis_vector(int I, int J, int k, int l, int which);
+        void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
         void init();
         
     private:
