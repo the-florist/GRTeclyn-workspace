@@ -232,7 +232,10 @@ inline void RandomField::init()
                 hij_ptr(i, j, k, lut[l][p]) = (eplus[lut[l][p]] * hs_ptr(i, j, k, 0)
                                                 + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
             }
+        });
 
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
             apply_nyquist_conditions(i, j, k, hs_ptr);
             apply_nyquist_conditions(i, j, k, hij_ptr);
         });
@@ -296,6 +299,8 @@ inline void RandomField::init()
                 }
             }
         });
+
+        Print() << "Tensor is successfully re-extracted to precision " << tolerance << "\n";
 
     }
 }
