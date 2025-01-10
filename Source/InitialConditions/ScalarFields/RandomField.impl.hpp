@@ -249,6 +249,15 @@ inline void RandomField::init()
         random_field_fft.backward(hij_k_slice, hij_x_slice);
     }
 
+    hij_x.mult(norm);
+    if (m_spec_type == "position")
+    {
+        for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l]); }
+    }
+    else if (m_spec_type == "velocity")
+    {
+        hij_x.mult(-0.5);
+    }
 }
 
 /****
@@ -257,7 +266,7 @@ inline void RandomField::init()
 
 inline void RandomField::print_tensor_moment(int moment_order, MultiFab &field)
 {
-    std::cout << field.nComp() << "\n"
+    std::cout << field.nComp() << "\n";
     Error();
 }
 

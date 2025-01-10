@@ -54,6 +54,7 @@ class RandomField
         {
             // Set protected class parameters
             N = m_params.N_readin;
+            norm = m_params.A * pow(2. * M_PI/m_params.L, 3.);
 
             lut[0][0] = 0;
             lut[0][1] = 1;
@@ -70,8 +71,9 @@ class RandomField
         void init();
         
     private:
-        int N;                 //<! Grid resolution
+        int N;              //<! Grid resolution
         int lut[3][3];
+        double norm;
 
         int flip_index(int indx);
         int invert_index(int indx);
