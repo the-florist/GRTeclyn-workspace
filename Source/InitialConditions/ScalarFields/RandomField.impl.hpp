@@ -100,7 +100,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K,
     return value;
 }
 
-inline Real RandomField::basis_vector(int i, int J, int K, int l, int which)
+inline GpuComplex<Real> RandomField::calculate_tensor_initial_conditions(int i, int J, int K, int l, int p, 
+                                        GpuComplex<Real> plus_field, GpuComplex<Real> cross_field)
 {
     // Find kmag with FFTW-style inversion on the first two indices
     int j = invert_index_with_sign(J);
@@ -139,9 +140,12 @@ inline Real RandomField::basis_vector(int i, int J, int K, int l, int which)
         Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
     }
 
-    if (which == 0) { return mhat[l]; }
-    else if (which == 1) { return nhat[l]; }
-    else { Error("RandomField::calculate_polarisation_tensors Basis vector choice invalid."); }
+    Real eplus = 0.;
+    Real ecross = 0.;
+    eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+    ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+
+    return (eplus * plus_field + ecross * cross_field)/std::sqrt(2.);
 }
 
 inline void RandomField::apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field)
@@ -220,17 +224,10 @@ inline void RandomField::init()
             }
 
             // Find basis tensors and initial tensor realisation
-            Vector<Real> eplus(6, 0.);
-            Vector<Real> ecross(6, 0.);
             for (int l=0; l<3; l++) for (int p=l; p<3; p++)
             {
-                eplus[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 0) 
-                                    - basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 1);
-                ecross[lut[l][p]] = basis_vector(i, j, k, l, 0)*basis_vector(i, j, k, p, 1) 
-                                    + basis_vector(i, j, k, l, 1)*basis_vector(i, j, k, p, 0);
-
-                hij_ptr(i, j, k, lut[l][p]) = (eplus[lut[l][p]] * hs_ptr(i, j, k, 0)
-                                                + ecross[lut[l][p]] * hs_ptr(i, j, k, 1))/std::sqrt(2.);
+                hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(i, j, k, l, p, 
+                                                hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
             }
         });
 

@@ -66,18 +66,20 @@ class RandomField
             lut[2][2] = 5;
         }
 
-        int flip_index(int indx);
-        int invert_index(int indx);
-        int invert_index_with_sign(int indx);
-        GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
-        GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
-        Real basis_vector(int I, int J, int k, int l, int which);
-        void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
         void init();
         
     private:
         int N;                 //<! Grid resolution
         int lut[3][3];
+
+        int flip_index(int indx);
+        int invert_index(int indx);
+        int invert_index_with_sign(int indx);
+        GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
+        GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
+        GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
+                            GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
+        void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
 
     protected:
         const params_t m_params;
