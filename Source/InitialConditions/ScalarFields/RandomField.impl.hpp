@@ -24,6 +24,10 @@ inline int RandomField::invert_index_with_sign(int indx)
     else { return std::abs(N/2 - indx) - N/2; }
 }
 
+/****
+    Initialisation routines
+****/
+
 inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::string spec_type)
 {
     // Deals with k=0 case, undefined if m=0
@@ -245,61 +249,16 @@ inline void RandomField::init()
         random_field_fft.backward(hij_k_slice, hij_x_slice);
     }
 
-    /*std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
-    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
-    {
-        Array4<Real> const& hij_ptr_x = hij_x.array(mfi);
-        const Box& bx = mfi.fabbox();
+}
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            PrintToFile(filename, 0) << i << "," << j << "," << k;
-            for(int s=0; s<6; s++)
-            {
-                PrintToFile(filename, 0) << "," << hij_ptr_x(i, j, k, s) ;
-            }
-            PrintToFile(filename, 0) << "\n";
-        });
-    }*/
+/****
+    Extraction routines
+****/
 
-    cMultiFab hij_k_reverse(kba, kdm, 6, 0);
-    for(int fcomp = 0; fcomp < hij_x.nComp(); fcomp++)
-    {
-        cMultiFab field_k_slice(hij_k_reverse, make_alias, fcomp, 1);
-        MultiFab field_x_slice(hij_x, make_alias, fcomp, 1);
-        random_field_fft.forward(field_x_slice, field_k_slice);
-    }
-
-    Real tolerance = 1.e-6;
-    for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
-    {
-        Array4<GpuComplex<Real>> const& comparison_field = hij_k.array(mfi);
-        Array4<GpuComplex<Real>> const& reversed_field = hij_k_reverse.array(mfi);
-        const Box& bx = mfi.fabbox();
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            for(int s = 0; s < 6; s++)
-            {
-                reversed_field(i, j, k, s) /= std::pow(N, 3.);
-
-                if (std::abs(comparison_field(i, j, k, s).real() - reversed_field(i, j, k, s).real()) > tolerance
-                    || std::abs(comparison_field(i, j, k, s).imag() - reversed_field(i, j, k, s).imag()) > tolerance)
-                {
-                    Print() << "The FFT was not recovered here.";
-                    Print() << i << "," << j << "," << k << "\n";
-                    Print() << "Original field values are: ";
-                    Print() << comparison_field(i, j, k, s).real() << "," << comparison_field(i, j, k, s).imag() << "\n";
-                    Print() << "Recovered field values are: ";
-                    Print() << reversed_field(i, j, k, s).real() << "," << reversed_field(i, j, k, s).imag() << "\n";
-                    Print() << "Difference is: " << comparison_field(i, j, k, s) - reversed_field(i, j, k, s) << "\n";
-                    Error();
-                }
-            }
-        });
-    }
-
-    Print() << "Tensor initial conditions were recovered with precision " << tolerance << "\n";
+inline void RandomField::print_tensor_moment(int moment_order, MultiFab &field)
+{
+    std::cout << field.nComp() << "\n"
+    Error();
 }
 
 #endif /* RANDOMFIELD_IMPL_HPP_*/

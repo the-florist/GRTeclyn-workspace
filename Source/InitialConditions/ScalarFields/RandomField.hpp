@@ -66,6 +66,7 @@ class RandomField
             lut[2][2] = 5;
         }
 
+        void print_tensor_moment(int moment_order, MultiFab &field);
         void init();
         
     private:
