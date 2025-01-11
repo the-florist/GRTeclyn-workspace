@@ -117,7 +117,7 @@ void ScalarFieldLevel::initData()
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
-    RandomField random_field(simParams().random_field_params, simParams().background_params, "field");
+    RandomField random_field(simParams().random_field_params, simParams().background_params, "position");
     random_field.init();
     //amrex::Error("RF init finalised");
 

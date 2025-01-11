@@ -53,7 +53,8 @@ calc_tensor_field = 1
 A = 1.
 which_seed = 1
 # N_fine = 256
-use_rand = 0
+use_rand = 1
+random_seed = 3539263
 
 # Window function parameters
 kstar = 16

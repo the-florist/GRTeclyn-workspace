@@ -60,7 +60,8 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(double km, std::str
     return ps;
 }
 
-inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K, std::string spectrum_type)
+inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K, std::string spectrum_type, 
+                                                                Real rand_amp, Real rand_phase)
 {
     // Storage for the returned value
     GpuComplex<Real> value(0., 0.);
@@ -76,10 +77,11 @@ inline GpuComplex<Real> RandomField::calculate_random_field(int i, int J, int K,
     // Add stochastic perturbations
     if(m_params.use_rand == 1)
     {
-        BL_PROFILE("RandomField::calculate_random_field Random initialisation is used")
+        BL_PROFILE("RandomField::calculate_random_field Random initialisation is used");
+
         // Make one random draw for the amplitude and phase
-        Real rand_mod = sqrt(-2. * log(amrex::Random())); // Rayleigh distribution about |h|
-        Real rand_arg = 2. * M_PI * amrex::Random();      // Uniform random phase
+        Real rand_mod = sqrt(-2. * log(rand_amp)); // Rayleigh distribution about |h|
+        Real rand_arg = 2. * M_PI * rand_phase;      // Uniform random phase
 
         // Multiply amplitude by Rayleigh draw
         value *= rand_mod;
@@ -191,6 +193,7 @@ inline void RandomField::apply_nyquist_conditions(int i, int j, int k, Array4<Gp
 inline void RandomField::init()
 {
     BL_PROFILE("RandomField::init_random_field");
+    InitRandom(m_params.random_seed);
 
     // Set up the problem domain and MF ingredients (Real space)
     IntVect domain_low(0, 0, 0);
@@ -205,9 +208,13 @@ inline void RandomField::init()
 
     // Set up the arrays to store the in/out data sets
     cMultiFab hs_k(kba, kdm, 2, 0);
-    MultiFab hs_x(xba, xdm, 2, 0);
+    cMultiFab As_k(kba, kdm, 2, 0);
+    //MultiFab hs_x(xba, xdm, 2, 0);
+
     cMultiFab hij_k(kba, kdm, 6, 0);
     MultiFab hij_x(xba, xdm, 6, 0);
+    cMultiFab Aij_k(kba, kdm, 6, 0);
+    MultiFab Aij_x(xba, xdm, 6, 0);
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij-k";
     // Loop to create Fourier-space tensor object
@@ -216,6 +223,10 @@ inline void RandomField::init()
         // Make a pointer to the mode functions at this MF box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
         Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
+
+        Array4<GpuComplex<Real>> const& As_ptr = As_k.array(mfi);
+        Array4<GpuComplex<Real>> const& Aij_ptr = Aij_k.array(mfi);
+
         const Box& bx = mfi.fabbox();
 
         // Loop to create mode functions then hij(k)
@@ -224,7 +235,11 @@ inline void RandomField::init()
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position");
+                Real draw1 = amrex::Random();
+                Real draw2 = amrex::Random();
+
+                hs_ptr(i, j, k, p) = calculate_random_field(i, j, k, "position", draw1, draw2);
+                As_ptr(i, j, k, p) = calculate_random_field(i, j, k, "velocity", draw1, draw2);
             }
 
             // Find basis tensors and initial tensor realisation
@@ -232,13 +247,16 @@ inline void RandomField::init()
             {
                 hij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(i, j, k, l, p, 
                                                 hs_ptr(i, j, k, 0), hs_ptr(i, j, k, 1));
+                Aij_ptr(i, j, k, lut[l][p]) = calculate_tensor_initial_conditions(i, j, k, l, p, 
+                                                As_ptr(i, j, k, 0), As_ptr(i, j, k, 1));
             }
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            apply_nyquist_conditions(i, j, k, hs_ptr);
+            //apply_nyquist_conditions(i, j, k, hs_ptr);
             apply_nyquist_conditions(i, j, k, hij_ptr);
+            apply_nyquist_conditions(i, j, k, Aij_ptr);
         });
     }
 
@@ -247,17 +265,34 @@ inline void RandomField::init()
         cMultiFab hij_k_slice(hij_k, make_alias, fcomp, 1);
         MultiFab hij_x_slice(hij_x, make_alias, fcomp, 1);
         random_field_fft.backward(hij_k_slice, hij_x_slice);
+
+        cMultiFab Aij_k_slice(Aij_k, make_alias, fcomp, 1);
+        MultiFab Aij_x_slice(Aij_x, make_alias, fcomp, 1);
+        random_field_fft.backward(Aij_k_slice, Aij_x_slice);
     }
 
     hij_x.mult(norm);
-    if (m_spec_type == "position")
+    Aij_x.mult(norm);
+
+    for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
+    Aij_x.mult(-0.5);
+
+    /*std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
+    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
     {
-        for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l]); }
-    }
-    else if (m_spec_type == "velocity")
-    {
-        hij_x.mult(-0.5);
-    }
+        Array4<Real> const& hij_ptr_x = hij_x.array(mfi);
+        const Box& bx = mfi.fabbox();
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            //PrintToFile(filename, 0) << i << "," << j << "," << k;
+            for(int s=0; s<6; s++)
+            {
+                PrintToFile(filename, 0).SetPrecision(12) << hij_ptr_x(i, j, k, s) << ",";
+            }
+            PrintToFile(filename, 0) << "\n";
+        });
+    }*/
 }
 
 /****

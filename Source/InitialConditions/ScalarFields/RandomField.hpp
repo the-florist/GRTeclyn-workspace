@@ -32,6 +32,7 @@ class RandomField
             int num_scalar_fields; //!< Number of fields to generate
             int calc_tensor_field; //!< Determines whether tensor perts are calculated
             int use_rand = 1;  //!< Flag choosing whether to use random inits
+            int random_seed = 3539263;
 
             double L;          //!< Length of the box
             double A;          //!< Amplitude factor (for basic tests)
@@ -79,7 +80,8 @@ class RandomField
         int invert_index(int indx);
         int invert_index_with_sign(int indx);
         GpuComplex<Real> calculate_mode_function(double km, std::string spec_type);
-        GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type);
+        GpuComplex<Real> calculate_random_field(int I, int J, int k, std::string spectrum_type, 
+                                                                Real rand_amp, Real rand_phase);
         GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
                             GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
         void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
