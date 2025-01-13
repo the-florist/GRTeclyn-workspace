@@ -286,9 +286,9 @@ inline void RandomField::init()
     print_tensor_moment(1, hij_x);
 
     hx = &hij_x;
-    (*hx).nComp();
+    //(*hx).nComp();
 
-    /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         Array4<Real> const& hx_ptr = (*hx).array(mfi);
         const Box& bx = mfi.fabbox();
@@ -298,7 +298,7 @@ inline void RandomField::init()
             std::cout << hx_ptr(i, j, k, 0) << "\n";
             Error();
         });
-    }*/
+    }
 }
 
 template <class data_t>
