@@ -288,7 +288,7 @@ inline void RandomField::init()
     hx = &hij_x;
     //(*hx).nComp();
 
-    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         Array4<Real> const& hx_ptr = (*hx).array(mfi);
         const Box& bx = mfi.fabbox();
@@ -298,16 +298,16 @@ inline void RandomField::init()
             std::cout << hx_ptr(i, j, k, 0) << "\n";
             Error();
         });
-    }
+    }*/
 }
 
 template <class data_t>
 void RandomField::compute(int i, int j, int k,
                            const amrex::Array4<data_t> &state) const
 {
-    /*std::cout << "Inside compute now...\n";
+    std::cout << "Inside compute now...\n";
     std::cout << hx(i, j, k, 0) << "\n";
-    Error();*/
+    Error();
 }
 
 /****
