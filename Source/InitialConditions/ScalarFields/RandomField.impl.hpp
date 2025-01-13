@@ -288,11 +288,11 @@ inline void RandomField::init()
 }
 
 template <class data_t>
-void ScalarBubble::compute(int i, int j, int k,
+void RandomField::compute(int i, int j, int k,
                            const amrex::Array4<data_t> &state) const
 {
     std::cout << "Inside compute now...\n";
-    std::cout << hx(i, j, k, 0) << "\n"
+    std::cout << hx(i, j, k, 0) << "\n";
     Error();
 }
 
