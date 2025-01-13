@@ -67,7 +67,9 @@ class RandomField
         }
 
         void print_tensor_moment(int moment_order, MultiFab &field);
-        void init(MultiFab& state);
+        void init();
+        template <class data_t>
+        void compute(int i, int j, int k, const amrex::Array4<data_t> &state) const;
         
     private:
         int N;              //<! Grid resolution

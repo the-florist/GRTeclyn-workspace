@@ -103,6 +103,9 @@ void ScalarFieldLevel::initData()
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();
 
+    RandomField random_field(simParams().random_field_params, simParams().background_params);
+    random_field.init();
+
     amrex::ParallelFor(
         state, state.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_ind, int i, int j, int k) noexcept
@@ -115,10 +118,9 @@ void ScalarFieldLevel::initData()
             }
 
             FLRW_background.compute(i, j, k, state_array[box_ind]);
+            random_field.compute(i, j, k, state_array[box_ind]);
         });
 
-    RandomField random_field(simParams().random_field_params, simParams().background_params);
-    random_field.init(state);
     //amrex::Error("RF init finalised");
 
     if (simParams().nan_check)
