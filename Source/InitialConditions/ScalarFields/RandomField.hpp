@@ -48,10 +48,8 @@ class RandomField
             double Delta;          //!< cut-off width, measured like L/Delta
         };
 
-        RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params, 
-                     std::string a_spec_type)
-                : m_params(a_params), m_background_params(a_background_params), 
-                  m_spec_type(a_spec_type)
+        RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
+                : m_params(a_params), m_background_params(a_background_params)
         {
             // Set protected class parameters
             N = m_params.N_readin;
@@ -69,12 +67,13 @@ class RandomField
         }
 
         void print_tensor_moment(int moment_order, MultiFab &field);
-        void init();
+        void init(MultiFab& state);
         
     private:
         int N;              //<! Grid resolution
         int lut[3][3];
         double norm;
+	MultiFab* hx;
 
         int flip_index(int indx);
         int invert_index(int indx);
@@ -85,6 +84,7 @@ class RandomField
         GpuComplex<Real> calculate_tensor_initial_conditions(int I, int J, int k, int l, int p, 
                             GpuComplex<Real> plus_field, GpuComplex<Real> cross_field);
         void apply_nyquist_conditions(int i, int j, int k, Array4<GpuComplex<Real>> const& field);
+        void assign_to_grid(const CellData<Real> &current_cell, const Real tensor_field) const;
 
     protected:
         const params_t m_params;

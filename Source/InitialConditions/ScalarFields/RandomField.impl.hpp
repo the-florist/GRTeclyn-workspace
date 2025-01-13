@@ -190,7 +190,12 @@ inline void RandomField::apply_nyquist_conditions(int i, int j, int k, Array4<Gp
     }
 }
 
-inline void RandomField::init()
+inline void RandomField::assign_to_grid(const CellData<Real> &current_cell, const Real tensor_field) const
+{
+    current_cell[c_h11] = tensor_field;
+}
+
+inline void RandomField::init(MultiFab& state)
 {
     BL_PROFILE("RandomField::init_random_field");
     InitRandom(m_params.random_seed);
@@ -276,6 +281,20 @@ inline void RandomField::init()
 
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
+
+    print_tensor_moment(1, hij_x);
+
+    hx = &hij_x;
+    auto const &state_array = state.arrays();
+
+    /*ParallelFor(
+        state, state.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_ind, int i, int j, int k) noexcept
+    {
+        const CellData<Real> &current_cell = state_array[box_ind].cellData(i, j, k);
+        const Real tensor = hij_x(i, j, k, lut[0][0]);
+        assign_to_grid(current_cell, tensor);
+    });*/
 
     /*std::string filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij";
     for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
