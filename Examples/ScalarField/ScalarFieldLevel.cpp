@@ -104,7 +104,7 @@ void ScalarFieldLevel::initData()
     auto const &state_array = state.arrays();
 
     RandomField random_field(simParams().random_field_params, simParams().background_params);
-    random_field.init();
+    random_field.init(state);
 
     amrex::ParallelFor(
         state, state.nGrowVect(),
@@ -118,7 +118,7 @@ void ScalarFieldLevel::initData()
             }
 
             FLRW_background.compute(i, j, k, state_array[box_ind]);
-            random_field.compute(i, j, k, state_array[box_ind]);
+            //random_field.compute(i, j, k, state_array[box_ind]);
         });
 
     //amrex::Error("RF init finalised");

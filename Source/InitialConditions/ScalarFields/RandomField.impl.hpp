@@ -195,7 +195,7 @@ inline void RandomField::assign_to_grid(const CellData<Real> &current_cell, cons
     current_cell[c_h11] = tensor_field;
 }
 
-inline void RandomField::init()
+inline void RandomField::init(amrex::MultiFab &state)
 {
     BL_PROFILE("RandomField::init_random_field");
     InitRandom(m_params.random_seed);
@@ -283,9 +283,11 @@ inline void RandomField::init()
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
 
+    Add(state, hij_x, c_h11, lut[0][0], 1, 0);
+
     //print_tensor_moment(1, hij_x);
 
-    hx = &hij_x;
+    //hx = &hij_x;
     //(*hx).nComp();
 
     /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
@@ -301,14 +303,14 @@ inline void RandomField::init()
     }*/
 }
 
-template <class data_t>
+/*template <class data_t>
 void RandomField::compute(int i, int j, int k,
                            const amrex::Array4<data_t> &state) const
 {
     std::cout << "Inside compute now...\n";
-    std::cout << hx(i, j, k, 0) << "\n";
+    std::cout << *hx(i, j, k, 0) << "\n";
     Error();
-}
+}*/
 
 /****
     Extraction routines
