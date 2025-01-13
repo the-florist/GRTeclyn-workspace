@@ -82,7 +82,7 @@ class RandomField
         int N;              //<! Grid resolution
         int lut[3][3];
         double norm;
-	    MultiFab* hx;
+	    MultiFab& hx;
 
         int flip_index(int indx);
         int invert_index(int indx);
