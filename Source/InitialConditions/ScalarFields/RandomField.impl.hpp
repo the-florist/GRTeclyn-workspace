@@ -285,8 +285,8 @@ inline void RandomField::init()
 
     print_tensor_moment(1, hij_x);
 
-    hx = hij_x;
-    hx.nComp();
+    hx = &hij_x;
+    (*hx).nComp();
 
     /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
