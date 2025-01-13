@@ -222,6 +222,7 @@ inline void RandomField::init()
     MultiFab Aij_x(xba, xdm, 6, 0);
 
     std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/GRTeclyn-hij-k";
+    
     // Loop to create Fourier-space tensor object
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
@@ -285,15 +286,26 @@ inline void RandomField::init()
     print_tensor_moment(1, hij_x);
 
     hx = &hij_x;
+
+    for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
+    {
+        Array4<Real> const& hx_ptr = hx.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            std::cout << "Inside init() now...\n";
+            std::cout << hx_ptr(i, j, k, 0) << "\n";
+            Error();
+        });
+    }
 }
 
 template <class data_t>
 void RandomField::compute(int i, int j, int k,
                            const amrex::Array4<data_t> &state) const
 {
-    std::cout << "Inside compute now...\n";
+    /*std::cout << "Inside compute now...\n";
     std::cout << hx(i, j, k, 0) << "\n";
-    Error();
+    Error();*/
 }
 
 /****
