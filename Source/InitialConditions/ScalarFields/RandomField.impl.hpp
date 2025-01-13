@@ -286,11 +286,11 @@ inline void RandomField::init()
     print_tensor_moment(1, hij_x);
 
     hx = hij_x;
-    hx.nComps();
+    hx.nComp();
 
     /*for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
-        Array4<Real> const& hx_ptr = &hx.array(mfi);
+        Array4<Real> const& hx_ptr = (*hx).array(mfi);
         const Box& bx = mfi.fabbox();
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
