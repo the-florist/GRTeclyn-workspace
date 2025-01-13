@@ -283,7 +283,7 @@ inline void RandomField::init()
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
 
-    print_tensor_moment(1, hij_x);
+    //print_tensor_moment(1, hij_x);
 
     hx = &hij_x;
     //(*hx).nComp();
