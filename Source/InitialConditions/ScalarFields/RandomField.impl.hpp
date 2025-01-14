@@ -284,6 +284,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     Aij_x.mult(-0.5);
 
     auto const &state_array = state.arrays();
+    auto const &hij_x_arrays = hij_x.arrays();
 
     amrex::ParallelFor(
         state, state.nGrowVect(),
@@ -291,7 +292,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         {
             const IntVect iv{i, j, k};
             const Array4<Real> a_array = state_array[box_ind];
-            a_array(iv, c_h11) = hij_x(i, j, k, lut[0][0]);
+            a_array(iv, c_h11) = hij_x_arrays(i, j, k, lut[0][0]);
         });
 
     //Add(state, hij_x, c_h11, lut[0][0], 1, 0);
