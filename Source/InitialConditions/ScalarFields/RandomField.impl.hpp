@@ -283,7 +283,18 @@ inline void RandomField::init(amrex::MultiFab &state)
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
 
-    Add(state, hij_x, c_h11, lut[0][0], 1, 0);
+    auto const &state_array = state.arrays();
+
+    amrex::ParallelFor(
+        state, state.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_ind, int i, int j, int k) noexcept
+        {
+            const IntVect iv{i, j, k};
+            const Array4<Real> a_array = state_array[box_ind];
+            a_array(iv, c_h11) = 0.;
+        });
+
+    //Add(state, hij_x, c_h11, lut[0][0], 1, 0);
 
     //print_tensor_moment(1, hij_x);
 

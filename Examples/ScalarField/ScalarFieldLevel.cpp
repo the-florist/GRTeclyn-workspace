@@ -121,7 +121,7 @@ void ScalarFieldLevel::initData()
             //random_field.compute(i, j, k, state_array[box_ind]);
         });
 
-    //amrex::Error("RF init finalised");
+    amrex::Error("RF init finalised");
 
     if (simParams().nan_check)
     {
