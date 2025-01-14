@@ -291,7 +291,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         {
             const IntVect iv{i, j, k};
             const Array4<Real> a_array = state_array[box_ind];
-            a_array(iv, c_h11) = 0.;
+            a_array(iv, c_h11) = hij_x(i, j, k, lut[0][0]);
         });
 
     //Add(state, hij_x, c_h11, lut[0][0], 1, 0);
