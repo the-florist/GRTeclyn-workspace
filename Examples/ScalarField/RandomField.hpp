@@ -6,17 +6,11 @@
 #ifndef RANDOMFIELD_HPP_
 #define RANDOMFIELD_HPP_
 
-#include "Cell.hpp"
 #include "InitialScalarData.hpp"
-#include "VarsTools.hpp"
-#include "FilesystemTools.hpp"
-#include <fstream>
 #include <random>
 
 #include <AMReX_MultiFab.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_FFT.H>
-#include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
