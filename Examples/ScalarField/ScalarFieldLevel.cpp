@@ -27,6 +27,7 @@
 #include "Potential.hpp"
 #include "ScalarField.hpp"
 #include "RandomField.hpp"
+#include "TensorExtraction.hpp"
 
 void ScalarFieldLevel::variableSetUp()
 {
@@ -399,8 +400,8 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         }
         else if (name=="TensorPolarisations")
         {
-            RandomField random_field_derive(simParams().random_field_params, simParams().background_params);
-            random_field_derive.derive(src_mf, multifab, dcomp);
+            TensorExtraction tensor_extraction_derive(simParams().tensor_extraction_params, simParams().random_field_params, simParams().background_params);
+            tensor_extraction_derive.derive(src_mf, multifab, dcomp);
         }
         else
         {
@@ -460,8 +461,8 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     means_file.write_time_data_line({phi_avg, phi_var, Pi_avg, scale_fact_avg, chi_var, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
-    RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
+    TensorExtraction tensor_extractor(simParams().tensor_extraction_params, simParams().random_field_params, simParams().background_params);
+    tensor_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
 
     // Make a file object for constraint statistics
     SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
@@ -487,5 +488,5 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+    tensor_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
 }

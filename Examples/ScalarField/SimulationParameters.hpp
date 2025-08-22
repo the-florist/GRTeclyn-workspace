@@ -15,6 +15,7 @@
 #include "InitialScalarData.hpp"
 #include "Potential.hpp"
 #include "RandomField.hpp"
+#include "TensorExtraction.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -40,7 +41,7 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("num_scalar_fields", random_field_params.num_scalar_fields, 0);
         pp.load("calc_tensor_field", random_field_params.calc_tensor_field, 0);
-        pp.load("L_full", random_field_params.L, 1.);
+        pp.load("L_full", random_field_params.L_readin, 1.);
         pp.load("A", random_field_params.A, 1.);
         pp.load("N_full", random_field_params.N_readin, 32);
         pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
@@ -51,11 +52,11 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("kstar", random_field_params.kstar, 0.);
         pp.load("Delta", random_field_params.Delta, 1.);
 
-        pp.load("calc_binned_power_spectrum", random_field_params.calc_binned_power_spectrum, 0);
-        pp.load("bin_number", random_field_params.bin_number, random_field_params.N_readin/2); 
-        pp.load("calc_higher_order_statistics", random_field_params.calc_higher_order_statistics, 0);
-        pp.load("num_moments", random_field_params.num_orders, 0);
-        pp.getarr("moments_to_print", random_field_params.orders, 0, random_field_params.num_orders);
+        pp.load("calc_binned_power_spectrum", tensor_extraction_params.calc_binned_power_spectrum, 0);
+        pp.load("bin_number", tensor_extraction_params.bin_number, random_field_params.N_readin/2); 
+        pp.load("calc_higher_order_statistics", tensor_extraction_params.calc_higher_order_statistics, 0);
+        pp.load("num_moments", tensor_extraction_params.num_orders, 0);
+        pp.getarr("moments_to_print", tensor_extraction_params.orders, 0, tensor_extraction_params.num_orders);
     }
 
     void check_params()
@@ -71,13 +72,13 @@ class SimulationParameters : public SimulationParametersBase
                        "cut-off frequency index must be positive");
 
         check_parameter("Delta", random_field_params.Delta,
-                       (!random_field_params.calc_binned_power_spectrum
+                       (!tensor_extraction_params.calc_binned_power_spectrum
                         || random_field_params.Delta > 0),
                        "cut-off width must be positive and non-zero");
 
-        check_parameter("orders", random_field_params.calc_higher_order_statistics,
-                       (!random_field_params.calc_higher_order_statistics 
-                        || !random_field_params.orders.empty()),
+        check_parameter("orders", tensor_extraction_params.calc_higher_order_statistics,
+                       (!tensor_extraction_params.calc_higher_order_statistics 
+                        || !tensor_extraction_params.orders.empty()),
                        "moment orders must be provided");
     }
 
@@ -87,6 +88,7 @@ class SimulationParameters : public SimulationParametersBase
     InitialBackgroundData::params_t background_params;
     InitialScalarData::params_t initial_params;
     RandomField::params_t random_field_params;
+    TensorExtraction::params_t tensor_extraction_params;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */
