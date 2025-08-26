@@ -324,4 +324,45 @@ Weyl4::compute_null_tetrad(const Vars<data_t> &vars,
     return out;
 }
 
+void Weyl4::set_up(int a_state_index)
+{
+    int num_ghosts = 2; // no advection terms so only need 2 ghost cells
+
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
+
+    // Add Weyl4 to the derive list
+    derive_lst.add(
+        name, amrex::IndexType::TheCellType(),
+        static_cast<int>(var_names.size()), var_names, Weyl4::compute_mf,
+        [=](const amrex::Box &box) { return amrex::grow(box, 2); },
+        &amrex::cell_quartic_interp);
+
+    // We need all of the CCZ4 variables to calculate Weyl4
+    // (except B but easier to keep it in to avoid having to define yet another
+    // CCZ4Vars struct)
+    derive_lst.addComponent(name, desc_lst, a_state_index, 0, NUM_CCZ4_VARS);
+}
+
+void Weyl4::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                       const amrex::MultiFab &src_mf,
+                       const amrex::Geometry &geomdata, amrex::Real /*time*/,
+                       const int * /*bcrec*/, int /*level*/)
+{
+    const auto &out_arrays = out_mf.arrays();
+    const auto &src_arrays = src_mf.const_arrays();
+
+    GRParmParse pp;
+    std::array<double, AMREX_SPACEDIM> center{};
+    int formulation = 0;
+    pp.get("extraction_center", center);
+    pp.get("formulation", formulation);
+
+    Weyl4 weyl4(center, geomdata.CellSize(0), dcomp, formulation);
+    amrex::ParallelFor(
+        out_mf, out_mf.nGrowVect(),
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        { weyl4.compute(i, j, k, out_arrays[box_no], src_arrays[box_no]); });
+}
+
 #endif /* WEYL4_HPP_ */

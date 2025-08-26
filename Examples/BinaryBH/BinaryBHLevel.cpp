@@ -23,30 +23,9 @@ void BinaryBHLevel::variableSetUp()
     // Set up the state variables
     stateVariableSetUp();
 
-    const int nghost = simParams().num_ghosts;
+    Constraints::set_up(State_Type);
 
-    // Add the constraints to the derive list
-    derive_lst.add(
-        "constraints", amrex::IndexType::TheCellType(),
-        static_cast<int>(Constraints::var_names.size()), Constraints::var_names,
-        amrex::DeriveFuncFab(), // null function because we won't use
-                                // it.
-        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
-        &amrex::cell_quartic_interp);
-
-    // We only need the non-gauge CCZ4 variables to calculate the constraints
-    derive_lst.addComponent("constraints", desc_lst, State_Type, 0, c_lapse);
-
-    // Add Weyl4 to the derive list
-    derive_lst.add(
-        "Weyl4", amrex::IndexType::TheCellType(),
-        static_cast<int>(Weyl4::var_names.size()), Weyl4::var_names,
-        amrex::DeriveFuncFab(), // null function because we won't use it
-        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
-        &amrex::cell_quartic_interp);
-
-    // We need all of the CCZ4 variables to calculate Weyl4 (except B)
-    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+    Weyl4::set_up(State_Type);
 }
 
 // Things to do during the advance step after RK4 steps

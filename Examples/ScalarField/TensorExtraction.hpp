@@ -7,26 +7,22 @@
 #define TENSOREXTRACTION_HPP_
 
 #include "RandomField.hpp"
+#include "MatterWeyl4.hpp"
 
 using namespace amrex;
 
-class TensorExtraction : public RandomField
+template <class matter_t>
+class TensorExtraction : public RandomField, public MatterWeyl4<matter_t>
 {
     public:
-        struct params_t : public RandomField::params_t
-        {
-            int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
-            int bin_number = 0;          //!< How many bins to use (capped at N/2)
-            int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
-            int num_orders;
-            Vector<int> orders;                   //!< Moment orders to print for extracted fields
-        };
-
-        TensorExtraction(params_t a_params, 
-                          RandomField::params_t a_random_field_params,
-                          InitialBackgroundData::params_t a_background_params) 
-                          : m_params(a_params), 
-                          RandomField(a_random_field_params, a_background_params)
+        TensorExtraction( RandomField::params_t a_params,
+                          InitialBackgroundData::params_t a_background_params,
+                          matter_t a_matter,
+                          const std::array<double, AMREX_SPACEDIM> a_center,
+                          const double a_dx,
+                          const double a_G_Newton) 
+                          : m_params(a_params), RandomField(a_params, a_background_params),
+                          MatterWeyl4<matter_t>(a_matter, a_center, a_dx, 0, CCZ4RHS<>::USE_CCZ4, a_G_Newton)
         {
         }
 
@@ -44,7 +40,7 @@ class TensorExtraction : public RandomField
                                  const int moment, const int component);
 
     protected:
-        params_t m_params;
+        RandomField::params_t m_params;
 };
 
 #include "TensorExtraction.impl.hpp"

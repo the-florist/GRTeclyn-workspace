@@ -11,7 +11,8 @@
 #define TENSOREXTRACTION_IMPL_HPP_
 
 // Calculates and prints the power spectrum
-inline void TensorExtraction::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component)
+template <class matter_t>
+inline void TensorExtraction<matter_t>::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component)
 { 
     // Set up the isotropic k axis bounds
     double kiso_max = std::sqrt(3.) * N * M_PI / L;
@@ -141,7 +142,8 @@ inline void TensorExtraction::print_power_spectrum(cMultiFab &field_array, Small
 }
 
 // Finds statistical moment x of given MultiFab
-inline Real TensorExtraction::find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
+template <class matter_t>
+inline Real TensorExtraction<matter_t>::find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                              const int moment, const int component)
 {
     Real sum = 0.;
@@ -167,7 +169,8 @@ inline Real TensorExtraction::find_field_moment_x(MultiFab &field, const Vector<
 }
 
 // Calculates and prints requested moments (any between 1 and 4)
-inline void TensorExtraction::print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
+template <class matter_t>
+inline void TensorExtraction<matter_t>::print_tensor_moment(MultiFab &field, const Vector<std::string> names,  
                                              const Vector<int> &moment_orders, SmallDataIO &file, 
                                              const int is_first_step)
 {
@@ -246,7 +249,8 @@ inline void TensorExtraction::print_tensor_moment(MultiFab &field, const Vector<
 }
 
 // Extraction routine for hplus and hcross only, called in Example::derive
-inline void TensorExtraction::derive(const MultiFab &source, MultiFab &out, int dcomp)
+template <class matter_t>
+inline void TensorExtraction<matter_t>::derive(const MultiFab &source, MultiFab &out, int dcomp)
 {
     BL_PROFILE("TensorExtraction::derive");
 
@@ -362,7 +366,8 @@ inline void TensorExtraction::derive(const MultiFab &source, MultiFab &out, int 
 }
 
 // Extraction routine called in specificPostTimeStep
-inline void TensorExtraction::extract(const MultiFab &state, const std::string data_path, const Real dt,  
+template <class matter_t>
+inline void TensorExtraction<matter_t>::extract(const MultiFab &state, const std::string data_path, const Real dt,  
                                  const Real cur_time, const int restart_time, const int first_step, const int plot_int)
 {
     BL_PROFILE("TensorExtraction::extract");

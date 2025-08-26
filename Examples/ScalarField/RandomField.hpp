@@ -45,6 +45,12 @@ class RandomField
             int use_window = 0;         //!< Choose whether to use window function
             double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
             double Delta;               //!< window's width, measured like L/Delta
+
+            int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
+            int bin_number = 0;          //!< How many bins to use (capped at N/2)
+            int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
+            int num_orders;
+            Vector<int> orders;                   //!< Moment orders to print for extracted fields
         };
 
         RandomField(params_t a_params, InitialBackgroundData::params_t a_background_params)
