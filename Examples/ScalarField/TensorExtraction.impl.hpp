@@ -367,6 +367,125 @@ inline void TensorExtraction<matter_t>::derive(const MultiFab &source, MultiFab 
 
 // Extraction routine called in specificPostTimeStep
 template <class matter_t>
+inline void TensorExtraction<matter_t>::extract_from_Weyl4(const MultiFab &state, const std::string data_path, const Real dt,  
+                                 const Real cur_time, const int restart_time, const int first_step, const int plot_int)
+{
+    BL_PROFILE("TensorExtraction::extract_from_Weyl4");
+
+    // Extract MultiFab ingredients from state
+    BoxArray sba = state.boxArray();
+    DistributionMapping sdm = state.DistributionMap();
+    MultiFab B_x(sba, sdm, 6, 0);
+
+    const auto &state_arrays = state.const_arrays();
+    const auto &B_arrays = B_x.arrays();
+
+    amrex::ParallelFor(B_x, 
+        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept
+        {
+            const auto vars = load_vars<Vars>(state_arrays[box_no].cellData(i, j, k));
+            const auto d1   = m_deriv.template diff1<Vars>(i, j, k, state_arrays[box_no]);
+            const auto d2   = m_deriv.template diff2<Diff2Vars>(i, j, k, state_arrays[box_no]);
+
+            // Compute the inverse metric
+            const auto h_UU  = TensorAlgebra::compute_inverse_sym(vars.h);
+            const auto chris = TensorAlgebra::compute_christoffel(d1.h, h_UU);
+
+            // Compute the spatial volume element
+            const auto epsilon3_LUU = compute_epsilon3_LUU(vars, h_UU);
+
+            // Compute the E and B fields
+            EBFields_t<data_t> ebfields =
+                compute_EB_fields(vars, d1, d2, epsilon3_LUU, h_UU, chris);
+
+            for(int m=0; m<3; m++) for(int n=m; n<3; n++)
+            {
+                B_arrays[box_no](i, j, k, lut[m][n]) = ebfields.B[m][n];
+            }
+        });
+
+    // Set up the problem domain in Fourier space
+    // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
+    IntVect domain_low(0, 0, 0);
+    IntVect k_domain_high(N/2, N-1, N-1);
+    Box k_domain(domain_low, k_domain_high);
+    Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    BoxArray kba = decompose(k_domain, ParallelContext::NProcsAll(), slicing);
+    DistributionMapping kdm(kba);
+
+    // Set up the arrays to store the Fourier data sets
+    cMultiFab B_k(kba, kdm, 6, 0);
+    cMultiFab hdot_k(kba, kdm, 2, 0);
+
+    // Set up the FFT
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(B_k.nComp()));
+
+    // Perform the fft
+    tensor_fft.forward(B_x, B_k);
+
+    // Normalise the fft (fftw style)
+    for(int comp = 0; comp < 6; comp++)
+    {
+        B_k.mult(std::pow(N, -3.), comp, 1); 
+    }
+
+    std::string Filename = "/nfs/st01/hpc-gr-epss/eaf49/GRTeclyn-dump/hs-k-extr";
+    int time_step = cur_time/dt;
+
+    /*// Loop to extract the Fourier-space mode functions
+    for (MFIter mfi(hij_k); mfi.isValid(); ++mfi) 
+    {
+        const Box& bx = mfi.fabbox();
+
+        // Make a pointer to the mode functions at this MF box
+        Array4<GpuComplex<Real>> const& hs_ptr = hdot_k.array(mfi);
+        Array4<GpuComplex<Real>> const& hij_ptr = hij_k.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            IntVect iv{i, j, k};
+            Vector<Real> mhat(3, 0.);
+            Vector<Real> nhat(3, 0.);
+
+            mhat = calculate_basis_vector(iv, 0);
+            nhat = calculate_basis_vector(iv, 1);
+
+            Real eplus = 0.;
+            Real ecross = 0.;
+
+            // Find basis tensors and do the Fourier trick
+            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            {
+                eplus = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+                ecross = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+
+                hs_ptr(i, j, k, 0) += (B_k(i, j, k, lut[l][p]) * eplus)/std::sqrt(2.);
+                hs_ptr(i, j, k, 1) += (B_k(i, j, k, lut[l][p]) * ecross)/std::sqrt(2.);
+            }
+        });
+    }
+
+    apply_nyquist_conditions(hdot_k);
+
+    // Find the binned PS for each mode function and print to data/
+    if((m_params.calc_binned_power_spectrum) && (time_step % plot_int == 0)) 
+    {
+        std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
+        Vector<std::string> filenames(2, "");
+
+        for(int comp = 0; comp < hdot_k.nComp(); comp++)
+        {
+            filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
+            SmallDataIO spectrum_file(filenames[comp], dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+            print_power_spectrum(hdot_k, spectrum_file, comp);
+        }
+    }*/
+}
+
+// Extraction routine called in specificPostTimeStep
+template <class matter_t>
 inline void TensorExtraction<matter_t>::extract(const MultiFab &state, const std::string data_path, const Real dt,  
                                  const Real cur_time, const int restart_time, const int first_step, const int plot_int)
 {
