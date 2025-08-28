@@ -39,6 +39,12 @@ inline bool RandomField::is_ghost_index(const IntVect vector)
     return ret;
 }
 
+inline GpuComplex<Real> RandomField::swap_real_imag_parts(GpuComplex<Real> input)
+{
+    GpuComplex<Real> temp{-input.imag(), input.real()};
+    return temp;
+}
+
 // Makes subdirectories in data/
 inline std::string RandomField::make_subdirectory(const std::string base, const std::string dir, const int is_first_step)
 {
@@ -433,7 +439,7 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
-    Aij_x.mult(-0.5);
+    Aij_x.mult(0.5);
 
     // Put these initial conditions into state
     for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 

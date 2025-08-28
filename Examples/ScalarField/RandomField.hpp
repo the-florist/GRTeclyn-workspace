@@ -88,6 +88,7 @@ class RandomField
         int flip_index(const int indx);
         int invert_index(const int indx);
         int invert_index_with_sign(const int indx);
+        GpuComplex<Real> swap_real_imag_parts(GpuComplex<Real> input);
         void apply_nyquist_conditions(cMultiFab &field);
         Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
 

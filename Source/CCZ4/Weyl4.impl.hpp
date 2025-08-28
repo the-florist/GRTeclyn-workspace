@@ -47,6 +47,42 @@ Weyl4::compute(int i, int j, int k, const amrex::Array4<data_t> &a_derive_array,
 
 template <class data_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
+Weyl4::compute_epsilon3_LLL(const Vars<data_t> &vars) const
+{
+    // raised normal vector, NB index 3 is time
+    Tensor<1, data_t, 4> n_U;
+    n_U[3] = 1. / vars.lapse;
+    FOR (i)
+    {
+        n_U[i] = -vars.shift[i] / vars.lapse;
+    }
+
+    // 4D levi civita symbol and 3D levi civita tensor in LLL and LUU form
+    const auto epsilon4 = TensorAlgebra::epsilon4D();
+    Tensor<3, data_t> epsilon3_LLL;
+
+    // Projection of antisymmentric Tensor onto hypersurface - see 8.3.17,
+    // Alcubierre
+    FOR (i, j, k)
+    {
+        epsilon3_LLL[i][j][k] = 0.0;
+    }
+    // projection of 4-antisymetric tensor to 3-tensor on hypersurface
+    // note last index contracted as per footnote 86 pg 290 Alcubierre
+    FOR (i, j, k)
+    {
+        for (int l = 0; l < 4; ++l)
+        {
+            epsilon3_LLL[i][j][k] += n_U[l] * epsilon4[i][j][k][l] *
+                                     vars.lapse / (vars.chi * sqrt(vars.chi));
+        }
+    }
+
+    return epsilon3_LLL;
+}
+
+template <class data_t>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
 Weyl4::compute_epsilon3_LUU(const Vars<data_t> &vars,
                             const Tensor<2, data_t> &h_UU) const
 {

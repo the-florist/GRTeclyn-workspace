@@ -99,6 +99,11 @@ class Weyl4
     double m_dx;                                 //!< the grid spacing
     FourthOrderDerivatives m_deriv; //!< for calculating derivs of vars
 
+        //! Compute spatial volume element
+    template <class data_t>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>
+    compute_epsilon3_LLL(const Vars<data_t> &vars) const;
+
     //! Compute spatial volume element
     template <class data_t>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE Tensor<3, data_t>

@@ -15,8 +15,10 @@ template <class matter_t>
 class TensorExtraction : public RandomField, public MatterWeyl4<matter_t>
 {
     public:
-        using Vars = CCZ4Vars::VarsWithGauge<Real>;
-        using Diff2Vars = ADMConformalVars::Diff2VarsNoGauge<Real>;
+        template <class data_t>
+        using Vars = CCZ4Vars::VarsWithGauge<data_t>;
+        template <class data_t>
+        using Diff2Vars = ADMConformalVars::Diff2VarsNoGauge<data_t>;
 
         TensorExtraction( RandomField::params_t a_params,
                           InitialBackgroundData::params_t a_background_params,
