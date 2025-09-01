@@ -392,14 +392,8 @@ inline void RandomField::init(amrex::MultiFab &state)
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = amrex::Random();//random_field_ptr[2*p];
-                Real draw2 = amrex::Random();//random_field_ptr[2*p+1];
-
-                /*if(count==0)
-                {
-                    AllPrint() << ParallelContext::MyProcSub() << "," << draw1 << "\n";
-                    count++;
-                }*/
+                Real draw1 = random_field_ptr[2*p];
+                Real draw2 = random_field_ptr[2*p+1];
 
                 hs_ptr(i, j, k, p) = calculate_random_field(iv, "position", draw1, draw2);
                 As_ptr(i, j, k, p) = calculate_random_field(iv, "velocity", draw1, draw2);
