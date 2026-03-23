@@ -30,10 +30,19 @@ class SimulationParameters : public SimulationParametersBase
     {
 	    initial_params.center =
             center; // already read in SimulationParametersBase
-         pp.load("G_Newton", G_Newton,
+        pp.load("read_from_STOIIC", random_field_params.read_from_stoiic, 0);
+
+        // Load G_Newton and set Mp from that
+        pp.load("G_Newton", G_Newton,
                  0.0); // for now the example neglects backreaction
+        if (random_field_params.read_from_stoiic)
+        {
+            G_Newton *= 8. * M_PI; // convert from STOIIC units to GRTeclyn's
+        }
         random_field_params.Mp = 1./std::sqrt(G_Newton);
         background_params.G_Newton = G_Newton;
+        Print() << "SimulationParameters: Confirm expected Mp is used: ";
+        Print() << random_field_params.Mp << "\n";
 
         pp.load("potential_type", potential_params.type, 0);
         pp.load("potential_param_1", potential_params.param1, 0.1);
@@ -47,7 +56,6 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("background_phi", background_params.phi0, 0.0);
         pp.load("background_dphi", background_params.Pi0, 0.0);	
 
-        pp.load("read_from_STOIIC", random_field_params.read_from_stoiic, 0);
         pp.load("tensor_init", random_field_params.tensor_init, 0);
         pp.load("scalar_init", random_field_params.scalar_init, 0);
         pp.load("L", random_field_params.L, 1.);
