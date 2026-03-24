@@ -7,6 +7,7 @@
 #define POTENTIAL_HPP_
 
 #include "simd.hpp"
+#include <typeinfo>
 
 class Potential
 {
@@ -43,22 +44,32 @@ class Potential
 		{
 			case 1:
 				m_params.scalar_mass = m_params.param1;
+				break;
 
+			case 8:
+				m_params.Lambda = m_params.param1;
+				m_params.v = m_params.param2;
+				break;
+			
 			case 9:
 				m_params.scalar_mass = m_params.param1;
 				m_params.location = m_params.param2;
 				m_params.width = m_params.param3;
 				m_params.amplitude = m_params.param4;
 				m_params.period = m_params.param5;
+				break;
 
-			case 8:
-				m_params.Lambda = m_params.param1;
-				m_params.v = m_params.param2;
-			
 			case 10:
 				m_params.scalar_mass = m_params.param1;
 				m_params.n = m_params.param2;
 				m_params.lambda = m_params.param3;
+				break;
+
+			default:
+				amrex::Print() << m_params.type << ", ";
+				amrex::Print() << typeid(m_params.type).name() << "\n";
+				amrex::Error("Potential::Potential, provided potential "
+							 "type is not implemented");
 		}
 	}
 
@@ -158,26 +169,28 @@ class Potential
     compute_potential(data_t &V_of_phi, data_t &dVdphi,
                       const vars_t<data_t> &vars) const
     {
-		if(m_params.type == 1)
+		switch (m_params.type)
 		{
-			quadratic<data_t>(V_of_phi, dVdphi, vars.phi);
-		}
-		else if (m_params.type == 8)
-		{
-			USR(V_of_phi, dVdphi, vars.phi);
-		}
-		else if (m_params.type == 9)
-		{
-			monodromy(V_of_phi, dVdphi, vars.phi);
-		}
-		else if (m_params.type == 10)
-		{
-			punctuated(V_of_phi, dVdphi, vars.phi);
-		}
-		else
-		{
-			amrex::Print() << m_params.type << "\n";
-			amrex::Error("Potential::compute_potential, requested potential type is m_params.not supported.");
+			case 1:
+				quadratic<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+			
+			case 8:
+				USR<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+
+			case 9:
+				monodromy<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+
+			case 10:
+				punctuated<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+			
+			default:
+				amrex::Print() << m_params.type << "\n";
+				amrex::Error("Potential::compute_potential, "
+							"requested potential type is not supported.");
 		}
     
 		/*amrex::Print().SetPrecision(15) << "V: " << V_of_phi << "\n";

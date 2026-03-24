@@ -84,10 +84,19 @@ class RandomField
             {
                 case 1:
                     potential.quadratic(V, dV, bkgd_params.phi0);
+                    break;
                 case 9:
                     potential.monodromy(V, dV, bkgd_params.phi0);
+                    break;
                 case 8:
                     potential.USR(V, dV, bkgd_params.phi0);
+                    break;
+                case 10:
+                    potential.punctuated(V, dV, bkgd_params.phi0);
+                    break;
+                default:
+                    Error("RandomField::RandomField, requested " 
+                          "potential type is not implemented.");
             }
 
             // Compute initial Hubble parameter
