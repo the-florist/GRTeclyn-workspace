@@ -548,8 +548,6 @@ inline void RandomField::init(amrex::MultiFab &state)
     cMultiFab hij_k(kba, kdm, 6, 0);
     cMultiFab Aij_k(kba, kdm, 6, 0);
 
-    // MultiFab hs_x(sba, sdm, 2, 0);
-    // MultiFab As_x(sba, sdm, 2, 0);
     MultiFab hij_x(sba, sdm, 6, 0);
     MultiFab Aij_x(sba, sdm, 6, 0);
 
@@ -558,8 +556,6 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     hs_k.setVal(0.0);
     As_k.setVal(0.0);
-    // hs_x.setVal(0.0);
-    // As_x.setVal(0.0);
     hij_k.setVal(0.0);
     Aij_k.setVal(0.0);
     hij_x.setVal(0.0);
@@ -570,7 +566,6 @@ inline void RandomField::init(amrex::MultiFab &state)
     // Construct the Fourier transform
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
-    // FFT::R2C<Real> mode_fn_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
@@ -650,23 +645,19 @@ inline void RandomField::init(amrex::MultiFab &state)
     }
 
     // Apply the DC and Nyquist symmetry conditions
-    // apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(hij_k);
     apply_nyquist_conditions(Aij_k);
     apply_nyquist_conditions(scalar_fields_k);
 
     // Do the Fourier transform
-    // mode_fn_fft.backward(hs_k, hs_x);
     tensor_fft.backward(hij_k, hij_x);
     tensor_fft.backward(Aij_k, Aij_x);
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
 
-    // Test_Parsevals_thm(hs_x, hs_k);
-
     // Apply normalisation into physical units
-    hij_x.mult(norm);
-    Aij_x.mult(norm);
-    scalar_fields_x.mult(norm);
+    hij_x.mult(norm * std::pow(N, -3./2.));
+    Aij_x.mult(norm * std::pow(N, -3./2.));
+    scalar_fields_x.mult(norm * std::pow(N, -3./2.));
 
     // Test that the resuling tensor perturbation field is trace-free
     Test_is_trace_free(hij_x);
@@ -806,6 +797,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     {
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                     + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+
+                        if (i != 0 && i != N/2) { power *= 2.; }
                         
                         Gpu::Atomic::Add(&kcount[s-1], 1);
                         if(power > tolerance)
@@ -821,6 +814,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     { 
                         Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                     + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+
+                        if (i != 0 && i != N/2) { power *= 2.; }
                         
                         Gpu::Atomic::Add(&kcount[N/2], 1);
                         if(power > tolerance)
@@ -1164,8 +1159,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     scalar_fft.forward(scalars_x, scalars_k);
 
     // Normalise the fft (fftw style)
-    for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(N, -3.), comp, 1); }
-    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3.), comp, 1); }
+    for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(N, -3./2.), comp, 1); }
+    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3./2), comp, 1); }
 
     // Set variables to store the maximum trace 
     // of the scalar and tensor components
@@ -1317,8 +1312,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         Test_Parsevals_thm(hs_x, hs_k);
 
         // Apply physical normalisation
-        hs_x.mult(norm);
-        R_x.mult(norm);
+        hs_x.mult(norm * std::pow(N, -3./2.));
+        R_x.mult(norm * std::pow(N, -3./2.));
 
         /* Print() << "Max tensor polarisations: " << hs_x.max(0) << ", " << hs_x.max(1) << "\n";
         Print() << "R max and min bounds: " << R_x.max(0) << ", " << R_x.min(0) << "\n"; */
