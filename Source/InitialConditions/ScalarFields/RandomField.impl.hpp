@@ -181,6 +181,73 @@ inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, co
     }
 }
 
+// Written by Gemini
+inline Real RandomField::calculate_total_power(const cMultiFab& fk, const int comp) 
+{
+    // 1. Set up the parallel reduction operation (Sum)
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    // 2. Loop over the grids owned by this MPI rank
+    for (MFIter mfi(fk); mfi.isValid(); ++mfi) 
+    {
+        const Box& bx = mfi.fabbox();
+        auto const& arr = fk.const_array(mfi);
+
+        // 3. Execute the parallel reduction on the CPU/GPU
+        reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                // Get the real and imaginary parts
+                Real re = arr(i,j,k,comp).real();
+                Real im = arr(i,j,k,comp).imag();
+                
+                // Return the squared modulus to be summed
+                return { re * re + im * im };
+            });
+    }
+
+    // 4. Extract the aggregated sum for this specific MPI rank
+    ReduceTuple hv = reduce_data.value();
+    Real total_local_power = get<0>(hv);
+
+    // 5. Perform an MPI reduction to sum across all compute nodes
+    ParallelDescriptor::ReduceRealSum(total_local_power);
+
+    return total_local_power;
+}
+
+inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk)
+{
+    Vector<Real> ksum(hk.nComp(), 0.);
+    Vector<Real> xsum(hx.nComp(), 0.);
+
+    for(int s=0; s<hx.nComp(); s++)
+    {
+        xsum[s] = hx.norm2(s);
+        xsum[s] /= std::pow(N, 3.);
+
+        ksum[s] = calculate_total_power(hk, s);
+        ksum[s] *= std::pow(norm, 2.);
+    }
+
+    int p = std::round(std::log10((ksum[0] + ksum[1]) / 2.));
+    Real tol = tolerance * std::pow(10., p);
+
+    for(int s=0; s<hx.nComp(); s++)
+    {
+        if (std::abs(xsum[s] - ksum[s]) > tol)
+        {
+            Print() << "Component: " << s << "\n";
+            Print() << "Tolerance: " << tol << "\n";
+            Print() << "Stdev (x): " << xsum[s] << "\n";
+            Print() << "Integrated power (k): " << ksum[s] << "\n";
+            Error("Parseval's theorem fails here.");
+        }
+    }
+}
+
 /****
     Initialisation routines
 ****/
@@ -1245,6 +1312,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);
         Copy(out_MF, R_x, 0, 0, R_k.nComp(), 0);
         Copy(out_MF, hs_x, 0, R_k.nComp(), hs_x.nComp(), 0);
+
+        Test_Parsevals_thm(hs_x, hs_k);
 
         // Print mode functions if requested
         if(m_params.print_mode_functions == 1)
