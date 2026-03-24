@@ -202,9 +202,13 @@ inline Real RandomField::calculate_total_power(const cMultiFab& fk, const int co
                 // Get the real and imaginary parts
                 Real re = arr(i,j,k,comp).real();
                 Real im = arr(i,j,k,comp).imag();
+
+                Real pow = re * re + im * im;
+                // Multiply by 2 in most of the bulk,
+                // to account for Hermitian modes.
+                if (i != 0 && i != N/2) { pow *= 2.; }
                 
-                // Return the squared modulus to be summed
-                return { re * re + im * im };
+                return pow;
             });
     }
 
@@ -225,11 +229,10 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
 
     for(int s=0; s<hx.nComp(); s++)
     {
-        xsum[s] = hx.norm2(s);
+        xsum[s] = std::pow(hx.norm2(s), 2.);
         xsum[s] /= std::pow(N, 3.);
 
         ksum[s] = calculate_total_power(hk, s);
-        ksum[s] *= std::pow(norm, 2.);
     }
 
     int p = std::round(std::log10((ksum[0] + ksum[1]) / 2.));
@@ -243,6 +246,8 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
             Print() << "Tolerance: " << tol << "\n";
             Print() << "Stdev (x): " << xsum[s] << "\n";
             Print() << "Integrated power (k): " << ksum[s] << "\n";
+            Print() << "Ratio: " << ksum[s] / xsum[s] << "\n";
+            Print() << "Difference: " << std::abs(ksum[s] - xsum[s]) << "\n";
             Error("Parseval's theorem fails here.");
         }
     }
@@ -543,6 +548,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     cMultiFab hij_k(kba, kdm, 6, 0);
     cMultiFab Aij_k(kba, kdm, 6, 0);
 
+    // MultiFab hs_x(sba, sdm, 2, 0);
+    // MultiFab As_x(sba, sdm, 2, 0);
     MultiFab hij_x(sba, sdm, 6, 0);
     MultiFab Aij_x(sba, sdm, 6, 0);
 
@@ -551,6 +558,8 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     hs_k.setVal(0.0);
     As_k.setVal(0.0);
+    // hs_x.setVal(0.0);
+    // As_x.setVal(0.0);
     hij_k.setVal(0.0);
     Aij_k.setVal(0.0);
     hij_x.setVal(0.0);
@@ -561,6 +570,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     // Construct the Fourier transform
     IntVect x_domain_high(N-1, N-1, N-1);
     Box x_domain(domain_low, x_domain_high);
+    // FFT::R2C<Real> mode_fn_fft(x_domain, FFT::Info().setBatchSize(hs_k.nComp()));
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
@@ -640,15 +650,18 @@ inline void RandomField::init(amrex::MultiFab &state)
     }
 
     // Apply the DC and Nyquist symmetry conditions
-    apply_nyquist_conditions(hs_k);
+    // apply_nyquist_conditions(hs_k);
     apply_nyquist_conditions(hij_k);
     apply_nyquist_conditions(Aij_k);
     apply_nyquist_conditions(scalar_fields_k);
 
     // Do the Fourier transform
+    // mode_fn_fft.backward(hs_k, hs_x);
     tensor_fft.backward(hij_k, hij_x);
     tensor_fft.backward(Aij_k, Aij_x);
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
+
+    // Test_Parsevals_thm(hs_x, hs_k);
 
     // Apply normalisation into physical units
     hij_x.mult(norm);
@@ -1301,6 +1314,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         tensor_mode_function_fft.backward(hs_k, hs_x);
         scalar_mode_function_fft.backward(R_k, R_x);
 
+        Test_Parsevals_thm(hs_x, hs_k);
+
         // Apply physical normalisation
         hs_x.mult(norm);
         R_x.mult(norm);
@@ -1312,8 +1327,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);
         Copy(out_MF, R_x, 0, 0, R_k.nComp(), 0);
         Copy(out_MF, hs_x, 0, R_k.nComp(), hs_x.nComp(), 0);
-
-        Test_Parsevals_thm(hs_x, hs_k);
 
         // Print mode functions if requested
         if(m_params.print_mode_functions == 1)
