@@ -78,6 +78,45 @@ inline void RandomField::assign_statistics_data(Vector<std::string> &header_stor
     data_storage[loc] = data[component];
 }
 
+// Written by Gemini, edited by me
+inline Real RandomField::find_precision_loss(MultiFab &field, int comp, Real bkgd)
+{
+    // 1. Initialize the reduction operator for a 'Minimum' operation
+    amrex::ReduceOps<amrex::ReduceOpMin> reduce_op;
+    amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    // 2. Loop over the MultiFab (GPU and CPU safe)
+    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.fabbox();
+        auto const& arr = field.array(mfi);
+
+        reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple {
+                // Return the absolute value of the cell
+                return { std::abs(arr(i, j, k, comp)) };
+            });
+    }
+
+    // 3. Extract the local minimum on this MPI rank
+    amrex::Real min_abs_val = amrex::get<0>(reduce_data.value());
+
+    // 4. Perform a collective MPI reduction to find the global minimum across all processors
+    amrex::ParallelDescriptor::ReduceRealMin(min_abs_val);
+
+    int p_field = std::round(std::log10(min_abs_val));
+    int p_bkgd = std::round(std::log10(std::abs(bkgd)));
+
+    if (p_bkgd + p_field > 0)
+    {
+        Print() << bkgd << ", " << min_abs_val << "\n";
+        Print() << p_bkgd << ", " << p_field << "\n";
+        Error("RandomField::find_precision_loss, field may be non-perturbative.");
+    }
+
+    return pow(10., p_bkgd + p_field);
+}
+
 /****
     Tests
 ****/
@@ -230,10 +269,11 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
     Real ksum = calculate_total_power(hk);
 
     int p = std::round(std::log10((ksum + ksum) / 2.));
-    Real tol = tolerance * std::pow(10., p+1);
+    Real tol = tolerance * std::pow(10., p);
 
     if (std::abs(xsum - ksum) > tol)
     {
+        Print() << "Order of magnitude of sum: " << p << "\n";
         Print() << "Tolerance: " << tol << "\n";
         Print() << "Stdev (x): " << xsum << "\n";
         Print() << "Integrated power (k): " << ksum << "\n";
@@ -280,7 +320,7 @@ inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain, cons
 }
 
 // Returns analytic power spectrum in modulus/argument form
-inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, const int spec_indx)
+inline GpuComplex<Real> RandomField::calculate_mode_function(const Real km, const int spec_indx)
 {
     // Deals with k=0 case, which is undefined if m=0
     if(km < 1.e-23) { return 0.; }
@@ -289,7 +329,7 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     Real ms_mag = 0.;
     Real ms_arg = 0.;
 
-    double kpr = km/H0;
+    Real kpr = km/H0;
     if (spec_indx == 0) // Position mode funcion
     {
         ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
@@ -307,7 +347,7 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const double km, co
     return ps;
 }
 
-inline GpuComplex<Real> RandomField::find_in_stoiic(const double km, const int field_indx, std::string field_type)
+inline GpuComplex<Real> RandomField::find_in_stoiic(const Real km, const int field_indx, std::string field_type)
 {
     GpuComplex<Real> zero(0., 0.);
     if(km == 0) { return zero; }
@@ -338,7 +378,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     GpuComplex<Real> value(0., 0.);
 
     // Find kmag with FFTW-style inversion on the last two indices
-    double kmag = get_kmag(iv);
+    Real kmag = get_kmag(iv);
 
     // Find the analytic power spectrum
     if(m_params.read_from_stoiic) { value = find_in_stoiic(kmag, field_index, field_type); }
@@ -368,8 +408,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        double ks = std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.;//m_params.kstar * 2. * M_PI/m_params.L;
-        double Dt = m_params.L/m_params.Delta;
+        Real ks = std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.;//m_params.kstar * 2. * M_PI/m_params.L;
+        Real Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
     }
 
@@ -589,11 +629,11 @@ inline void RandomField::init(amrex::MultiFab &state)
 
             if(m_params.scalar_init)
             {
+                Real draw1 = scalar_draw_ptr(i, j, k, 0);
+                Real draw2 = scalar_draw_ptr(i, j, k, 1);
+
                 for(int f=0; f<4; f++)
                 {
-                    Real draw1 = scalar_draw_ptr(i, j, k, 0);
-                    Real draw2 = scalar_draw_ptr(i, j, k, 1);
-
                     scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
                 }
             }
@@ -648,6 +688,9 @@ inline void RandomField::init(amrex::MultiFab &state)
     hij_x.mult(norm * std::pow(N, -3./2.));
     Aij_x.mult(norm * std::pow(N, -3./2.));
     scalar_fields_x.mult(norm * std::pow(N, -3./2.));
+
+    Print() << "Precision lost in phi is " << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
+    Print() << "Precision lost in chi is " << find_precision_loss(scalar_fields_x, 2, 1.0) << "\n";
 
     // Test that the resuling tensor perturbation field is trace-free
     Test_is_trace_free(hij_x);
@@ -710,9 +753,9 @@ inline void RandomField::init(amrex::MultiFab &state)
 inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component = 0)
 { 
     // Set up the isotropic k axis bounds
-    double kiso_max = std::sqrt(3.) * N * M_PI / m_params.L;
-    double dkiso = sqrt(3.)*2.*M_PI/m_params.L;
-    double tolerance = 1.e-12;
+    Real kiso_max = std::sqrt(3.) * N * M_PI / m_params.L;
+    Real dkiso = sqrt(3.)*2.*M_PI/m_params.L;
+    Real tolerance = 1.e-12;
 
     // check the stepping along the diagonal is consistent
     if (kiso_max/dkiso - N/2 > tolerance)
@@ -731,8 +774,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     }
 
     // Set up isotropic k axis and PS map
-    double dk_to_bin = (double)m_params.bin_number/((double)N/2);
-    double kmag = 0.;
+    Real dk_to_bin = (Real)m_params.bin_number/((Real)N/2);
+    Real kmag = 0.;
     Vector<Real> kiso(N/2+1, 0.);
 
     Vector<Real> ps_map(m_params.bin_number+1, 0.);
@@ -755,7 +798,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
             bool in_ghost_index = is_ghost_index(iv);
             if(!in_ghost_index)
             {
-                double kmag = get_kmag(iv);
+                Real kmag = get_kmag(iv);
 
                 // make sure you're still in the domain
                 if(kmag - kiso_max > tolerance) 
@@ -839,7 +882,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
 #pragma omp single
     for(int s=0; s<=N/2; s++)
     {
-        power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., (double)ps_map[s]/kcount[s]});
+        power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., (Real)ps_map[s]/kcount[s]});
     }
 }
 
@@ -1103,11 +1146,11 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     // Find background quantities needed to extract \cal R
     const int vol = std::pow(m_params.N_readin, 3);
-    const double K_bar = state.sum(c_K)/vol;
-    const double alpha_bar = state.sum(c_lapse)/vol;
-    const double Pi_bar = state.sum(c_Pi)/vol;
-    const double phi_bar = state.sum(c_phi)/vol;
-    const double chi_bar = state.sum(c_chi)/vol;
+    const Real K_bar = state.sum(c_K)/vol;
+    const Real alpha_bar = state.sum(c_lapse)/vol;
+    const Real Pi_bar = state.sum(c_Pi)/vol;
+    const Real phi_bar = state.sum(c_phi)/vol;
+    const Real chi_bar = state.sum(c_chi)/vol;
 
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);

@@ -15,22 +15,22 @@ class Potential
     struct params_t
     {
 		int type;
-		double param1, param2, param3, param4, param5;
+		amrex::Real param1, param2, param3, param4, param5;
 
 		// Monodromy parameters
-		double scalar_mass = 0.;
-		double location;
-		double width;	
-		double amplitude;
-		double period;
+		amrex::Real scalar_mass = 0.;
+		amrex::Real location;
+		amrex::Real width;	
+		amrex::Real amplitude;
+		amrex::Real period;
 
 		// USR (Prokopec) parameters
-		double Lambda;
-		double v = 0.;
+		amrex::Real Lambda;
+		amrex::Real v = 0.;
 
 		// Punctuated inflation params
 		int n;
-		double lambda;
+		amrex::Real lambda;
     };
 
   private:
@@ -83,7 +83,7 @@ class Potential
 			amrex::Error("Potential::quadratic, Scalar mass is un-initialised.");
 		}
 
-		V = 0.5 * std::pow(m_params.scalar_mass * phi, 2.);
+		V = std::pow(m_params.scalar_mass * phi, 2.) / 2.;
 		dV = std::pow(m_params.scalar_mass, 2.) * phi;
 	}
 
@@ -98,20 +98,20 @@ class Potential
 		}
 
 		// Calculate V
-		double argument = (phi - m_params.location)/m_params.period;
-		double displaced_argument = (m_params.location - phi + m_params.width)/m_params.period;
+		amrex::Real argument = (phi - m_params.location)/m_params.period;
+		amrex::Real displaced_argument = (m_params.location - phi + m_params.width)/m_params.period;
 		
-		double envelope = 0.25 * (1. + tanh(argument)) * (1. + tanh(displaced_argument));
-		double oscillation = cos(argument) - 1.; 	
+		amrex::Real envelope = 0.25 * (1. + tanh(argument)) * (1. + tanh(displaced_argument));
+		amrex::Real oscillation = cos(argument) - 1.; 	
 
 		V = 0.5 * pow(m_params.scalar_mass * phi, 2.0);
 		V += m_params.amplitude * (envelope * oscillation);
 
 		// Calculate dV
-		double d_envelope = 0.25/m_params.period * 
+		amrex::Real d_envelope = 0.25/m_params.period * 
 					((1. + tanh(argument)) * (std::pow(tanh(displaced_argument), 2.) - 1.)
 					+ (1. + tanh(displaced_argument)) * (1. - std::pow(tanh(argument), 2.)));
-		double d_oscillation = -sin(argument)/m_params.period;
+		amrex::Real d_oscillation = -sin(argument)/m_params.period;
 
 		dV = pow(m_params.scalar_mass, 2.0) * phi;
 		dV += m_params.amplitude * (envelope * d_oscillation + d_envelope * oscillation);
@@ -128,7 +128,7 @@ class Potential
 		}
 
 		// Calculate V
-		double fraction = (3. * pow(phi, 2.) 
+		amrex::Real fraction = (3. * pow(phi, 2.) 
 						 + 2. * sqrt(2.) * phi * m_params.v 
 						 + 6. * pow(m_params.v, 2.));
 

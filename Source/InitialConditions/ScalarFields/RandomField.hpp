@@ -47,10 +47,10 @@ class RandomField
             int plot_int;
 
             // Grid parameters
-            double L;                   //!< Length of the box
-            double A;                   //!< Amplitude factor (for basic tests)
-            double Mp = 1.;             //!< Energy scale of the problem
-            double alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
+            Real L;                   //!< Length of the box
+            Real A;                   //!< Amplitude factor (for basic tests)
+            Real Mp = 1.;             //!< Energy scale of the problem
+            Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
             int N_readin;               //!< used to read in the private N variable
             int N_fine;                 //!< Fine resolution to downsample from, 
                                         //!< used for convergence testing
@@ -58,8 +58,8 @@ class RandomField
             // Initial condition options
             int random_seed = 3539263;  //!< Seed for random number generator
             int use_window = 0;         //!< Choose whether to use window function
-            double kstar;               //!< window's cut-off mode, measured in units of 2pi/L
-            double Delta;               //!< window's width, measured like L/Delta
+            Real kstar;               //!< window's cut-off mode, measured in units of 2pi/L
+            Real Delta;               //!< window's width, measured like L/Delta
 
             // Extraction parameters
             int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
@@ -80,7 +80,7 @@ class RandomField
                 : m_params(a_params)
         {
             // Compute background potential
-            double V, dV;
+            Real V, dV;
             Potential potential(potential_params);
             switch (potential_params.type)
             {
@@ -103,11 +103,13 @@ class RandomField
 
             // Compute initial Hubble parameter
             H0 = sqrt((8. * M_PI * bkgd_params.G_Newton/3.)*(0.5*pow(bkgd_params.Pi0, 2.) + V));
+            phi0 = bkgd_params.phi0;
+            pi0 = bkgd_params.Pi0;
 
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = pow(1./m_params.L, 3.); // Physical FFT normalisation
-            tolerance = 1.e-12; // Numerical tolerance, for tests
+            norm = pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            tolerance = 1.e-10; // Numerical tolerance, for tests
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -128,8 +130,8 @@ class RandomField
         {
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = pow(1./m_params.L, 3.); // Physical FFT normalisation
-            tolerance = 1.e-12; // Numerical tolerance, for tests
+            norm = pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            tolerance = 1.e-10; // Numerical tolerance, for tests
 
             // Look-up table 
             // Used to construct polarisation basis tensors
@@ -154,11 +156,13 @@ class RandomField
                                  const int is_first_step);
         
     private:
-        int N;
-        Real H0;
+        int N = 0;
+        Real H0 = 0.;
         int lut[3][3];
-        double norm;
-        double tolerance;
+        Real norm = 0.;
+        Real tolerance = 0.;
+        Real pi0 = 0.;
+        Real phi0 = 0.;
 
         // Small functions
         int flip_index(const int indx);
@@ -166,6 +170,7 @@ class RandomField
         int invert_index_with_sign(const int indx);
         bool is_ghost_index(const IntVect vector);
         Real get_kmag(IntVect iv);
+        Real find_precision_loss(MultiFab &field, int comp, Real bkgd);
 
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
@@ -183,8 +188,8 @@ class RandomField
         void Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk);
 
         // Initialisation routines 
-        GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
-        GpuComplex<Real> find_in_stoiic(const double km, const int field_indx, std::string field_type);
+        GpuComplex<Real> calculate_mode_function(const Real km, const int spec_indx);
+        GpuComplex<Real> find_in_stoiic(const Real km, const int field_indx, std::string field_type);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
                                                 const Real rand_amp, const Real rand_phase, 
                                                 std::string field_type);
