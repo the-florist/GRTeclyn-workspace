@@ -83,7 +83,7 @@ class SimulationParameters : public SimulationParametersBase
             pp.load("n_k", num_modes, 0);
             pp.getarr("init_k", random_field_params.init_k, 0, num_modes);
 
-            amrex::Print() << "Begin read in of scalars...\n";
+            amrex::Print() << "SimulationParameters::read_params, Begin read in of scalars...\n";
 
             if(random_field_params.scalar_init)
             {
@@ -100,7 +100,7 @@ class SimulationParameters : public SimulationParametersBase
 
             if(random_field_params.tensor_init == 1)
             {
-                amrex::Print() << "Begin read in of tensors...\n";
+                amrex::Print() << "SimulationParameters::read_params, Begin read in of tensors...\n";
 
                 random_field_params.tensor_ps = amrex::Vector<amrex::Vector<amrex::Real>>(4, amrex::Vector<amrex::Real>(num_modes, 0.));
                 pp.getarr("re_h_k", random_field_params.tensor_ps[0], 0, num_modes);

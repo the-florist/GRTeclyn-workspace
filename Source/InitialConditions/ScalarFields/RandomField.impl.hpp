@@ -57,7 +57,7 @@ inline std::string RandomField::make_subdirectory(const std::string base, const 
         if (FilesystemTools::directory_exists(base)) { FilesystemTools::mkdir_recursive(new_path); }
         else 
         { 
-            Print() << "Directory creation failed for " << new_path << "\n";
+            Print() << "RandomField::make_subdirectory, Directory creation failed for " << new_path << "\n";
             Error("RandomField::extract Data directory has not been created."); 
         }
     }
@@ -279,7 +279,7 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
         Print() << "Integrated power (k): " << ksum << "\n";
         Print() << "Ratio: " << ksum / xsum << "\n";
         Print() << "Difference: " << std::abs(ksum - xsum) << "\n";
-        Error("Parseval's theorem fails here.");
+        Error("RandomField::Test_Parsevals_thm, Parseval's theorem fails here.");
     }
 }
 
@@ -356,7 +356,11 @@ inline GpuComplex<Real> RandomField::find_in_stoiic(const Real km, const int fie
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
         if(std::abs(km - m_params.init_k[idx]) < 1e-13) { spec_index = idx; break; }
-        else if (idx == m_params.init_k.size() - 1) { AllPrint() << km << "\n"; Error("The above k was not found in the STOIIC file."); }
+        else if (idx == m_params.init_k.size() - 1) 
+        { 
+            Print() << km << "\n"; 
+            Error("RandomField::find_in_stoiic, The above k was not found in the STOIIC file."); 
+        }
     }
 
     if(field_type == "tensor")
@@ -605,7 +609,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
     MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
 
-    Print() << "Starting initial condition generation/read in...\n";
+    Print() << "RandomField::init, Starting initial condition generation/read in...\n";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
@@ -689,8 +693,10 @@ inline void RandomField::init(amrex::MultiFab &state)
     Aij_x.mult(norm * std::pow(N, -3./2.));
     scalar_fields_x.mult(norm * std::pow(N, -3./2.));
 
-    Print() << "Precision lost in phi is " << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
-    Print() << "Precision lost in chi is " << find_precision_loss(scalar_fields_x, 2, 1.0) << "\n";
+    Print() << "RandomField::init, Precision lost in phi is ";
+    Print() << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
+    Print() << "RandomField::init, Precision lost in chi is ";
+    Print() << find_precision_loss(scalar_fields_x, 2, 1.0) << "\n";
 
     // Test that the resuling tensor perturbation field is trace-free
     Test_is_trace_free(hij_x);
@@ -1253,7 +1259,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             if (std::abs(hij_tr_mag) > tolerance)
             {
                 Print() << iv << ": " << hij_tr_mag << "\n";
-                Error("hij trace magnitude too large in extraction");
+                Error("RandomField::extract, "
+                      "hij trace magnitude too large in extraction");
             }
 
             // Extract R according to the scheme detailed in 
@@ -1306,7 +1313,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     if((m_params.calc_binned_power_spectrum) 
 	    && (static_cast<int>(cur_time/dt) % m_params.plot_int == 0))
     {
-	    Print() << "Time step at print: " << static_cast<int>(std::round(cur_time/dt)) << "\n";
+	    Print() << "RandomField::extract, Time step at print: ";
+        Print() << static_cast<int>(std::round(cur_time/dt)) << "\n";
+
         std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
         Vector<std::string> filenames(2, "");
 
