@@ -179,7 +179,7 @@ class RandomField
                                                                  const Vector<Real> nhat);
         void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
                                                 const Tensor<2, Real> ecross);
-        Real calculate_total_power(const cMultiFab& fk, const int comp);
+        Real calculate_total_power(const cMultiFab& fk);
         void Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk);
 
         // Initialisation routines 

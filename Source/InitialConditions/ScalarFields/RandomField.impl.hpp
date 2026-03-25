@@ -182,7 +182,7 @@ inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, co
 }
 
 // Written by Gemini
-inline Real RandomField::calculate_total_power(const cMultiFab& fk, const int comp) 
+inline Real RandomField::calculate_total_power(const cMultiFab& fk) 
 {
     // 1. Set up the parallel reduction operation (Sum)
     ReduceOps<ReduceOpSum> reduce_op;
@@ -200,8 +200,8 @@ inline Real RandomField::calculate_total_power(const cMultiFab& fk, const int co
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 // Get the real and imaginary parts
-                Real re = arr(i,j,k,comp).real();
-                Real im = arr(i,j,k,comp).imag();
+                Real re = arr(i,j,k).real();
+                Real im = arr(i,j,k).imag();
 
                 Real pow = re * re + im * im;
                 // Multiply by 2 in most of the bulk,
@@ -224,32 +224,22 @@ inline Real RandomField::calculate_total_power(const cMultiFab& fk, const int co
 
 inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk)
 {
-    Vector<Real> ksum(hk.nComp(), 0.);
-    Vector<Real> xsum(hx.nComp(), 0.);
+    Real xsum = std::pow(hx.norm2(), 2.);
+    xsum /= std::pow(N, 3.);
 
-    for(int s=0; s<hx.nComp(); s++)
+    Real ksum = calculate_total_power(hk);
+
+    int p = std::round(std::log10((ksum + ksum) / 2.));
+    Real tol = tolerance * std::pow(10., p+1);
+
+    if (std::abs(xsum - ksum) > tol)
     {
-        xsum[s] = std::pow(hx.norm2(s), 2.);
-        xsum[s] /= std::pow(N, 3.);
-
-        ksum[s] = calculate_total_power(hk, s);
-    }
-
-    int p = std::round(std::log10((ksum[0] + ksum[1]) / 2.));
-    Real tol = tolerance * std::pow(10., p);
-
-    for(int s=0; s<hx.nComp(); s++)
-    {
-        if (std::abs(xsum[s] - ksum[s]) > tol)
-        {
-            Print() << "Component: " << s << "\n";
-            Print() << "Tolerance: " << tol << "\n";
-            Print() << "Stdev (x): " << xsum[s] << "\n";
-            Print() << "Integrated power (k): " << ksum[s] << "\n";
-            Print() << "Ratio: " << ksum[s] / xsum[s] << "\n";
-            Print() << "Difference: " << std::abs(ksum[s] - xsum[s]) << "\n";
-            Error("Parseval's theorem fails here.");
-        }
+        Print() << "Tolerance: " << tol << "\n";
+        Print() << "Stdev (x): " << xsum << "\n";
+        Print() << "Integrated power (k): " << ksum << "\n";
+        Print() << "Ratio: " << ksum / xsum << "\n";
+        Print() << "Difference: " << std::abs(ksum - xsum) << "\n";
+        Error("Parseval's theorem fails here.");
     }
 }
 
@@ -1237,7 +1227,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 // Set the zero mode
                 if(kmag == 0)
                 {
-                    R_k_ptr(i, j, k, 0) = GpuComplex<Real>{0., 0.};
+                    R_k_ptr(i, j, k) = GpuComplex<Real>{0., 0.};
                 }
 
                 else
@@ -1251,7 +1241,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                     Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
 
                     // Combine the above to find R(k)
-                    R_k_ptr(i, j, k, 0) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+                    R_k_ptr(i, j, k) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
                 }
             }
         });
@@ -1309,7 +1299,16 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         tensor_mode_function_fft.backward(hs_k, hs_x);
         scalar_mode_function_fft.backward(R_k, R_x);
 
-        Test_Parsevals_thm(hs_x, hs_k);
+        if (m_params.tensor_init) 
+        { 
+            for (int c=0; c<hs_x.nComp(); c++)
+            {
+                MultiFab hx_tmp(hs_x, amrex::make_alias, c, 1);
+                cMultiFab hk_tmp(hs_k, amrex::make_alias, c, 1);
+                Test_Parsevals_thm(hx_tmp, hk_tmp);
+            } 
+        }
+        if (m_params.scalar_init) { Test_Parsevals_thm(R_x, R_k); }
 
         // Apply physical normalisation
         hs_x.mult(norm * std::pow(N, -3./2.));
