@@ -35,14 +35,8 @@ class SimulationParameters : public SimulationParametersBase
         // Load G_Newton and set Mp from that
         pp.load("G_Newton", G_Newton,
                  0.0); // for now the example neglects backreaction
-        if (random_field_params.read_from_stoiic)
-        {
-            G_Newton *= 8. * M_PI; // convert from STOIIC units to GRTeclyn's
-        }
-        random_field_params.Mp = 1./std::sqrt(G_Newton);
+        random_field_params.Mp = 1./std::sqrt(8. * M_PI * G_Newton);
         background_params.G_Newton = G_Newton;
-        Print() << "SimulationParameters: Confirm expected Mp is used: ";
-        Print() << random_field_params.Mp << "\n";
 
         pp.load("potential_type", potential_params.type, 0);
         pp.load("potential_param_1", potential_params.param1, 0.1);
