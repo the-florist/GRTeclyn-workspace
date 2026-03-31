@@ -287,36 +287,28 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
     Initialisation routines
 ****/
 
-// Generate unique random draws for each MFI box.
-inline void RandomField::make_random_draws(MultiFab &rand_fab, Box &domain, const int seed)
+// Written by Gemini
+inline Real RandomField::get_spatial_random(int i, int j, int k, int comp, int seed)
 {
-    BoxArray ba = rand_fab.boxArray();
-    DistributionMapping dm = rand_fab.DistributionMap();
-    MultiFab tmp(ba, dm, 6, 0, MFInfo{}.SetArena(The_Cpu_Arena()));
+    // 1. Create a unique 64-bit identifier for this exact cell, component, and seed.
+    // The large prime numbers help prevent spatial artifacts (striping) before mixing.
+    uint64_t state = (uint64_t(i) * 73856093ULL) ^
+                     (uint64_t(j) * 19349663ULL) ^
+                     (uint64_t(k) * 83492791ULL) ^
+                     (uint64_t(comp) * 23145671ULL) ^
+                     (uint64_t(seed));
 
-    for(MFIter mfi(tmp); mfi.isValid(); ++mfi)
-    {
-        Box const& bx = mfi.validbox();
-        auto const& tmp_ptr = tmp.array(mfi);
+    // 2. High-quality bit mixer (based on the SplitMix64 algorithm)
+    // This violently scrambles the bits so neighboring cells have no correlation.
+    state ^= state >> 30;
+    state *= 0xbf58476d1ce4e5b9ULL;
+    state ^= state >> 27;
+    state *= 0x94d049bb133111ebULL;
+    state ^= state >> 31;
 
-        std::mt19937 generator(seed);
-        std::uniform_real_distribution<Real> distribution(Real(0), Real(1));
-
-        auto offset = domain.index(bx.smallEnd()) * 6;
-        for(int ofs = 0; ofs < offset; ofs++)
-        {
-            distribution(generator);
-        }
-        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
-        {
-            for(int l=0; l<6; l++)
-            {
-                tmp_ptr(i, j, k, l) = distribution(generator);
-            }
-        });
-    }
-
-    rand_fab.ParallelCopy(tmp);
+    // 3. Convert the scrambled 64-bit integer into a double precision float in [0.0, 1.0)
+    // 0x1.0p-53 is a fast hex-float representation of 2^-53.
+    return (state >> 11) * 0x1.0p-53;
 }
 
 // Returns analytic power spectrum in modulus/argument form
@@ -355,7 +347,7 @@ inline GpuComplex<Real> RandomField::find_in_stoiic(const Real km, const int fie
     int spec_index;
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
-        if(std::abs(km - m_params.init_k[idx]) < 1e-13) { spec_index = idx; break; }
+        if(std::abs(km - m_params.init_k[idx]) < 1e-10) { spec_index = idx; break; }
         else if (idx == m_params.init_k.size() - 1) 
         { 
             Print() << km << "\n"; 
@@ -603,19 +595,11 @@ inline void RandomField::init(amrex::MultiFab &state)
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
-    // Construct MFs to hold the random number draws
-    MultiFab random_draws(kba, kdm, 6, 0);
-    make_random_draws(random_draws, k_domain, m_params.random_seed);
-    MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
-    MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
-
     Print() << "RandomField::init, Starting initial condition generation/read in...\n";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
         const Box& bx = mfi.fabbox();
-        auto const& tensor_draw_ptr = tensor_draws.const_array(mfi);
-        auto const& scalar_draw_ptr = scalar_draws.const_array(mfi);
 
         // Make a pointer to the mode functions at this MPI box
         Array4<GpuComplex<Real>> const& hs_ptr = hs_k.array(mfi);
@@ -633,8 +617,8 @@ inline void RandomField::init(amrex::MultiFab &state)
 
             if(m_params.scalar_init)
             {
-                Real draw1 = scalar_draw_ptr(i, j, k, 0);
-                Real draw2 = scalar_draw_ptr(i, j, k, 1);
+                Real draw1 = get_spatial_random(i, j, k, 4, m_params.random_seed);
+                Real draw2 = get_spatial_random(i, j, k, 5, m_params.random_seed);
 
                 for(int f=0; f<4; f++)
                 {
@@ -647,8 +631,8 @@ inline void RandomField::init(amrex::MultiFab &state)
                 // Find the mode function realisation
                 for(int p=0; p<2; p++)
                 {
-                    Real draw1 = tensor_draw_ptr(i, j, k, 2*p);
-                    Real draw2 = tensor_draw_ptr(i, j, k, 2*p+1);
+                    Real draw1 = get_spatial_random(i, j, k, 2*p, m_params.random_seed);
+                    Real draw2 = get_spatial_random(i, j, k, 2*p+1, m_params.random_seed);
 
                     hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
                     As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");

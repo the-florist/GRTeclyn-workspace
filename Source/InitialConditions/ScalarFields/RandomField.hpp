@@ -188,6 +188,7 @@ class RandomField
         void Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk);
 
         // Initialisation routines 
+        Real get_spatial_random(int i, int j, int k, int comp, int seed);
         GpuComplex<Real> calculate_mode_function(const Real km, const int spec_indx);
         GpuComplex<Real> find_in_stoiic(const Real km, const int field_indx, std::string field_type);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
@@ -200,7 +201,6 @@ class RandomField
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
         Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                  const int moment, const int component);
-        void make_random_draws(MultiFab &rand_fab, Box &domain, const int seed);
 
     protected:
         const params_t m_params;
