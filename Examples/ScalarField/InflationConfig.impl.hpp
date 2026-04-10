@@ -12,7 +12,7 @@
 #define INFLATIONCONFIG_IMPL_HPP_
 
 // Calculates basis vectors required for polarisation tensors
-inline amrex::Vector<amrex::Real> InflationConfig::calculate_basis_vector(const amrex::IntVect iv, const int which_vector)
+inline amrex::GpuArray<amrex::Real, 3> InflationConfig::calculate_basis_vector(const amrex::IntVect iv, const int which_vector)
 {
     AMREX_ASSERT(norm > 0);
 
@@ -22,8 +22,10 @@ inline amrex::Vector<amrex::Real> InflationConfig::calculate_basis_vector(const 
     const amrex::Real j = static_cast<amrex::Real>(invert_index_with_sign(iv[1]));
     const amrex::Real k = static_cast<amrex::Real>(invert_index_with_sign(iv[2]));
 
-    amrex::Vector<amrex::Real> mhat(3, 0.);
-    amrex::Vector<amrex::Real> nhat(3, 0.);
+    amrex::GpuArray<amrex::Real, 3> mhat;
+    amrex::GpuArray<amrex::Real, 3> nhat;
+    mhat.fill(0.);
+    nhat.fill(0.);
 
     // Skip the 0 mode, as tensors have no average
     if (iv == amrex::IntVect{0, 0, 0}) { ; }
@@ -32,15 +34,15 @@ inline amrex::Vector<amrex::Real> InflationConfig::calculate_basis_vector(const 
     {
         if (k == 0. && j == 0.) 
         { 
-            mhat = amrex::Vector<amrex::Real>{0., 1., 0.};
-            nhat = amrex::Vector<amrex::Real>{0., 0., 1.}; 
+            mhat = amrex::GpuArray<amrex::Real, 3>{0., 1., 0.};
+            nhat = amrex::GpuArray<amrex::Real, 3>{0., 0., 1.}; 
         }
 
         else 
         { 
             amrex::Real norm = sqrt((i*i + j*j) * (i*i + j*j + k*k));
-            mhat = amrex::Vector<amrex::Real>{j/sqrt(i*i + j*j), -i/sqrt(i*i + j*j), 0.}; 
-            nhat = amrex::Vector<amrex::Real>{(i*k) / norm, (j*k) / norm, -(i*i + j*j) / norm}; 
+            mhat = amrex::GpuArray<amrex::Real, 3>{j/sqrt(i*i + j*j), -i/sqrt(i*i + j*j), 0.}; 
+            nhat = amrex::GpuArray<amrex::Real, 3>{(i*k) / norm, (j*k) / norm, -(i*i + j*j) / norm}; 
         }
     }
 
@@ -48,21 +50,21 @@ inline amrex::Vector<amrex::Real> InflationConfig::calculate_basis_vector(const 
     { 
         if(k == 0.)
         {
-            mhat = amrex::Vector<amrex::Real>{0., 0., 1.};
-            nhat = amrex::Vector<amrex::Real>{1., 0., 0.};
+            mhat = amrex::GpuArray<amrex::Real, 3>{0., 0., 1.};
+            nhat = amrex::GpuArray<amrex::Real, 3>{1., 0., 0.};
         }
 
         else
         {
-            mhat = amrex::Vector<amrex::Real>{-1., 0., 0.};
-            nhat = amrex::Vector<amrex::Real>{0., -k / sqrt(j*j + k*k), j / sqrt(j*j + k*k)};
+            mhat = amrex::GpuArray<amrex::Real, 3>{-1., 0., 0.};
+            nhat = amrex::GpuArray<amrex::Real, 3>{0., -k / sqrt(j*j + k*k), j / sqrt(j*j + k*k)};
         }
     }
 
     else if (std::abs(k) > 0) 
     { 
-        mhat = amrex::Vector<amrex::Real>{1., 0., 0.};
-        nhat = amrex::Vector<amrex::Real>{0., 1., 0.};
+        mhat = amrex::GpuArray<amrex::Real, 3>{1., 0., 0.};
+        nhat = amrex::GpuArray<amrex::Real, 3>{0., 1., 0.};
     }
 
     else 
@@ -73,7 +75,7 @@ inline amrex::Vector<amrex::Real> InflationConfig::calculate_basis_vector(const 
     if (alpha != 0)
     {
         amrex::Real a = alpha * (M_PI) / 180.;
-        amrex::Vector<amrex::Real> mp(3), np(3);
+        amrex::GpuArray<amrex::Real, 3> mp, np;
         for(int l=0; l<3; l++)
         {
             mp[l] = cos(a) * mhat[l] + sin(a) * nhat[l];
@@ -89,7 +91,7 @@ inline amrex::Vector<amrex::Real> InflationConfig::calculate_basis_vector(const 
     else 
     { 
         amrex::Error("RandomField::calculate_basis_vector Incompatable vector type."); 
-        return amrex::Vector<amrex::Real>{0,0,0}; 
+        return amrex::GpuArray<amrex::Real, 3>{0,0,0}; 
     }
 }
 

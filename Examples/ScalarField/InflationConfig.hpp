@@ -98,15 +98,15 @@ struct InflationConfig
         return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / L;
     }
 
-    inline amrex::Vector<amrex::Real> calculate_basis_vector(const amrex::IntVect iv, 
+    inline amrex::GpuArray<amrex::Real, 3> calculate_basis_vector(const amrex::IntVect iv, 
                                                const int which_vector);
 
     inline Tensor<2, amrex::Real> calculate_polarisation_tensor(const amrex::IntVect iv,
                                                          const int which_pol)
     {
         // Find basis vectors
-        amrex::Vector<amrex::Real> mhat = calculate_basis_vector(iv, 0);
-        amrex::Vector<amrex::Real> nhat = calculate_basis_vector(iv, 1);
+        amrex::GpuArray<amrex::Real, 3> mhat = calculate_basis_vector(iv, 0);
+        amrex::GpuArray<amrex::Real, 3> nhat = calculate_basis_vector(iv, 1);
         TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
 
         Tensor<2, amrex::Real> eplus, ecross; 

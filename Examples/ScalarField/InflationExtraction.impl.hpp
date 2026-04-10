@@ -462,17 +462,16 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs, amrex::Mu
     {
 	    amrex::Print() << "Time step at print: " << static_cast<int>(std::round(m_cur_time/m_dt)) << "\n";
         std::string spec_path = make_subdirectory(m_data_path, "spectra", m_first_step);
-        amrex::Vector<std::string> filenames(2, "");
 
         for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
-            filenames[comp] = spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-";
-            SmallDataIO spectrum_file(filenames[comp], m_dt, m_cur_time, m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
+            SmallDataIO spectrum_file(spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-", m_dt, 
+                                      m_cur_time, m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
 
-        std::string filename = spec_path+"spectrum-Rk-time-";
-        SmallDataIO spectrum_file(filename, m_dt, m_cur_time, m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
+        SmallDataIO spectrum_file(spec_path+"spectrum-Rk-time-", m_dt, m_cur_time, 
+                                  m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
         print_power_spectrum(R_k, spectrum_file, 0);
     }
 
@@ -568,8 +567,7 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
 
 //     if (!m_params.orders.empty())
 //     {
-//         amrex::Vector<std::string> names{"R","hplus","hcross"};
-//         stdevs = print_moment(out_MF, names, m_params.orders, stats_file, m_first_step);
+//         stdevs = print_moment(out_MF, var_names, m_params.orders, stats_file, m_first_step);
 //     }
     
 //     // Calculate and print tensor to scalar ratio (integrated PS)

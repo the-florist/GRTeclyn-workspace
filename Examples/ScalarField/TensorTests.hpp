@@ -40,8 +40,8 @@ namespace TensorTests
     }
 
     // Test that the input vectors are orthonormal (local)
-    inline void Test_vector_orthonorm(const amrex::IntVect iv, const amrex::Vector<amrex::Real> mhat, 
-                                            const amrex::Vector<amrex::Real> nhat)
+    inline void Test_vector_orthonorm(const amrex::IntVect iv, const amrex::GpuArray<amrex::Real, 3> mhat, 
+                                            const amrex::GpuArray<amrex::Real, 3> nhat)
     {
         // Confirm basis vectors are orthonormal
         if (iv != amrex::IntVect{0, 0, 0})
@@ -63,7 +63,7 @@ namespace TensorTests
                 amrex::Print() << "Location: " << iv << "\n";
                 amrex::Print() << "Dot products: " << dot1 << ", " << dot2 << "\n";
                 amrex::Print() << "Cross product: " << cross1 << "\n";
-                amrex::Print() << "amrex::Vectors: \n";
+                amrex::Print() << "Vectors: \n";
                 for(int l=0; l<3; l++)
                 {
                     amrex::Print() << l << ", " << mhat[l] << ", " << nhat[l] << "\n";
@@ -77,7 +77,8 @@ namespace TensorTests
     inline void Test_polarisation_tensor_orthonorm(const amrex::IntVect iv, const Tensor<2, amrex::Real> eplus,
                                                                     const Tensor<2, amrex::Real> ecross)
     {
-        amrex::Vector<amrex::Real> conds(3, 0.);
+        amrex::GpuArray<amrex::Real, 3> conds;
+        conds.fill(0.);
 
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
         {
