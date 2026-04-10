@@ -266,13 +266,11 @@ inline amrex::Vector<amrex::Real> InflationExtraction::print_moment(amrex::Multi
     }
 
     // Write header and data lines
-#pragma omp single
     if(is_first_step) 
     { 
         file.write_header_line(headers); 
     }
 
-#pragma omp single
     file.write_time_data_line(data_to_print);
     
     return stdev;
@@ -281,8 +279,10 @@ inline amrex::Vector<amrex::Real> InflationExtraction::print_moment(amrex::Multi
 /* Main functions */
 
 // Extract R and hs in configuration space from the BSSN variables
-inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R, 
-                                                  const amrex::MultiFab &state, const bool print_spec = false)
+inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs, 
+                                                  amrex::MultiFab &R, 
+                                                  const amrex::MultiFab &state, 
+                                                  const bool print_spec = false)
 {
     // Extract amrex::MultiFab ingredients from state
     amrex::BoxArray sba = state.boxArray();
@@ -354,6 +354,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs, amrex::Mu
     amrex::Box x_domain(domain_low, x_domain_high);
     amrex::FFT::R2C<amrex::Real> tensor_fft(x_domain, amrex::FFT::Info().setBatchSize(gij_k.nComp()));
     amrex::FFT::R2C<amrex::Real> scalar_fft(x_domain, amrex::FFT::Info().setBatchSize(scalars_k.nComp()));
+    amrex::FFT::R2C<amrex::Real> mode_fn_fft(x_domain, amrex::FFT::Info().setBatchSize(hs_k.nComp()));
+    amrex::FFT::R2C<amrex::Real> R_fft(x_domain, amrex::FFT::Info().setBatchSize(R_k.nComp()));
 
     // Perform the fft
     tensor_fft.forward(gij_x, gij_k);
@@ -479,8 +481,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs, amrex::Mu
     }
 
     // Fourier transform
-    tensor_fft.backward(hs_k, hs);
-    scalar_fft.backward(R_k, R);
+    mode_fn_fft.backward(hs_k, hs);
+    R_fft.backward(R_k, R);
 
     // Apply physical normalisation
     hs.mult(norm);
