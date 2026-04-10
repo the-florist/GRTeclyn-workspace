@@ -16,18 +16,15 @@
 #include "simd.hpp"
 #include "Potential.hpp"
 
-//#include "MayDay.H"
-//#include <fstream>
-
-//template <class potential_t>
+// template <class potential_t>
 class InitialBackgroundData
 {
 	public:
 		struct params_t
 		{
-			double phi0; //!< Amplitude of k=0 mode of initial SF
-			double Pi0;  //!< Amplitude of initial SF velocity
-			double G_Newton; 
+			amrex::Real phi0; //!< Amplitude of k=0 mode of initial SF
+			amrex::Real Pi0;  //!< Amplitude of initial SF velocity
+			amrex::Real G_Newton; 
 		};
 
 		InitialBackgroundData(params_t a_params, const Potential a_potential)
@@ -55,10 +52,10 @@ class InitialBackgroundData
 			vars.phi = m_params.phi0;
 			vars.Pi = m_params.Pi0;
 
-			double V, dV;
+			amrex::Real V, dV;
 			m_potential.compute_potential(V, dV, vars);
 			
-			double H0 = sqrt((8. * M_PI * m_params.G_Newton/3.)*(0.5*pow(m_params.Pi0, 2.) + V));
+			amrex::Real H0 = sqrt((8. * M_PI * m_params.G_Newton/3.)*(0.5*pow(m_params.Pi0, 2.) + V));
 			vars.K = -3.*H0;
 
 			store_vars(cell.cellData(i, j, k), vars);

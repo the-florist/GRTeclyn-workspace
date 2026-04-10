@@ -26,8 +26,6 @@
 #include "InflationUtils.hpp"
 #include "TensorTests.hpp"
 
-using namespace amrex;
-
 struct InflationConfig
 {
     /* Shared parameters */
@@ -39,10 +37,10 @@ struct InflationConfig
     int plot_int = 0;
 
     // Grid parameters
-    Real L = 0;                   //!< Length of the box
-    Real A = 0;                   //!< Amplitude factor (for basic tests)
-    Real Mp = 1.;             //!< Energy scale of the problem
-    Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
+    amrex::Real L = 0;                   //!< Length of the box
+    amrex::Real A = 0;                   //!< Amplitude factor (for basic tests)
+    amrex::Real Mp = 1.;             //!< Energy scale of the problem
+    amrex::Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
     int N = 0;               //!< used to read in the private N variable
     int N_fine = 0;                 //!< Fine resolution to downsample from, 
                                 //!< used for convergence testing
@@ -50,21 +48,21 @@ struct InflationConfig
     // Initial condition options
     int random_seed = 3539263;  //!< Seed for random number generator
     int use_window = 0;         //!< Choose whether to use window function
-    Real kstar = 0;               //!< window's cut-off mode, measured in units of 2pi/L
-    Real Delta = 0;               //!< window's width, measured like L/Delta
+    amrex::Real kstar = 0;               //!< window's cut-off mode, measured in units of 2pi/L
+    amrex::Real Delta = 0;               //!< window's width, measured like L/Delta
 
     // Extraction parameters
     int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
     int bin_number = 0;                       //!< How many bins to use (capped at N/2)
     int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
     int num_orders = 0;                       //!< Number of moments to print (required by vector read-in)
-    Vector<int> orders;                   //!< Moment orders to print for extracted fields
+    amrex::Vector<int> orders;                   //!< Moment orders to print for extracted fields
     int print_mode_functions = 0;
 
     // STOIIC read-in structures
-    Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
-    Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
-    Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
+    amrex::Vector<amrex::Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
+    amrex::Vector<amrex::Vector<amrex::Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
+    amrex::Vector<amrex::Vector<amrex::Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
 
     /* Shared functions */
 
@@ -91,7 +89,7 @@ struct InflationConfig
     }
 
     // Find the magnitude of the Fourier wavevector at this point
-    inline Real get_kmag(IntVect iv)
+    inline amrex::Real get_kmag(amrex::IntVect iv)
     {
         AMREX_ASSERT(L > 0);
         const int i = iv[0];
@@ -100,18 +98,18 @@ struct InflationConfig
         return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / L;
     }
 
-    inline Vector<Real> calculate_basis_vector(const IntVect iv, 
+    inline amrex::Vector<amrex::Real> calculate_basis_vector(const amrex::IntVect iv, 
                                                const int which_vector);
 
-    inline Tensor<2, Real> calculate_polarisation_tensor(const IntVect iv,
+    inline Tensor<2, amrex::Real> calculate_polarisation_tensor(const amrex::IntVect iv,
                                                          const int which_pol)
     {
         // Find basis vectors
-        Vector<Real> mhat = calculate_basis_vector(iv, 0);
-        Vector<Real> nhat = calculate_basis_vector(iv, 1);
+        amrex::Vector<amrex::Real> mhat = calculate_basis_vector(iv, 0);
+        amrex::Vector<amrex::Real> nhat = calculate_basis_vector(iv, 1);
         TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
 
-        Tensor<2, Real> eplus, ecross; 
+        Tensor<2, amrex::Real> eplus, ecross; 
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
         {
             // Assemble the polarisation tensors
@@ -125,14 +123,14 @@ struct InflationConfig
         else if (which_pol == 1) { return ecross; }
         else 
         {
-            Error("InflationConfig::calculate_polarisation_tensor, "
+            amrex::Error("InflationConfig::calculate_polarisation_tensor, "
                   "polarisation flag is not set correctly.");
             return eplus;
         }
     }
 
     // Applies above Nyquist conditions to a given MF
-    inline void apply_nyquist_conditions(cMultiFab &field);
+    inline void apply_nyquist_conditions(amrex::cMultiFab &field);
 
 };
 

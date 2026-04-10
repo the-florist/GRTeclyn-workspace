@@ -9,18 +9,16 @@
 #include "InflationConfig.hpp"
 #include "TensorTests.hpp"
 
-using namespace amrex;
-
 class RandomFieldInit
 {
     protected:
-        Real H0;
-        static Real calc_H0(Real G, Real Pi, Real V)
+        amrex::Real H0;
+        static amrex::Real calc_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
         {
             return sqrt((8. * M_PI * G / 3.)*(0.5*pow(Pi, 2.) + V));
         }
         // CHANGE WITH CARE
-        const Real norm;
+        const amrex::Real norm;
 
     public:
                 // Constructor used when initialising stochastic fields
@@ -30,7 +28,7 @@ class RandomFieldInit
                         : m_params(a_config), norm(std::pow(a_config.L, -3.))
         {
             // Compute background potential
-            double V, dV;
+            amrex::Real V, dV;
             Potential potential(potential_params);
             switch (potential_params.type)
             {
@@ -47,7 +45,7 @@ class RandomFieldInit
                     potential.punctuated(V, dV, bkgd_params.phi0);
                     break;
                 default:
-                    Error("RandomFieldInit::RandomFieldInit, potential type not provided");
+                    amrex::Error("RandomFieldInit::RandomFieldInit, potential type not provided");
             }
 
             // Compute initial Hubble parameter
@@ -58,12 +56,12 @@ class RandomFieldInit
 
     private:
         InflationConfig m_params;
-        void make_random_draws(MultiFab &rand_fab, const Box &domain, const int seed);
-        GpuComplex<Real> calculate_mode_function(const double km, const int spec_indx);
-        GpuComplex<Real> find_in_stoiic(const double km, const int field_indx, 
+        void make_random_draws(amrex::MultiFab &rand_fab, const amrex::Box &domain, const int seed);
+        amrex::GpuComplex<amrex::Real> calculate_mode_function(const amrex::Real km, const int spec_indx);
+        amrex::GpuComplex<amrex::Real> find_in_stoiic(const amrex::Real km, const int field_indx, 
                                         const std::string field_type);
-        GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
-                                                const Real rand_amp, const Real rand_phase, 
+        amrex::GpuComplex<amrex::Real> calculate_random_field(const amrex::IntVect iv, const int field_index, 
+                                                const amrex::Real rand_amp, const amrex::Real rand_phase, 
                                                 std::string field_type);
 };
 

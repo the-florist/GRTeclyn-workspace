@@ -15,13 +15,11 @@
 #include <AMReX_Vector.H>
 #include <AMReX_FFT.H>
 
-using namespace amrex;
-
 class InflationExtraction
 {
     public:
         // Names of diagnostic variables
-        static inline const Vector<std::string> var_names = {"R", "hplus", "hcross"};
+        static inline const amrex::Vector<std::string> var_names = {"R", "hplus", "hcross"};
 
         // Constructor used in extraction of diagnostics
         InflationExtraction(InflationConfig a_params)
@@ -29,12 +27,12 @@ class InflationExtraction
         {}
 
         // Main routines
-        void derive(const MultiFab &source, MultiFab &out, const int dcomp);
-        void extract(const MultiFab &state);
+        void derive(const amrex::MultiFab &source, amrex::MultiFab &out, const int dcomp);
+        void extract(const amrex::MultiFab &state);
 
         // Set-up function when printing to data files
-        void set_print_params(const std::string data_path, const Real dt,  
-                     const Real cur_time, const int restart_time, const int first_step)
+        void set_print_params(const std::string data_path, const amrex::Real dt,  
+                     const amrex::Real cur_time, const int restart_time, const int first_step)
         {
             m_data_path = data_path;
             m_dt = dt;
@@ -43,37 +41,37 @@ class InflationExtraction
             m_first_step = first_step;
         }
 
-        Vector<Real> print_moment(MultiFab &field, const Vector<std::string> names,  
-                                 const Vector<int> &moment_orders, SmallDataIO &file, 
+        amrex::Vector<amrex::Real> print_moment(amrex::MultiFab &field, const amrex::Vector<std::string> names,  
+                                 const amrex::Vector<int> &moment_orders, SmallDataIO &file, 
                                  const int is_first_step);
 
     private:
         InflationConfig m_params;
         const int print_mode_functions = 0;
         std::string m_data_path;
-        Real m_dt;
-        Real m_cur_time;
+        amrex::Real m_dt;
+        amrex::Real m_cur_time;
         int m_restart_time;
         int m_first_step;
-        const Real norm;
+        const amrex::Real norm;
 
         std::string make_subdirectory(const std::string base, const std::string dir, 
                                       const int is_first_step) const;
 
-        void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
-                                    Vector<Real> &data_storage, const Vector<Real> data, 
+        void assign_statistics_data(amrex::Vector<std::string> &header_storage, const std::string name, 
+                                    amrex::Vector<amrex::Real> &data_storage, const amrex::Vector<amrex::Real> data, 
                                     const int component, const int num_comps,
-                                    const Vector<int>::const_iterator itr, 
-                                    const Vector<int>::const_iterator start, 
+                                    const amrex::Vector<int>::const_iterator itr, 
+                                    const amrex::Vector<int>::const_iterator start, 
                                     const int is_first_step);
 
-        void print_power_spectrum(const cMultiFab &field_array, SmallDataIO &power_spec_file, 
+        void print_power_spectrum(const amrex::cMultiFab &field_array, SmallDataIO &power_spec_file, 
                                   const int component);
-        Real calculate_field_moment_x(const MultiFab &field, const Vector<Real> mean, 
+        amrex::Real calculate_field_moment_x(const amrex::MultiFab &field, const amrex::Vector<amrex::Real> mean, 
                                       const int moment, const int component);
 
-        void extract_hs_and_R(MultiFab &hs, MultiFab &R, 
-                              const MultiFab &state, const bool print_spec);
+        void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R, 
+                              const amrex::MultiFab &state, const bool print_spec);
 };
 
 #include "InflationExtraction.impl.hpp"
