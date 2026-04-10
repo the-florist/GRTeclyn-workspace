@@ -37,73 +37,79 @@ class SimulationParameters : public SimulationParametersBase
         background_params.G_Newton = G_Newton;
 
         // Potential parameters
-        pp.load("potential_type", potential_params.type, 0);
-        pp.load("potential_param_1", potential_params.param1, 0.1);
-        pp.load("potential_param_2", potential_params.param2, 0.);
-        pp.load("potential_param_3", potential_params.param3);
-        pp.load("potential_param_4", potential_params.param4, 0.);
-        pp.load("potential_param_5", potential_params.param5);
-        pp.load("background_phi", background_params.phi0, 0.0);
-        pp.load("background_dphi", background_params.Pi0, 0.0);	
+        pp.load("potential.type", potential_params.type, 0);
+        pp.load("potential.param_1", potential_params.param1, 0.1);
+        pp.load("potential.param_2", potential_params.param2, 0.);
+        pp.load("potential.param_3", potential_params.param3, 0.);
+        pp.load("potential.param_4", potential_params.param4, 0.);
+        pp.load("potential.param_5", potential_params.param5, 0.);
 
-        // Initial data parameters
-        // Flags
-        pp.load("read_from_STOIIC", inflt_params.read_from_stoiic, 0);
-        pp.load("tensor_init", inflt_params.tensor_init, 0);
-        pp.load("scalar_init", inflt_params.scalar_init, 0);
-        pp.load("use_rand", inflt_params.use_rand, 1);
-        pp.load("use_window", inflt_params.use_window, 0);
-        pp.load("calc_binned_power_spectrum", inflt_params.calc_binned_power_spectrum, 0);
-        pp.load("calc_higher_order_statistics", inflt_params.calc_higher_order_statistics, 0);
+        // Background parameters
+        pp.load("init.background_phi", background_params.phi0, 0.0);
+        pp.load("init.background_dphi", background_params.Pi0, 0.0);	
 
         // Grid parameters
         pp.load("L", inflt_params.L, 1.);
         pp.load("N", inflt_params.N, 32);
-        pp.load("N_fine", inflt_params.N_fine, inflt_params.N);
+
+        // Random Field init parameters
+        // Flags
+        pp.load("randominit.read_from_STOIIC", inflt_params.read_from_stoiic, 0);
+        pp.load("randominit.tensor_init", inflt_params.tensor_init, 0);
+        pp.load("randominit.scalar_init", inflt_params.scalar_init, 0);
+        pp.load("randominit.use_rand", inflt_params.use_rand, 1);
+        pp.load("randominit.use_window", inflt_params.use_window, 0);
 
         // Field construction parameters
-        pp.load("A", inflt_params.A, 1.);
-        pp.load("random_seed", inflt_params.random_seed, 3539263);
-        pp.load("alpha", inflt_params.alpha, 0.);
-        pp.load("kstar", inflt_params.kstar, 0.);
-        pp.load("Delta", inflt_params.Delta, 1.);
+        pp.load("randominit.A", inflt_params.A, 1.);
+        pp.load("randominit.random_seed", inflt_params.random_seed, 3539263);
+        pp.load("randominit.alpha", inflt_params.alpha, 0.);
+        pp.load("randominit.kstar", inflt_params.kstar, 0.);
+        pp.load("randominit.Delta", inflt_params.Delta, 1.);
 
         // Extraction parameters
-        pp.load("bin_number", inflt_params.bin_number, inflt_params.N/2); 
-	    pp.load("spec_interval", inflt_params.plot_int, 100);
-        pp.load("num_moments", inflt_params.num_orders, 0);
-        pp.getarr("moments_to_print", inflt_params.orders, 0, inflt_params.num_orders);
+        pp.load("extraction.calc_binned_power_spectrum", 
+                inflt_params.calc_binned_power_spectrum, 0);
+        pp.load("extraction.calc_higher_order_statistics", 
+                inflt_params.calc_higher_order_statistics, 0);
+        pp.load("extraction.bin_number", inflt_params.bin_number, inflt_params.N/2); 
+	    pp.load("extraction.spec_interval", inflt_params.plot_int, 100);
+        pp.load("extraction.num_moments", inflt_params.num_orders, 0);
+        pp.getarr("extraction.moments_to_print", inflt_params.orders, 0, 
+                                                inflt_params.num_orders);
 
         if(inflt_params.read_from_stoiic)
         {
             int num_modes;
-            pp.load("n_k", num_modes, 0);
-            pp.getarr("init_k", inflt_params.init_k, 0, num_modes);
+            pp.load("randominit.n_k", num_modes, 0);
+            pp.getarr("randominit.init_k", inflt_params.init_k, 0, num_modes);
 
             amrex::Print() << "Begin read in of scalars...\n";
 
             if(inflt_params.scalar_init)
             {
-                inflt_params.scalar_ps = amrex::Vector<amrex::Vector<amrex::Real>>(8, amrex::Vector<amrex::Real>(num_modes, 0.));
-                pp.getarr("re_phi_k", inflt_params.scalar_ps[0], 0, num_modes);
-                pp.getarr("im_phi_k", inflt_params.scalar_ps[1], 0, num_modes);
-                pp.getarr("re_Pi_k", inflt_params.scalar_ps[2], 0, num_modes);
-                pp.getarr("im_Pi_k", inflt_params.scalar_ps[3], 0, num_modes);
-                pp.getarr("re_X_k", inflt_params.scalar_ps[4], 0, num_modes);
-                pp.getarr("im_X_k", inflt_params.scalar_ps[5], 0, num_modes);
-                pp.getarr("re_K_k", inflt_params.scalar_ps[6], 0, num_modes);
-                pp.getarr("im_K_k", inflt_params.scalar_ps[7], 0, num_modes);
+                inflt_params.scalar_ps = amrex::Vector<amrex::Vector<amrex::Real>>(8, 
+                                            amrex::Vector<amrex::Real>(num_modes, 0.));
+                pp.getarr("randominit.re_phi_k", inflt_params.scalar_ps[0], 0, num_modes);
+                pp.getarr("randominit.im_phi_k", inflt_params.scalar_ps[1], 0, num_modes);
+                pp.getarr("randominit.re_Pi_k", inflt_params.scalar_ps[2], 0, num_modes);
+                pp.getarr("randominit.im_Pi_k", inflt_params.scalar_ps[3], 0, num_modes);
+                pp.getarr("randominit.re_X_k", inflt_params.scalar_ps[4], 0, num_modes);
+                pp.getarr("randominit.im_X_k", inflt_params.scalar_ps[5], 0, num_modes);
+                pp.getarr("randominit.re_K_k", inflt_params.scalar_ps[6], 0, num_modes);
+                pp.getarr("randominit.im_K_k", inflt_params.scalar_ps[7], 0, num_modes);
             }
 
             if(inflt_params.tensor_init == 1)
             {
                 amrex::Print() << "Begin read in of tensors...\n";
 
-                inflt_params.tensor_ps = amrex::Vector<amrex::Vector<amrex::Real>>(4, amrex::Vector<amrex::Real>(num_modes, 0.));
-                pp.getarr("re_h_k", inflt_params.tensor_ps[0], 0, num_modes);
-                pp.getarr("im_h_k", inflt_params.tensor_ps[1], 0, num_modes);
-                pp.getarr("re_dh_k", inflt_params.tensor_ps[2], 0, num_modes);
-                pp.getarr("im_dh_k", inflt_params.tensor_ps[3], 0, num_modes);
+                inflt_params.tensor_ps = amrex::Vector<amrex::Vector<amrex::Real>>(4, 
+                                            amrex::Vector<amrex::Real>(num_modes, 0.));
+                pp.getarr("randominit.re_h_k", inflt_params.tensor_ps[0], 0, num_modes);
+                pp.getarr("randominit.im_h_k", inflt_params.tensor_ps[1], 0, num_modes);
+                pp.getarr("randominit.re_dh_k", inflt_params.tensor_ps[2], 0, num_modes);
+                pp.getarr("randominit.im_dh_k", inflt_params.tensor_ps[3], 0, num_modes);
             }
         }
     }
