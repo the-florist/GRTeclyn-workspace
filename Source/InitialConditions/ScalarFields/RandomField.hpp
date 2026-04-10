@@ -52,7 +52,7 @@ class RandomField
             Real Mp = 1.;             //!< Energy scale of the problem
             Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
             int N_readin;               //!< used to read in the private N variable
-            int N_fine;                 //!< Fine resolution to downsample from, 
+            int N_coarse = 0;                 //!< Fine resolution to downsample from, 
                                         //!< used for convergence testing
 
             // Initial condition options
@@ -108,7 +108,7 @@ class RandomField
 
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            norm = pow(sqrt(2. * M_PI) / m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-10; // Numerical tolerance, for tests
 
             // Look-up table 
@@ -130,7 +130,7 @@ class RandomField
         {
             // Set protected class parameters
             N = m_params.N_readin;
-            norm = pow(2. * M_PI/m_params.L, 3.); // Physical FFT normalisation
+            norm = pow(sqrt(2. * M_PI) / m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-10; // Numerical tolerance, for tests
 
             // Look-up table 

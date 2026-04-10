@@ -6,6 +6,7 @@
 // AMReX includes
 #include <AMReX.H> //Gives us amrex::Print()
 #include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
 
 // Our general includes
 #include "DefaultLevelFactory.hpp"
@@ -25,8 +26,22 @@ int runGRTeclyn(int argc, char *argv[])
     // Load the parameter file and construct the SimulationParameter class
     // To add more parameters edit the SimulationParameters file.
 
+    amrex::AllPrint() << "[debug] after mainSetup: rank "
+                      << amrex::ParallelDescriptor::MyProc() << " / "
+                      << amrex::ParallelDescriptor::NProcs() << '\n';
+    amrex::ParallelDescriptor::Barrier("after mainSetup, enter runGRTeclyn");
+
     GRParmParse pp;
+
+    amrex::AllPrint() << "[debug] after GRParmParse, before SimulationParameters: rank "
+                      << amrex::ParallelDescriptor::MyProc() << '\n';
+    amrex::ParallelDescriptor::Barrier("before SimulationParameters");
+
     SimulationParameters sim_params(pp);
+
+    amrex::AllPrint() << "[debug] after SimulationParameters: rank "
+                      << amrex::ParallelDescriptor::MyProc() << '\n';
+    amrex::ParallelDescriptor::Barrier("after SimulationParameters");
 
     if (sim_params.just_check_params)
     {

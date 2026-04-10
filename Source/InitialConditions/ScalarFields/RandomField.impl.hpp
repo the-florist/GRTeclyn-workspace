@@ -404,7 +404,10 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        Real ks = std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.;//m_params.kstar * 2. * M_PI/m_params.L;
+        Real ks = (m_params.N_coarse != 0. ? 
+                   std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
+                   std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
+        //m_params.kstar * 2. * M_PI/m_params.L;
         Real Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
     }
@@ -623,6 +626,10 @@ inline void RandomField::init(amrex::MultiFab &state)
                 for(int f=0; f<4; f++)
                 {
                     scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
+                    if (m_params.A != 1.0)
+                    {
+                        scalar_fields_ptr(i, j, k, f) *= m_params.A;
+                    }
                 }
             }
 
@@ -1040,7 +1047,7 @@ inline void RandomField::derive(const MultiFab &source, MultiFab &out, int dcomp
     // Normalise the fft (fftw style)
     for(int comp = 0; comp < 6; comp++)
     {
-        hij_k.mult(std::pow(N, -3.), comp, 1); 
+        hij_k.mult(std::pow(N, -3./2.), comp, 1); 
     }
 
     // Loop to extract the Fourier-space mode functions
@@ -1183,7 +1190,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     // Normalise the fft (fftw style)
     for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(N, -3./2.), comp, 1); }
-    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3./2), comp, 1); }
+    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3./2.), comp, 1); }
 
     // Set variables to store the maximum trace 
     // of the scalar and tensor components
@@ -1350,8 +1357,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         hs_x.mult(norm * std::pow(N, -3./2.));
         R_x.mult(norm * std::pow(N, -3./2.));
 
-        /* Print() << "Max tensor polarisations: " << hs_x.max(0) << ", " << hs_x.max(1) << "\n";
-        Print() << "R max and min bounds: " << R_x.max(0) << ", " << R_x.min(0) << "\n"; */
+        // Print() << "Max tensor polarisations: " << hs_x.max(0) << ", " << hs_x.max(1) << "\n";
+        // Print() << "R max and min bounds: " << R_x.max(0) << ", " << R_x.min(0) << "\n";
 
         int output_comps = hs_x.nComp() + R_x.nComp();
         MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);
@@ -1392,6 +1399,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             {
                 Vector<std::string> names{"R","hplus","hcross"};
                 stdevs = print_moment(out_MF, names, m_params.orders, stats_file, first_step);
+                // Print() << stdevs[0] << "\n";
+                // Error();
             }
         }
         

@@ -49,13 +49,13 @@ class SimulationParameters : public SimulationParametersBase
 
         pp.load("background_phi", background_params.phi0, 0.0);
         pp.load("background_dphi", background_params.Pi0, 0.0);	
+        pp.load("A", random_field_params.A, 1.0);
 
         pp.load("tensor_init", random_field_params.tensor_init, 0);
         pp.load("scalar_init", random_field_params.scalar_init, 0);
         pp.load("L", random_field_params.L, 1.);
         pp.load("A", random_field_params.A, 1.);
         pp.load("N", random_field_params.N_readin, 32);
-        pp.load("N_fine", random_field_params.N_fine, random_field_params.N_readin);
         pp.load("use_rand", random_field_params.use_rand, 1);
         pp.load("random_seed", random_field_params.random_seed, 3539263);
         pp.load("alpha", random_field_params.alpha, 0.);
@@ -63,6 +63,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("use_window", random_field_params.use_window, 0);
         pp.load("kstar", random_field_params.kstar, 0.);
         pp.load("Delta", random_field_params.Delta, 1.);
+        pp.load("N_coarse", random_field_params.N_coarse, 0);
 
         pp.load("calc_binned_power_spectrum", random_field_params.calc_binned_power_spectrum, 0);
         pp.load("bin_number", random_field_params.bin_number, random_field_params.N_readin/2); 
@@ -75,7 +76,16 @@ class SimulationParameters : public SimulationParametersBase
         {
             int num_modes;
             pp.load("n_k", num_modes, 0);
+
+            amrex::AllPrint() << "[debug] STOIIC: rank " << amrex::ParallelDescriptor::MyProc()
+                  << " n_k=" << num_modes << '\n';
+            amrex::ParallelDescriptor::Barrier("STOIIC after n_k");
+
             pp.getarr("init_k", random_field_params.init_k, 0, num_modes);
+
+            amrex::AllPrint() << "[debug] STOIIC: rank " << amrex::ParallelDescriptor::MyProc()
+                  << " after init_k getarr\n";
+            amrex::ParallelDescriptor::Barrier("after init_k getarr");
 
             amrex::Print() << "SimulationParameters::read_params, Begin read in of scalars...\n";
 
@@ -83,6 +93,11 @@ class SimulationParameters : public SimulationParametersBase
             {
                 random_field_params.scalar_ps = amrex::Vector<amrex::Vector<amrex::Real>>(8, amrex::Vector<amrex::Real>(num_modes, 0.));
                 pp.getarr("re_phi_k", random_field_params.scalar_ps[0], 0, num_modes);
+
+                amrex::AllPrint() << "[debug] STOIIC: rank " << amrex::ParallelDescriptor::MyProc()
+                  << " after re_phi_k getarr\n";
+                amrex::ParallelDescriptor::Barrier("after re_phi_k getarr");
+
                 pp.getarr("im_phi_k", random_field_params.scalar_ps[1], 0, num_modes);
                 pp.getarr("re_Pi_k", random_field_params.scalar_ps[2], 0, num_modes);
                 pp.getarr("im_Pi_k", random_field_params.scalar_ps[3], 0, num_modes);
