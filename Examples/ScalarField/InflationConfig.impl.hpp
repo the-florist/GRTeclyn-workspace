@@ -144,6 +144,8 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                 }
             }
         });
+
+        amrex::Gpu::streamSynchronize();
     }
 }
 

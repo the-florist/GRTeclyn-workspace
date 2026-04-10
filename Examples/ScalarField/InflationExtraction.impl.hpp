@@ -153,13 +153,14 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
             }
         });
 
+    amrex::Gpu::streamSynchronize();
+
     amrex::ParallelAllReduce::Sum(kcount.data(), static_cast<int>(kcount.size()), 
                                           amrex::ParallelContext::CommunicatorSub());
     amrex::ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), 
                                           amrex::ParallelContext::CommunicatorSub());
 
     // amrex::Print the power spectrum to a new file in data/
-#pragma omp single
     for(int s = 0; s <= m_params.N/2; s++)
     {
         power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., ps_map[s]/kcount[s]});
@@ -180,7 +181,7 @@ inline amrex::Real InflationExtraction::calculate_field_moment_x(const amrex::Mu
         {
             sum += std::pow(field_arrs[bx](i, j, k, component) - mean[component], moment);
         });
-
+    amrex::Gpu::streamSynchronize();
     amrex::ParallelAllReduce::Sum(sum, amrex::ParallelContext::CommunicatorSub());
 
     // Normalise and return moment x
@@ -443,6 +444,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs, amrex::Mu
             }
         });
 
+    amrex::Gpu::streamSynchronize();
+
     // Output the max traces of the tensor components as a diagnostic
     SmallDataIO trace_file(m_data_path+"tensor-traces", m_dt, m_cur_time, 
                                 m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
@@ -511,6 +514,8 @@ inline void InflationExtraction::derive(const amrex::MultiFab &source, amrex::Mu
             out_arrs[bx](iv, dcomp + 1) = hs_arrs[bx](i, j, k, 0);
             out_arrs[bx](iv, dcomp + 2) = hs_arrs[bx](i, j, k, 1);
         });
+
+    amrex::Gpu::streamSynchronize();
 }
 
 // Find spectrum and higher-order statistics on R and hs
@@ -557,6 +562,8 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
 //                 }
 //                 Allamrex::PrintToFile(filename) << "\n";
 //             });
+
+                // amrex::Gpu::streamSynchronize();
 //         }
 //     }
 

@@ -37,6 +37,8 @@ namespace TensorTests
                 }
             }
         );
+
+        amrex::Gpu::streamSynchronize();
     }
 
     // Test that the input vectors are orthonormal (local)
@@ -56,7 +58,7 @@ namespace TensorTests
                 cross1 += mhat[l] * nhat[l];
             }
 
-            if(std::abs(dot1 - 1.) > InflationUtils::tolerance 
+            if (std::abs(dot1 - 1.) > InflationUtils::tolerance 
               || std::abs(dot2 - 1.) > InflationUtils::tolerance 
               || cross1 > InflationUtils::tolerance)
             {
@@ -87,7 +89,7 @@ namespace TensorTests
             conds[2] += ecross[l][p] * ecross[l][p];
         }
 
-        if(iv != amrex::IntVect{0, 0, 0})
+        if (iv != amrex::IntVect{0, 0, 0})
         {
             bool plc = (std::abs(conds[0] / 2. - 1.) > InflationUtils::tolerance 
                         || std::abs(conds[2] / 2. - 1.) > InflationUtils::tolerance);

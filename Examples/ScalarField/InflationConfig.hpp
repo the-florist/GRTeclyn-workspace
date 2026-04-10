@@ -84,7 +84,7 @@ struct InflationConfig
     inline int invert_index_with_sign(const int indx) 
     { 
         AMREX_ASSERT(N > 0);
-        if(indx <= N/2) { return indx; }
+        if (indx <= N/2) { return indx; }
         else { return std::abs(N/2 - indx) - N/2; }
     }
 

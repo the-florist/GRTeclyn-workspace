@@ -49,13 +49,13 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amre
                                                     const std::string field_type)
 {
     // Assume no average
-    if(km == 0) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
+    if (km == 0) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
 
     // Find the index where this k appears
     int spec_index;
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
-        if(std::abs(km - m_params.init_k[idx]) < 1e-13) { spec_index = idx; break; }
+        if (std::abs(km - m_params.init_k[idx]) < 1e-13) { spec_index = idx; break; }
         else if (idx == m_params.init_k.size() - 1) 
         { 
             amrex::Print() << km << "\n"; 
@@ -64,12 +64,12 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amre
     }
 
     // Return the field at this k
-    if(field_type == "tensor")
+    if (field_type == "tensor")
     {
         return (amrex::GpuComplex<amrex::Real>{m_params.tensor_ps[2*field_indx][spec_index], 
                                  m_params.tensor_ps[2*field_indx+1][spec_index]});
     }
-    else if(field_type == "scalar")
+    else if (field_type == "scalar")
     {
         return (amrex::GpuComplex<amrex::Real>{m_params.scalar_ps[2*field_indx][spec_index], 
                                  m_params.scalar_ps[2*field_indx+1][spec_index]});
@@ -86,7 +86,7 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_mode_function(c
                                                              const int spec_indx)
 {
     // Deals with k=0 case, which is undefined if m=0
-    if(km < 1.e-15) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
+    if (km < InflationUtils::tolerance) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
     
     // Stores modulus and argument 
     amrex::Real ms_mag = 0.;
@@ -121,14 +121,14 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_random_field(co
     amrex::Real kmag = m_params.get_kmag(iv);
 
     // Find the analytic power spectrum
-    if(m_params.read_from_stoiic) 
+    if (m_params.read_from_stoiic) 
     { 
         value = find_in_stoiic(kmag, field_index, field_type); 
     }
     else { value = calculate_mode_function(kmag, field_index); }
 
     // Add stochastic perturbations
-    if(m_params.use_rand == 1)
+    if (m_params.use_rand == 1)
     {
         BL_PROFILE("RandomFieldInit::calculate_random_field Random initialisation is used");
 
@@ -148,7 +148,7 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_random_field(co
     }
 
     // Apply a window function if requested
-    if(m_params.use_window == 1) 
+    if (m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomFieldInit::calculate_random_field Window function is used")
         amrex::Real ks = std::sqrt(3.) * m_params.N * M_PI / m_params.L / 5. / 2.;
@@ -225,9 +225,9 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
         [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
     {
         amrex::IntVect iv = {i, j, k};
-        if(iv != amrex::IntVect{0, 0, 0})
+        if (iv != amrex::IntVect{0, 0, 0})
         {
-            if(m_params.scalar_init)
+            if (m_params.scalar_init)
             {
                 for(int f=0; f<4; f++)
                 {
@@ -238,7 +238,7 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
                 }
             }
 
-            if(m_params.tensor_init)
+            if (m_params.tensor_init)
             {
                 // Find the mode function realisation
                 for(int p=0; p<2; p++)
@@ -265,6 +265,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
             }
         }
     });
+
+    amrex::Gpu::streamSynchronize();
 
     // Apply the DC and Nyquist symmetry conditions
     m_params.apply_nyquist_conditions(hs_k);
@@ -298,7 +300,7 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     {
         const amrex::IntVect iv{i, j, k};
         // Add scalar perturbations to the existing background values
-        if(m_params.scalar_init)
+        if (m_params.scalar_init)
         {
             state_arrs[bx](iv, c_phi) += scalar_field_x_arrs[bx](i, j, k, 0);
             state_arrs[bx](iv, c_Pi) += scalar_field_x_arrs[bx](i, j, k, 1);
@@ -307,7 +309,7 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
         }
 
         // Set the entire tensor object here
-        if(m_params.tensor_init)
+        if (m_params.tensor_init)
         {
             state_arrs[bx](iv, c_h11) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][0]);
             state_arrs[bx](iv, c_h12) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][1]);
@@ -324,6 +326,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
             state_arrs[bx](iv, c_A33) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[2][2]);
         }
     });
+
+    amrex::Gpu::streamSynchronize();
 }
 
 #endif /* RANDOMFIELDINIT_IMPL_HPP_ */
