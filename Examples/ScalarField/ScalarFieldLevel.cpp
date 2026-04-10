@@ -461,24 +461,25 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     inflation_extractor_engine.extract(state_new);
 
     // Make a file object for constraint statistics
-    // SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
-    // constrs_file.remove_duplicate_time_data();
+    SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, 
+                             cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+    constrs_file.remove_duplicate_time_data();
     
-    // // Find the constraints and put them in a MF
-    // int num=0;
-    // const std::list<DeriveRec>& dlist = derive_lst.dlist();
-    // for (auto const& var: dlist)
-    // {
-    //     if(var.name() == "constraints") { num = var.numDerive(); }
-    // }
-    // if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
+    // Find the constraints and put them in a MF
+    int num = 0;
+    const std::list<amrex::DeriveRec>& dlist = derive_lst.dlist();
+    for (auto const& var: dlist)
+    {
+        if(var.name() == "constraints") { num = var.numDerive(); }
+    }
+    if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
 
-    // MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
-    // constr_alias.setVal(0.0);
-    // derive("constraints", cur_time, constr_alias, 0);
+    amrex::MultiFab constr_alias(ba, dm, num, ngrow, amrex::MFInfo(), Factory());
+    constr_alias.setVal(0.0);
+    derive("constraints", cur_time, constr_alias, 0);
 
-    // // Print statistics on the abs constraint terms
-    // Vector<int> moments{1,2};
-    // inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names, 
-    //                                         moments, constrs_file, first_step);
+    // Print statistics on the abs constraint terms
+    amrex::Vector<int> moments{1,2};
+    inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names, 
+                                            moments, constrs_file, first_step);
 }
