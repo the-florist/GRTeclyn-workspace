@@ -539,57 +539,32 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
     // and find the statistics (orders 1-4) of the polarisation fields 
     // and the R field. 
     // And print the tensor-to-scalar ratio if requested.
-//     int output_comps = hs_x.nComp() + R_x.nComp();
-//     amrex::MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);
-//     Copy(out_MF, R_x, 0, 0, R_x.nComp(), 0);
-//     Copy(out_MF, hs_x, 0, R_x.nComp(), hs_x.nComp(), 0);
+    const int output_comps = hs_x.nComp() + R_x.nComp();
+    amrex::MultiFab out_MF(hs_x.boxArray(), hs_x.DistributionMap(), output_comps, 0);
+    amrex::MultiFab::Copy(out_MF, R_x, 0, 0, R_x.nComp(), 0);
+    amrex::MultiFab::Copy(out_MF, hs_x, 0, R_x.nComp(), hs_x.nComp(), 0);
 
-//     // amrex::Print mode functions if requested
-//     if(m_params.print_mode_functions == 1)
-//     {
-//         std::string mf_path = make_subdirectory(m_data_path, "mode-functions", m_first_step);
-//         std::string filename = mf_path+"mode-function-"+std::to_string(m_cur_time/m_dt);
+    // Calculate and print field moments
+    amrex::Vector<amrex::Real> stdevs;
+    SmallDataIO stats_file(m_data_path+"field-statistics", m_dt, m_cur_time, 
+                            m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
 
-//         for (amrex::MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
-//         {
-//             amrex::Array4<amrex::Real> const& hx_ptr = hs_x.array(mfi);
-//             const amrex::Box& bx = mfi.fabbox();
-
-//             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-//             {
-//                 Allamrex::PrintToFile(filename) << i + m_params.N*(j + m_params.N*k) << ",";
-//                 for(int c=0; c<2; c++)
-//                 {
-//                     Allamrex::PrintToFile(filename).SetPrecision(14) << hx_ptr(i, j, k, c) << ",";
-//                 }
-//                 Allamrex::PrintToFile(filename) << "\n";
-//             });
-
-                // amrex::Gpu::streamSynchronize();
-//         }
-//     }
-
-//     // Calculate and print field moments
-//     amrex::Vector<amrex::Real> stdevs;
-//     SmallDataIO stats_file(m_data_path+"field-statistics", m_dt, m_cur_time, 
-//                             m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
-
-//     if (!m_params.orders.empty())
-//     {
-//         stdevs = print_moment(out_MF, var_names, m_params.orders, stats_file, m_first_step);
-//     }
+    if (!m_params.orders.empty())
+    {
+        amrex::Vector<std::string> names{"R", "hplus", "hcross"};
+        stdevs = print_moment(out_MF, names, m_params.orders, stats_file, m_first_step);
+    }
     
-//     // Calculate and print tensor to scalar ratio (integrated PS)
-//     SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time, 
-//                                 m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
-// #pragma omp single
-//     if(m_first_step) 
-//     { 
-//         ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); 
-//     }
+    // Calculate and print tensor to scalar ratio (integrated PS)
+    SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time, 
+                        m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
+
+    if(m_first_step) 
+    { 
+        ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); 
+    }
     
-// #pragma omp single
-    // ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]}); 
+    ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]}); 
 }
 
 #endif /* INFLATIONEXTRACTION_IMPL_HPP_ */
