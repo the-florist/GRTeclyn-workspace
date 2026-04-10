@@ -19,7 +19,7 @@ class InflationExtraction
 {
     public:
         // Names of diagnostic variables
-        static inline const amrex::GpuArray<std::string, 3> var_names = {"R", "hplus", "hcross"};
+        static inline const amrex::Vector<std::string> var_names{"R", "hplus", "hcross"};
 
         // Constructor used in extraction of diagnostics
         InflationExtraction(InflationConfig a_params)

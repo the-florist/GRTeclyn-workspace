@@ -72,16 +72,16 @@ void ScalarFieldLevel::variableSetUp()
     // We need all of the CCZ4 variables to calculate Weyl4 (except B)
     derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
 
-    // derive_lst.add(
-    //     "InflationFields", amrex::IndexType::TheCellType(),
-    //     static_cast<int>(InflationExtraction::var_names.size()), 
-    //                      InflationExtraction::var_names,
-    //                      amrex::DeriveFuncFab(),
-    //     [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
-    //     &amrex::cell_quartic_interp);
+    derive_lst.add(
+        "InflationFields", amrex::IndexType::TheCellType(),
+        static_cast<int>(InflationExtraction::var_names.size()), 
+                         InflationExtraction::var_names,
+                         amrex::DeriveFuncFab(),
+        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
+        &amrex::cell_quartic_interp);
 
     // // We only need the spatial metric to find the polarisation fields
-    // derive_lst.addComponent("InflationFields", desc_lst, State_Type, 0, NUM_VARS);
+    derive_lst.addComponent("InflationFields", desc_lst, State_Type, 0, NUM_VARS);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -402,11 +402,11 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
                                   src_arrays[box_no]);
                 });
         }
-        // else if (name=="InflationFields")
-        // {
-        //     InflationExtraction inflation_derive_engine(simParams().inflt_params);
-        //     inflation_derive_engine.derive(src_mf, multifab, dcomp);
-        // }
+        else if (name=="InflationFields")
+        {
+            InflationExtraction inflation_derive_engine(simParams().inflt_params);
+            inflation_derive_engine.derive(src_mf, multifab, dcomp);
+        }
         else
         {
             amrex::Abort("Unknown derived variable");
