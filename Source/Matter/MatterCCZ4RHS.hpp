@@ -10,6 +10,7 @@
 #include "CCZ4RHS.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "SecondOrderDerivatives.hpp"
 #include "MovingPunctureGauge.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"

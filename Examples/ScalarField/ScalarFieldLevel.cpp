@@ -169,7 +169,21 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     ScalarFieldWithPotential scalar_field(potential);
 
     // Calculate CCZ4 right hand side
-    if (simParams().max_spatial_derivative_order == 4)
+    if (simParams().max_spatial_derivative_order == 2)
+    {
+        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
+                      SecondOrderDerivatives>
+            matter_ccz4_rhs(scalar_field, simParams().ccz4_params,
+                            Geom().CellSize(0), simParams().sigma,
+                            simParams().formulation, simParams().G_Newton);
+        amrex::ParallelFor(
+            a_rhs,
+            [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) {
+                matter_ccz4_rhs.compute(i, j, k, rhs_arrs[box_no],
+                                        soln_c_arrs[box_no]);
+            });
+    }
+    else if (simParams().max_spatial_derivative_order == 4)
     {
         MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
                       FourthOrderDerivatives>

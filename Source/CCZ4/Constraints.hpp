@@ -11,6 +11,7 @@
 #include "BSSNVars.hpp"
 #include "Cell.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "SecondOrderDerivatives.hpp"
 #include "Interval.hpp"
 #include "Tensor.hpp"
 #include "simd.hpp"
@@ -65,7 +66,7 @@ class Constraints
             const amrex::Array4<data_t const> &state) const;
 
   protected:
-    FourthOrderDerivatives m_deriv;
+    SecondOrderDerivatives m_deriv;
     int m_c_Ham;
     Interval m_c_Moms;
     int m_c_Ham_abs_terms = -1;

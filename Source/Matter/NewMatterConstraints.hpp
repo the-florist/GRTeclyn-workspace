@@ -10,6 +10,7 @@
 #include "Cell.hpp"
 #include "Constraints.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "SecondOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "Tensor.hpp"
 #include "simd.hpp"

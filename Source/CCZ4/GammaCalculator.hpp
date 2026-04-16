@@ -9,6 +9,7 @@
 #include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "SecondOrderDerivatives.hpp"
 #include "GRInterval.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS - total number of components
 #include "Tensor.hpp"
@@ -32,7 +33,7 @@ class GammaCalculator
     };
 
   protected:
-    const FourthOrderDerivatives
+    const SecondOrderDerivatives
         m_deriv; //!< An object for calculating derivatives of the variables
 
   public:
