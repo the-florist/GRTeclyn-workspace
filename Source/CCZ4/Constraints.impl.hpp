@@ -19,10 +19,14 @@ inline Constraints::Constraints(
     double dx, int a_c_Ham, const Interval &a_c_Moms,
     int a_c_Ham_abs_terms /*defaulted*/,
     const Interval &a_c_Moms_abs_terms /*defaulted*/,
+    int a_c_Ham_resc,
+    const Interval &a_c_Mom_resc,
     double cosmological_constant /*defaulted*/)
     : m_deriv(dx), m_c_Ham(a_c_Ham), m_c_Moms(a_c_Moms),
       m_c_Ham_abs_terms(a_c_Ham_abs_terms),
       m_c_Moms_abs_terms(a_c_Moms_abs_terms),
+      m_c_Ham_rescaled(a_c_Ham_resc),
+      m_c_Mom_rescaled(a_c_Mom_resc),
       m_cosmological_constant(cosmological_constant)
 {
 }
@@ -136,7 +140,7 @@ Constraints::store_vars(const Vars<data_t> &out,
         data_t Mom_sq = 0.0;
         FOR (i)
         {
-            Mom_sq += out.Mom_abs_terms[i] * out.Mom_abs_terms[i];
+            Mom_sq += out.Mom[i] * out.Mom[i];
         }
         data_t Mom                     = sqrt(Mom_sq);
         current_cell[m_c_Moms.begin()] = Mom;
@@ -159,6 +163,26 @@ Constraints::store_vars(const Vars<data_t> &out,
         data_t Mom_abs_terms                     = sqrt(Mom_abs_terms_sq);
         current_cell[m_c_Moms_abs_terms.begin()] = Mom_abs_terms;
     }
+    if (m_c_Ham_rescaled >= 0)
+    {
+        current_cell[m_c_Ham_rescaled] = std::abs(out.Ham) / out.Ham_abs_terms;
+    }
+    if (m_c_Mom_rescaled.size() == GR_SPACEDIM)
+    {
+        data_t Mom_abs_terms_sq = 0.0;
+        FOR (i)
+        {
+            Mom_abs_terms_sq += out.Mom_abs_terms[i] * out.Mom_abs_terms[i];
+        }
+        data_t Mom_abs_terms                     = sqrt(Mom_abs_terms_sq);
+
+        FOR (i)
+        {
+            int ivar           = m_c_Mom_rescaled.begin() + i;
+            current_cell[ivar] = out.Mom[i] / Mom_abs_terms;
+        }
+    }
+
 }
 
 #endif /* CONSTRAINTS_IMPL_HPP_ */

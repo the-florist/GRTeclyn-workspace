@@ -34,7 +34,7 @@ class RandomField
 {
     public:
         // Names of diagnostic variables
-        static inline const Vector<std::string> var_names = {"hplus", "hcross"};
+        static inline const Vector<std::string> var_names = {"hplus", "hcross", "R"};
 
         //! A structure for storing parameters essential to this class
         struct params_t 

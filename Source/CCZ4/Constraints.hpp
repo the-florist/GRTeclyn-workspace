@@ -23,12 +23,9 @@ class Constraints
 {
   public:
     /// Variable names
-    static inline const amrex::Vector<std::string> var_names = {"Ham", "Mom"};
-                                                                //"Mom2", "Mom3"};
-
-    static inline const amrex::Vector<std::string> var_names_norm = {"Ham","Mom1",
-                                                                     "Mom2", "Mom3",
-                                                                     "Ham_abs_terms", "Mom_abs_terms"};
+    static inline const amrex::Vector<std::string> var_names = {"Ham", "Ham_rescaled",
+                                                                "Mom", "Mom_1_rescaled",
+                                                                "Mom_2_rescaled", "Mom_3_rescaled"};
 
     /// CCZ4 variables
     template <class data_t> using MetricVars = BSSNVars::VarsNoGauge<data_t>;
@@ -44,6 +41,8 @@ class Constraints
         data_t Ham_abs_terms{};
         Tensor<1, data_t> Mom;
         Tensor<1, data_t> Mom_abs_terms;
+        data_t Ham_rescaled{};
+        Tensor<1, data_t> Mom_rescaled;
     };
 
     // Constructor which allows specifying Ham and Mom vars
@@ -56,6 +55,8 @@ class Constraints
     Constraints(double dx, int a_c_Ham, const Interval &a_c_Moms,
                 int a_c_Ham_abs_terms              = -1,
                 const Interval &a_c_Moms_abs_terms = Interval(),
+                int a_c_Ham_resc = -1,
+                const Interval &a_c_Mom_resc = Interval(),
                 double cosmological_constant       = 0.0);
 
     template <class data_t>
@@ -69,6 +70,8 @@ class Constraints
     Interval m_c_Moms;
     int m_c_Ham_abs_terms = -1;
     Interval m_c_Moms_abs_terms;
+    int m_c_Ham_rescaled;
+    Interval m_c_Mom_rescaled;
     double m_cosmological_constant;
 
     template <class data_t, template <typename> class vars_t,
