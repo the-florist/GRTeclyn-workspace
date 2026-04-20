@@ -10,10 +10,13 @@
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
+#include "ScalarFieldAdvecVars.hpp"
+#include "ScalarFieldD1Vars.hpp"
+#include "ScalarFieldD2Vars.hpp"
+#include "ScalarFieldVars.hpp"
 #include "StateVariables.hpp" //This files needs NUM_VARS, total num of components
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
-#include "VarsTools.hpp"
 
 //!  Calculates the matter type specific elements such as the EMTensor and
 //   matter evolution
@@ -32,89 +35,35 @@
 template <class potential_t = DefaultPotential> class ScalarField
 {
   protected:
+    potential_t m_potential;
     //! The local copy of the potential
-    potential_t my_potential;
 
   public:
+
     //!  Constructor of class ScalarField, inputs are the matter parameters.
-    ScalarField(const potential_t a_potential) : my_potential(a_potential) {}
+    ScalarField() = default;
 
-    //! Structure containing the rhs variables for the matter fields
-    template <class data_t> struct Vars
-    {
-        data_t phi;
-        data_t Pi;
-
-        /// Defines the mapping between members of Vars and Chombo grid
-        /// variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_enum_mapping(mapping_function, c_phi, phi);
-            VarsTools::define_enum_mapping(mapping_function, c_Pi, Pi);
-        }
-    };
-
-    //! Structure containing the rhs variables for the matter fields requiring
-    //!  2nd derivs
-    template <class data_t> struct Diff2Vars
-    {
-        data_t phi;
-
-        /// Defines the mapping between members of Vars and Chombo grid
-        ///  variables (enum in User_Variables)
-        template <typename mapping_function_t>
-        AMREX_GPU_DEVICE void enum_mapping(mapping_function_t mapping_function)
-        {
-            VarsTools::define_enum_mapping(mapping_function, c_phi, phi);
-        }
-    };
+    using Vars      = ScalarFieldVars;
+    using D1Vars    = ScalarFieldD1Vars;
+    using D2Vars    = ScalarFieldD2Vars;
+    using AdvecVars = ScalarFieldAdvecVars;
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
-    template <class data_t, template <typename> class vars_t>
-    AMREX_GPU_DEVICE emtensor_t<data_t> compute_emtensor(
-        const vars_t<data_t> &vars,          //!< the value of the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< the value of the 1st derivs
-        const Tensor<2, data_t> &h_UU, //!< the inverse metric (raised indices)
-        const Tensor<3, data_t> &chris_ULL)
+    [[nodiscard]]
+    AMREX_GPU_DEVICE emtensor_t
+    compute_emtensor(const Vars &vars, const D1Vars &d1,
+                     const Tensor<2, amrex::Real>
+                         &h_UU, //!< the inverse metric (raised indices)
+                     const Tensor<3, amrex::Real> &chris_ULL)
         const; //!< the conformal christoffel symbol
-
-    //! The function which calculates the EM Tensor, given the vars and
-    //! derivatives, excluding the potential
-    template <class data_t, template <typename> class vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void emtensor_excl_potential(
-        emtensor_t<data_t> &out,             //!< the em tensor output
-        const vars_t<data_t> &vars,          //!< the value of the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< the value of the first derivs
-        const Tensor<2, data_t> &h_UU, //!< the inverse metric (raised indices).
-        const Tensor<3, data_t>
-            &chris_ULL); //!< the conformal christoffel symbol
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t,
-              template <typename> class rhs_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void add_matter_rhs(
-        rhs_vars_t<data_t> &total_rhs,       //!< value of the RHS for all vars
-        const vars_t<data_t> &vars,          //!< value of the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< value of the 1st derivs
-        const diff2_vars_t<Tensor<2, data_t>> &d2, //!< value of the 2nd derivs
-        const vars_t<data_t> &advec)
-        const; //!< the value of the advection terms
-
-    //! The function which calculates the RHS for the matter field vars
-    //! excluding the potential
-    template <class data_t, template <typename> class vars_t,
-              template <typename> class diff2_vars_t,
-              template <typename> class rhs_vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void matter_rhs_excl_potential(
-        rhs_vars_t<data_t> &rhs, //!< the value of the RHS terms for the sf vars
-        const vars_t<data_t> &vars, //!< the values of all the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< the value of the 1st derivs
-        const diff2_vars_t<Tensor<2, data_t>> &d2, //!< value of the 2nd derivs
-        const vars_t<data_t> &advec);
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    add_matter_rhs(const amrex::CellData<amrex::Real> &rhs, const Vars &vars,
+                   const D1Vars &d1, const D2Vars &d2,
+                   const AdvecVars &advec) const;
 };
 
 #include "ScalarField.impl.hpp"

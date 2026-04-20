@@ -6,20 +6,21 @@
 #ifndef DEFAULTPOTENTIAL_HPP_
 #define DEFAULTPOTENTIAL_HPP_
 
+#include "ScalarFieldVars.hpp"
 #include "Tensor.hpp"
-#include "simd.hpp"
+#include <AMReX_REAL.H>
 
 class DefaultPotential
 {
   public:
     //! The constructor
-    DefaultPotential() {}
+    DefaultPotential() = default;
 
     //! Set the potential function for the scalar field here to zero
-    template <class data_t, template <typename> class vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    compute_potential(data_t &V_of_phi, data_t &dVdphi,
-                      const vars_t<data_t> &vars) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
+                      const ScalarFieldVars &vars)
     {
         // The potential value at phi
         V_of_phi = 0.0;

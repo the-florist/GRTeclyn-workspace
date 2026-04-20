@@ -21,7 +21,7 @@
 
 enum StateType
 {
-    State_Type = 0,
+    state_index = 0,
     NUM_STATE_TYPE
 };
 
@@ -110,12 +110,26 @@ class GRAMRLevel : public amrex::AmrLevel
      */
     void init() override;
     /**
-     * \brief Error estimation for regridding. This is a pure virtual
-     * function and hence MUST be implemented by derived classes.
-     * virtual void errorEst (amrex::TagBoxArray& tb, int clearval, int tagval,
-     *                        amrex::Real time, int n_error_buf = 0,
-     *                        int ngrow = 0);
+     * Do error estimation/tagging for regridding
+     * Most examples should not need to override this and instead override
+     * pre_tag_cells() and tag_cells()
      */
+    void errorEst(amrex::TagBoxArray &a_tag_box_array, int a_clearval,
+                  int a_tagval, amrex::Real a_time, int a_n_error_buf = 0,
+                  int a_ngrow = 0) override;
+
+    /**
+     * Do any necessary work before tagging cells (e.g. calling FillPatch for
+     * any variables for which derivatives are calculated).
+     */
+    virtual void pre_tag_cells() {}
+
+    /**
+     * Tag cells for regridding. This is a pure virtual function and hence MUST
+     * be implemented by derived classes.
+     */
+    virtual void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                           amrex::Real a_regrid_threshold) = 0;
 
     //! Do pre-plotfile work
     void writePlotFilePre(const std::string &dir,
@@ -125,15 +139,11 @@ class GRAMRLevel : public amrex::AmrLevel
     void writePlotFilePost(const std::string &dir,
                            std::ostream & /*os*/) override;
 
-    //! Return a MultiFab containing the derived data for this level.
-    std::unique_ptr<amrex::MultiFab>
-    derive(const std::string &name, amrex::Real time, int ngrow) override;
+    //! Do pre-checkpoint work
+    void checkPointPre(const std::string &a_dir, std::ostream &a_os) override;
 
-    //! Fill mf starting with the dcomp'th component with the derived quantity.
-    //! This function should be defined in the child class if derived quantities
-    //! are needed (not pure virtual in case they are not)
-    virtual void derive(const std::string &name, amrex::Real time,
-                        amrex::MultiFab &multifab, int dcomp) override;
+    //! Do post-checkpoint work
+    void checkPointPost(const std::string &a_dir, std::ostream &a_os) override;
 
     /// Virtual function for the problem specific parts of Advance
     virtual void specificAdvance() {}
@@ -147,11 +157,50 @@ class GRAMRLevel : public amrex::AmrLevel
 
     virtual void specificUpdateODE(amrex::MultiFab & /*a_soln*/) {}
 
+    //! Problem specific post restart
+    virtual void specific_post_restart() {}
+
+    //! Problem specific post init
+    virtual void specific_post_init() {}
+
+    //! Problem specific post-regrid
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    virtual void specific_post_regrid(int a_lbase, int a_new_finest) {}
+
+    //! Problem specific pre plotfile
+    virtual void specific_pre_plotfile(const std::string &a_dir,
+                                       std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific post plotfile
+    virtual void specific_post_plotfile(const std::string &a_dir,
+                                        std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific pre checkpoint
+    virtual void specific_pre_checkpoint(const std::string &a_dir,
+                                         std::ostream &a_os)
+    {
+    }
+
+    //! Problem specific post checkpoint
+    virtual void specific_post_checkpoint(const std::string &a_dir,
+                                          std::ostream &a_os)
+    {
+    }
+
+    /// Returns true if m_time is the same as the time at the end of the current
+    /// timestep on level a_level and false otherwise
+    /// Useful to check whether to calculate something in postTimeStep (which
+    /// might only be needed at the end of a_level's timestep)
+    bool at_level_timestep_multiple(int a_level);
+
     BoundaryConditions m_boundaries; // the class for implementing BCs
 
     int m_verbosity = 0; //!< Level of verbosity of the output
     int m_num_ghosts{};  //!< Number of ghost cells
-    bool m_is_writing_plotfile = false;
 
   private:
 

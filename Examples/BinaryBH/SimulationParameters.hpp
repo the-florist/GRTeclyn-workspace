@@ -12,7 +12,7 @@
 
 // Problem specific includes:
 #include "ArrayTools.hpp"
-#include "BoostedBH.hpp"
+#include "BoostedBHInitialData.hpp"
 #ifdef USE_TWOPUNCTURES
 #include "TP_Parameters.hpp"
 #endif
@@ -37,8 +37,10 @@ class SimulationParameters : public SimulationParametersBase
     void read_shared_params(GRParmParse &pp)
     {
         // Do we want puncture tracking and constraint norm calculation?
-        pp.load("track_punctures", track_punctures, false);
-        pp.load("puncture_tracking_level", puncture_tracking_level, max_level);
+        pp.load("puncture_tracking.enabled", puncture_tracking_enabled, false);
+        pp.load("puncture_tracking.level", puncture_tracking_level, max_level);
+        pp.load("puncture_tracking.writeout_level",
+                puncture_tracking_writeout_level, 0);
         pp.load("calculate_constraint_norms", calculate_constraint_norms,
                 false);
     }
@@ -312,15 +314,16 @@ class SimulationParameters : public SimulationParametersBase
                         "must be between 0 and max_level (inclusive)");
     }
 
-    bool track_punctures{};
-    bool calculate_constraint_norms{};
+    bool puncture_tracking_enabled{};
     int puncture_tracking_level{};
+    int puncture_tracking_writeout_level{};
+    bool calculate_constraint_norms{};
 
     // Collection of parameters necessary for initial conditions
     // Set these even in the case of TwoPunctures as they are used elsewhere
     // e.g. for puncture tracking/tagging
-    BoostedBH::params_t bh2_params{};
-    BoostedBH::params_t bh1_params{};
+    BoostedBHInitialData::params_t bh2_params{};
+    BoostedBHInitialData::params_t bh1_params{};
 
 #ifdef USE_TWOPUNCTURES
     double tp_offset_plus, tp_offset_minus;

@@ -6,6 +6,7 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 # We don't want to use MPI by default for the tests
 USE_MPI = FALSE
+USE_PARTICLES = TRUE
 
 EBASE = Tests
 
@@ -14,28 +15,26 @@ AMREX_HOME ?= $(realpath ../../amrex)
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
+include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
-# include $(AMREX_HOME)/Src/Boundary/Make.package
-# include $(AMREX_HOME)/Src/AmrCore/Make.package
-# include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
-src_dirs := $(GRTECLYN_SOURCE)/utils \
-            $(GRTECLYN_SOURCE)/CCZ4  \
-            $(GRTECLYN_SOURCE)/BoxUtils  \
-            $(GRTECLYN_SOURCE)/Matter  \
-            $(GRTECLYN_SOURCE)/simd
-
 GRTECLYN_TESTS_HOME = $(GRTECLYN_HOME)/Tests
 
-# test_dirs = $(GRTECLYN_TESTS_HOME)/Common \
-#             $(GRTECLYN_TESTS_HOME)/CCZ4RHSTest \
-#             $(GRTECLYN_TESTS_HOME)/DerivativeUnitTests \
-#             $(GRTECLYN_TESTS_HOME)/PositiveChiAndAlphaUnitTest \
-#             $(GRTECLYN_TESTS_HOME)/CCZ4GeometryUnitTests \
-#             $(GRTECLYN_TESTS_HOME)/CoordinateTransformationsTest \
-#             $(GRTECLYN_TESTS_HOME)/SphericalHarmonicTest
+src_dirs := $(GRTECLYN_SOURCE)/AMRInterpolator \
+            $(GRTECLYN_SOURCE)/BlackHoles \
+            $(GRTECLYN_SOURCE)/ParticleInterpolator \
+            $(GRTECLYN_SOURCE)/CCZ4 \
+            $(GRTECLYN_SOURCE)/Grids \
+            $(GRTECLYN_SOURCE)/GRTeclynCore \
+            $(GRTECLYN_SOURCE)/IO \
+            $(GRTECLYN_SOURCE)/Maths \
+            $(GRTECLYN_SOURCE)/Matter \
+            $(GRTECLYN_SOURCE)/Tagging
 
 # Find all directories that end in "Test" or "Tests"
 # Note that hidden directories (i.e. those starting with a '.') are not included
@@ -52,7 +51,7 @@ test_pack := $(foreach dir, $(test_dirs), $(dir)/Make.package)
 include $(src_pack)
 include $(test_pack)
 
-doctest_dir := $(GRTECLYN_HOME)/External/doctest
+doctest_dir := $(GRTECLYN_HOME)/external/doctest
 doctest_headers := doctest.h
 
 CEXE_sources += $(GRTECLYN_CEXE_sources)
@@ -64,7 +63,11 @@ SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_MPI), TRUE)
-LAUNCH = mpiexec -n 2 ./
+  ifeq ($(origin SLURM_NTASKS),undefined)
+    LAUNCH = mpiexec -n 2 ./
+  else
+    LAUNCH = mpiexec -n ${SLURM_NTASKS} ./
+  endif
 else
 LAUNCH = ./
 endif

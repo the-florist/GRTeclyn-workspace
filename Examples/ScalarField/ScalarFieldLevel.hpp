@@ -43,8 +43,6 @@ class ScalarFieldLevel : public GRAMRLevel
 
     //! Initialize data for the field and metric variables
 
-    void initData() override;
-
     //! RHS routines used at each RK4 step
     void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
                          const double a_time) override;

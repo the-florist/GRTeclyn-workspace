@@ -8,14 +8,21 @@
 
 verbosity = 1
 
+#ifdef AMREX_USE_GPU
+amrex.use_gpu_aware_mpi = 1
+#endif
+
+puncture_tracking.enabled = 1
+puncture_tracking.level = 5
+
 output_path = .
 amr.check_file = BinaryBHChk_
 amr.plot_file = BinaryBHPlt_
 # amr.restart = BinaryBHChk_00100
 # amr.file_name_digits = 5
 
-checkpoint_interval = 100
-plot_interval = 5
+checkpoint_interval = -1
+plot_interval = -1
 
 #################################################
 # Initial Data parameters
@@ -95,7 +102,7 @@ lapse_power = 1.0
 # Shift evolution
 shift_advec_coeff = 1.0
 shift_Gamma_coeff = 0.75
-eta = 1.0 # eta of gamma driver 
+eta = 1.0 # eta of gamma driver
 
 # CCZ4 parameters
 formulation = 0 # 1 for BSSN, 0 for CCZ4

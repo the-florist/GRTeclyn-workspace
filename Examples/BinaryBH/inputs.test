@@ -135,8 +135,8 @@ covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 # coefficient for KO numerical dissipation
 sigma = 0.3
 
-track_punctures = 1
-puncture_tracking_level = 1
+puncture_tracking.enabled = 1
+puncture_tracking.level = 1
 
 # calculate_constraint_norms = 0
 
@@ -154,8 +154,8 @@ extraction_levels = 0
 num_points_phi = 24
 num_points_theta = 37
 num_modes = 3
-modes = 2 0 # l m for spherical harmonics
-        2 1
+modes = 2 0 \
+        2 1 \
         2 2
 # integral_file_prefix = "Weyl4_mode_"
 
@@ -166,12 +166,10 @@ modes = 2 0 # l m for spherical harmonics
 #################################################
 
 output_path = foo
-track_punctures = 0
-puncture_tracking_level=0
 verbosity = 1
 amrex.fpe_trap_invalid=1
 amrex.fpe_trap_zero=1
 amrex.fpe_trap_overflow=1
 
 amr.plot_vars = chi # The default is to plot all state variables
-amr.derive_plot_vars = Ham Mom # The default is none for derived variables.
+amr.derive_plot_vars = constraints # The default is none for derived variables.

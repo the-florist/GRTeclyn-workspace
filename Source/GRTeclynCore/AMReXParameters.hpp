@@ -185,6 +185,7 @@ class AMReXParameters
             pout_path += "/";
         }
 #endif
+#if 0 
         if (!hdf5_path.empty() && hdf5_path.back() != '/')
         {
             hdf5_path += "/";
@@ -201,16 +202,6 @@ class AMReXParameters
 #ifdef AMREX_USE_MPI
             pout_path = output_path + pout_path;
 #endif
-        }
-
-        if (output_path != "./" && !output_path.empty())
-        {
-            hdf5_path = output_path + hdf5_path;
-        }
-
-        if (output_path != "./" && !output_path.empty())
-        {
-            data_path = output_path + data_path;
         }
 
 #ifdef AMREX_USE_MPI
@@ -599,7 +590,7 @@ class AMReXParameters
     }
 
     template <typename T>
-    void check_parameter(const std::string &a_name, T a_value,
+    void check_parameter(const std::string &a_name, const T &a_value,
                          const bool a_valid,
                          const std::string &a_invalid_explanation)
     {

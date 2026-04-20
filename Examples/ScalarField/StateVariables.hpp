@@ -7,9 +7,7 @@
 #define STATEVARIABLES_HPP
 
 #include "ArrayTools.hpp"
-#include "BCParity.hpp"
-
-#include "CCZ4Variables.hpp"
+#include "CCZ4StateVariables.hpp"
 
 // assign an enum to each variable
 enum
@@ -24,19 +22,10 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
-    additional_names = {"phi", "Pi"};
+static const amrex::Vector<std::string> additional_names = {"phi", "Pi"};
 
-static const std::array<std::string, NUM_VARS> names =
-    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
-
-static const std::array<BCParity, NUM_VARS - NUM_CCZ4_VARS>
-    additional_parities = {BCParity::even, BCParity::even};
-
-static const std::array<BCParity, NUM_VARS> parities =
-    ArrayTools::concatenate(CCZ4Variables::parities, additional_parities);
-
+static const amrex::Vector<std::string> names =
+    ArrayTools::concatenate(CCZ4StateVariables::names, additional_names);
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */
-

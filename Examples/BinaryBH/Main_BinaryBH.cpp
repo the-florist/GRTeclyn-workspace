@@ -15,6 +15,8 @@
 // Problem specific includes:
 #include "BinaryBHLevel.hpp"
 
+#include "ParticleInterpolator.hpp"
+
 // System includes
 #include <chrono>
 #include <iostream>
@@ -35,7 +37,6 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     }
 
     GRAMR::set_simulation_parameters(sim_params);
-
     DefaultLevelFactory<BinaryBHLevel> bh_level_bld;
 
 #ifdef USE_TWOPUNCTURES
@@ -44,7 +45,7 @@ int runGRTeclyn(int /*argc*/, char * /*argv*/[])
     // Run TwoPunctures solver
     bh_amr.m_two_punctures.Run();
 #else
-    BHAMR bh_amr(&bh_level_bld);
+    BHAMR<BinaryBHLevel::num_punctures> bh_amr(&bh_level_bld);
 #endif
 
     bh_amr.init(0., sim_params.stop_time);
@@ -82,12 +83,12 @@ int main(int argc, char *argv[])
 
     if (status == 0)
     {
-        amrex::Print() << "GRChombo finished."
+        amrex::Print() << "GRTeclyn finished."
                        << "\n";
     }
     else
     {
-        amrex::Print() << "GRChombo failed with return code " << status << "\n";
+        amrex::Print() << "GRTeclyn failed with return code " << status << "\n";
     }
 
     mainFinalize();

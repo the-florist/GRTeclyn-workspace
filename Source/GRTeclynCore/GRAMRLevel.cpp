@@ -9,13 +9,13 @@
 void GRAMRLevel::stateVariableSetUp()
 {
     const int nghost = simParams().num_ghosts;
-    desc_lst.addDescriptor(State_Type, amrex::IndexType::TheCellType(),
+    desc_lst.addDescriptor(state_index, amrex::IndexType::TheCellType(),
                            amrex::StateDescriptor::Point, nghost, NUM_VARS,
                            &amrex::quartic_interp);
 
-    BoundaryConditions::params_t bparms = simParams().boundary_params;
+    BoundaryConditions::params_t boundary_params = simParams().boundary_params;
     BoundaryConditions boundary_conditions;
-    boundary_conditions.define(simParams().center, bparms,
+    boundary_conditions.define(simParams().center, boundary_params,
                                amrex::DefaultGeometry(), nghost);
 
     amrex::Vector<amrex::BCRec> bcs(NUM_VARS);
@@ -40,7 +40,7 @@ void GRAMRLevel::stateVariableSetUp()
             else if (bctype == BoundaryConditions::REFLECTIVE_BC)
             {
                 int parity =
-                    boundary_conditions.get_state_var_parity(icomp, idim);
+                    BoundaryConditions::get_state_var_parity(icomp, idim);
                 if (parity == 1)
                 {
                     bc.set(face, amrex::BCType::reflect_even);
@@ -61,16 +61,11 @@ void GRAMRLevel::stateVariableSetUp()
         }
     }
 
-    amrex::Vector<std::string> name(NUM_VARS);
-    for (int i = 0; i < NUM_VARS; ++i)
-    {
-        name[i] = StateVariables::names[i];
-    }
+    amrex::StateDescriptor::BndryFunc boundary_function(null_bc_fill);
+    boundary_function.setRunOnGPU(true); // Run the bc function on gpu.
 
-    amrex::StateDescriptor::BndryFunc bndryfunc(null_bc_fill);
-    bndryfunc.setRunOnGPU(true); // Run the bc function on gpu.
-
-    desc_lst.setComponent(State_Type, 0, name, bcs, bndryfunc);
+    desc_lst.setComponent(state_index, 0, StateVariables::names, bcs,
+                          boundary_function);
 }
 
 void GRAMRLevel::variableCleanUp()
@@ -168,7 +163,7 @@ amrex::Real GRAMRLevel::advance(amrex::Real time, amrex::Real dt, int iteration,
     }
 
     amrex::AmrLevel::RK(
-        4, State_Type, time, dt, iteration, ncycle,
+        4, state_index, time, dt, iteration, ncycle,
         [&](int /*stage*/, amrex::MultiFab &rhs, const amrex::MultiFab &soln,
             amrex::Real t, amrex::Real /*dtsub*/)
         {
@@ -189,10 +184,10 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     const int lev = Level();
     if (lev < parent->finestLevel())
     {
-        auto &fine_level        = parent->getLevel(Level() + 1);
-        amrex::MultiFab &S_fine = fine_level.get_new_data(State_Type);
-        amrex::MultiFab &S_crse = this->get_new_data(State_Type);
-        amrex::Real t           = get_state_data(State_Type).curTime();
+        auto &fine_level              = parent->getLevel(Level() + 1);
+        amrex::MultiFab &state_fine   = fine_level.get_new_data(state_index);
+        amrex::MultiFab &state_coarse = this->get_new_data(state_index);
+        amrex::Real t                 = get_state_data(state_index).curTime();
 
         amrex::IntVect ratio = parent->refRatio(lev);
         AMREX_ASSERT(ratio == 2 || ratio == 4);
@@ -200,10 +195,21 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
         {
             // Need to fill one ghost cell for the high-order interpolation
             // below
-            FillPatch(fine_level, S_fine, 1, t, State_Type, 0, S_fine.nComp());
+            FillPatch(fine_level, state_fine, 1, t, state_index, 0,
+                      state_fine.nComp());
         }
 
-        FourthOrderInterpFromFineToCoarse(S_crse, 0, NUM_VARS, S_fine, ratio);
+        FourthOrderInterpFromFineToCoarse(state_coarse, 0, NUM_VARS, state_fine,
+                                          ratio);
+    }
+    if (simParams().nan_check)
+    {
+        amrex::MultiFab &state_new = get_new_data(state_index);
+        if (state_new.contains_nan(0, state_new.nComp(), amrex::IntVect(0),
+                                   true))
+        {
+            amrex::Abort("NaN in GRAMRLevel::post_timestep");
+        }
     }
 
     amrex::Real dt = parent->dtLevel(level);
@@ -211,9 +217,9 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     specificPostTimeStep(dt, restart_time);
 }
 
-void GRAMRLevel::post_regrid(int /*lbase*/, int /*new_finest*/)
+void GRAMRLevel::post_regrid(int a_lbase, int a_new_finest)
 {
-    // xxxxx Do we need to do anything after regrid?
+    specific_post_regrid(a_lbase, a_new_finest);
 }
 
 void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
@@ -222,10 +228,7 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
-
-    amrex::Real dt = parent->dtLevel(level);
-    int restart_time = get_gramr_ptr()->get_restart_time();
-    specificPostTimeStep(dt, restart_time);
+    specific_post_init();
 }
 
 void GRAMRLevel::post_restart()
@@ -234,19 +237,20 @@ void GRAMRLevel::post_restart()
     {
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
+    specific_post_restart();
 }
 
 void GRAMRLevel::init(amrex::AmrLevel &old)
 {
     BL_PROFILE("GRAMRLevel::init()");
     amrex::Real dt_new    = parent->dtLevel(level);
-    amrex::Real cur_time  = old.get_state_data(State_Type).curTime();
-    amrex::Real prev_time = old.get_state_data(State_Type).prevTime();
+    amrex::Real cur_time  = old.get_state_data(state_index).curTime();
+    amrex::Real prev_time = old.get_state_data(state_index).prevTime();
     amrex::Real dt_old    = cur_time - prev_time;
     setTimeLevel(cur_time, dt_old, dt_new);
 
-    amrex::MultiFab &S_new = get_new_data(State_Type);
-    FillPatch(old, S_new, 0, cur_time, State_Type, 0, S_new.nComp());
+    amrex::MultiFab &S_new = get_new_data(state_index);
+    FillPatch(old, S_new, 0, cur_time, state_index, 0, S_new.nComp());
 }
 
 void GRAMRLevel::init()
@@ -254,7 +258,7 @@ void GRAMRLevel::init()
     BL_PROFILE("GRAMRLevel::init()");
     amrex::Real dt = parent->dtLevel(level);
     const auto &coarse_state =
-        parent->getLevel(level - 1).get_state_data(State_Type);
+        parent->getLevel(level - 1).get_state_data(state_index);
     amrex::Real cur_time  = coarse_state.curTime();
     amrex::Real prev_time = coarse_state.prevTime();
     amrex::Real dt_old =
@@ -262,49 +266,60 @@ void GRAMRLevel::init()
         static_cast<amrex::Real>(parent->MaxRefRatio(level - 1));
     setTimeLevel(cur_time, dt_old, dt);
 
-    amrex::MultiFab &S_new = get_new_data(State_Type);
-    FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, S_new.nComp());
+    amrex::MultiFab &S_new = get_new_data(state_index);
+    FillCoarsePatch(S_new, 0, cur_time, state_index, 0, S_new.nComp());
 }
 
-void GRAMRLevel::writePlotFilePre(const std::string & /*dir*/,
-                                  std::ostream & /*os*/)
+void GRAMRLevel::errorEst(amrex::TagBoxArray &a_tag_box_array,
+                          int /*a_clearval*/, int /*a_tagval*/,
+                          amrex::Real /*a_time*/, int /*a_n_error_buf*/,
+                          int /*a_ngrow*/)
 {
-    m_is_writing_plotfile = true;
-    // auto &state_new       = get_new_data(State_Type);
-    // FillPatch(*this, state_new, state_new.nGrow(),
-    //           get_state_data(State_Type).curTime(), State_Type, 0,
-    //           state_new.nComp());
+    BL_PROFILE("GRAMRLevel::errorEst()");
+
+    pre_tag_cells();
+
+    // It is up to the derived class to use regrid_threshold in tag_cells()
+    amrex::Real regrid_threshold = simParams().regrid_thresholds[Level()];
+    tag_cells(a_tag_box_array, regrid_threshold);
 }
 
-void GRAMRLevel::writePlotFilePost(const std::string & /*dir*/,
-                                   std::ostream & /*os*/)
+void GRAMRLevel::writePlotFilePre(const std::string &a_dir, std::ostream &a_os)
 {
-    m_is_writing_plotfile = false;
+    specific_pre_plotfile(a_dir, a_os);
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
-std::unique_ptr<amrex::MultiFab> GRAMRLevel::derive(const std::string &name,
-                                                    amrex::Real time, int ngrow)
-// NOLINTEND(bugprone-easily-swappable-parameters)
+void GRAMRLevel::writePlotFilePost(const std::string &a_dir, std::ostream &a_os)
 {
-    std::unique_ptr<amrex::MultiFab> multifab;
-    const amrex::DeriveRec *rec = derive_lst.get(name);
-    if (rec != nullptr)
+    specific_post_plotfile(a_dir, a_os);
+}
+
+void GRAMRLevel::checkPointPre(const std::string &a_dir, std::ostream &a_os)
+{
+    specific_pre_checkpoint(a_dir, a_os);
+}
+
+void GRAMRLevel::checkPointPost(const std::string &a_dir, std::ostream &a_os)
+{
+    specific_post_checkpoint(a_dir, a_os);
+}
+
+bool GRAMRLevel::at_level_timestep_multiple(int a_level)
+{
+    // handle both the case a_level < Level() and a_level >= Level()
+    int coarser_level     = std::min(a_level, Level());
+    int finer_level       = std::max(a_level, Level());
+    int finer_level_steps = get_gramr_ptr()->levelSteps(finer_level);
+
+    // work out what the coarser level step number corresponds to on the finer
+    // level
+    int coarser_level_steps_at_finer_level =
+        get_gramr_ptr()->levelSteps(coarser_level);
+
+    for (int ilev = coarser_level + 1; ilev <= finer_level; ++ilev)
     {
-        multifab = std::make_unique<amrex::MultiFab>(
-            this->boxArray(), this->DistributionMap(), rec->numState(), ngrow);
-        derive(name, time, *multifab, 0);
+        coarser_level_steps_at_finer_level *= get_gramr_ptr()->nCycle(ilev);
     }
-    else
-    {
-        amrex::Abort("Unknown derived variable");
-    }
-    return multifab;
-}
-
-void GRAMRLevel::derive(const std::string &name, amrex::Real time,
-                        amrex::MultiFab &multifab, int dcomp)
-{
-    amrex::Abort("GRAMRLevel::derive(): Implement this function in the child "
-                 "level class if derived variables are required.");
+    // finer_level_steps will be > coarser_level_steps
+    return (finer_level_steps == coarser_level_steps_at_finer_level);
 }

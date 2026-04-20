@@ -19,6 +19,13 @@ class BinaryBHLevel : public GRAMRLevel
     // Inherit the contructors from GRAMRLevel
     using GRAMRLevel::GRAMRLevel;
 
+    static constexpr int num_punctures = 2;
+
+    BHAMR<num_punctures> *get_bhamr_ptr();
+
+    /// Get a reference to the PunctureTracker object stored by BHAMR
+    PunctureTracker<num_punctures> &get_puncture_tracker();
+
     /// Things to do at every full timestep
     ///(might include several substeps, e.g. in RK4)
     void specificAdvance() override;
@@ -36,13 +43,26 @@ class BinaryBHLevel : public GRAMRLevel
     // to do post each time step on every level
     void specificPostTimeStep();
 
-    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
-                  amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
+    /// Things to do before tagging cells for regridding
+    void pre_tag_cells() final;
 
-    //! Calculate derived quantity "name" and store in multifab starting at
-    //! dcomp
-    void derive(const std::string &name, amrex::Real time,
-                amrex::MultiFab &multifab, int dcomp) final;
+    /// Tag cells for regridding
+    void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                   amrex::Real a_regrid_threshold) final;
+
+    //! Things to do after a restart
+    void specific_post_restart() override;
+
+    //! Things to do after init
+    void specific_post_init() override;
+
+    //! Things to do after writing a plotfile
+    void specific_post_plotfile(const std::string &a_dir,
+                                std::ostream & /*a_os*/) override;
+
+    //! Things to do after writing a checkpoint
+    void specific_post_checkpoint(const std::string &a_dir,
+                                  std::ostream & /*a_os*/) override;
 };
 
 #endif /* BINARYBHLEVEL_HPP_ */

@@ -7,7 +7,7 @@ verbosity = 1
 
 output_path = .
 # amr.check_file = chk
-# amr.plot_file = plt 
+# amr.plot_file = plt
 # amr.restart = chk00000
 # amr.file_name_digits = 5
 
@@ -77,7 +77,7 @@ max_steps = 8
 
 # max_spatial_derivative_order = 4 # only 4 implemented at the moment
 
-# nan_check = true
+nan_check = true
 
 # Lapse evolution
 lapse_advec_coeff = 1.0
@@ -114,3 +114,9 @@ activate_extraction = true
 # num_points_theta = 37
 # num_modes = 8
 # modes = 2 0  2 1  2 2  4 0  4 1  4 2  4 3  4 4
+
+#################################################
+# Puncture Tracking parameters
+
+puncture_tracking.enabled = 1
+puncture_tracking.level = 0
