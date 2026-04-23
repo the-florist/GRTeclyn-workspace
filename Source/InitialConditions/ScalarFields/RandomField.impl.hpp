@@ -404,7 +404,7 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        Real ks = (m_params.N_coarse != 0. ? 
+        Real ks = (m_params.N_coarse != 0 ? 
                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
         //m_params.kstar * 2. * M_PI/m_params.L;
@@ -620,8 +620,13 @@ inline void RandomField::init(amrex::MultiFab &state)
 
             if(m_params.scalar_init)
             {
-                Real draw1 = get_spatial_random(i, j, k, 4, m_params.random_seed);
-                Real draw2 = get_spatial_random(i, j, k, 5, m_params.random_seed);
+                Real draw1 = get_spatial_random(i, invert_index_with_sign(j), 
+                                                   invert_index_with_sign(k), 
+                                                   4, m_params.random_seed);
+                                                   
+                Real draw2 = get_spatial_random(i, invert_index_with_sign(j), 
+                                                   invert_index_with_sign(k), 
+                                                   5, m_params.random_seed);
 
                 for(int f=0; f<4; f++)
                 {

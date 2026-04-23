@@ -5,3 +5,4 @@ out/
 old-params/
 *.txt
 dump/
+rand-*/
