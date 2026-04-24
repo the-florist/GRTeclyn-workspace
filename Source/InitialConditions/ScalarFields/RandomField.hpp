@@ -52,7 +52,9 @@ class RandomField
             Real Mp = 1.;             //!< Energy scale of the problem
             Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
             int N_readin;               //!< used to read in the private N variable
-            int N_coarse = 0;                 //!< Fine resolution to downsample from, 
+            int N_coarse = 0;           //!< Coarse resolution used to set the 
+                                        //!< kstar in convergence tests
+            int N_fine = 0;            //!< Fine resolution to downsample from, 
                                         //!< used for convergence testing
 
             // Initial condition options
@@ -165,11 +167,10 @@ class RandomField
         Real phi0 = 0.;
 
         // Small functions
-        int flip_index(const int indx);
-        int invert_index(const int indx);
-        int invert_index_with_sign(const int indx);
-        bool is_ghost_index(const IntVect vector);
-        Real get_kmag(IntVect iv);
+        int flip_index(const int indx, const int m_N);
+        int invert_index(const int indx, const int m_N);
+        int invert_index_with_sign(const int indx, const int m_N);
+        Real get_kmag(IntVect iv, const int m_N);
         Real find_precision_loss(MultiFab &field, int comp, Real bkgd);
 
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
@@ -184,18 +185,17 @@ class RandomField
                                                                  const Vector<Real> nhat);
         void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
                                                 const Tensor<2, Real> ecross);
-        Real calculate_total_power(const cMultiFab& fk);
-        void Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk);
+        Real calculate_total_power(const cMultiFab& fk, const int m_N);
+        void Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk, const int m_N);
 
         // Initialisation routines 
-        Real get_spatial_random(int i, int j, int k, int comp, int seed);
         GpuComplex<Real> calculate_mode_function(const Real km, const int spec_indx);
         GpuComplex<Real> find_in_stoiic(const Real km, const int field_indx, std::string field_type);
         GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
                                                 const Real rand_amp, const Real rand_phase, 
-                                                std::string field_type);
-        Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector);
-        void apply_nyquist_conditions(cMultiFab &field);
+                                                std::string field_type, const int m_N);
+        Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector, const int m_N);
+        void apply_nyquist_conditions(cMultiFab &field, const int m_N);
         
         // Extraction routines
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
