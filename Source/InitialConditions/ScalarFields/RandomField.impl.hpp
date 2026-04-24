@@ -287,30 +287,6 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
     Initialisation routines
 ****/
 
-// Written by Gemini
-inline Real RandomField::get_spatial_random(int i, int j, int k, int comp, int seed)
-{
-    // 1. Create a unique 64-bit identifier for this exact cell, component, and seed.
-    // The large prime numbers help prevent spatial artifacts (striping) before mixing.
-    uint64_t state = (uint64_t(i) * 73856093ULL) ^
-                     (uint64_t(j) * 19349663ULL) ^
-                     (uint64_t(k) * 83492791ULL) ^
-                     (uint64_t(comp) * 23145671ULL) ^
-                     (uint64_t(seed));
-
-    // 2. High-quality bit mixer (based on the SplitMix64 algorithm)
-    // This violently scrambles the bits so neighboring cells have no correlation.
-    state ^= state >> 30;
-    state *= 0xbf58476d1ce4e5b9ULL;
-    state ^= state >> 27;
-    state *= 0x94d049bb133111ebULL;
-    state ^= state >> 31;
-
-    // 3. Convert the scrambled 64-bit integer into a double precision float in [0.0, 1.0)
-    // 0x1.0p-53 is a fast hex-float representation of 2^-53.
-    return (state >> 11) * 0x1.0p-53;
-}
-
 // Returns analytic power spectrum in modulus/argument form
 inline GpuComplex<Real> RandomField::calculate_mode_function(const Real km, const int spec_indx)
 {
@@ -614,29 +590,18 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<GpuComplex<Real>> const& scalar_fields_ptr = scalar_fields_k.array(mfi);
 
         // Loop to create mode functions, then hij(k) and Aij(k)
-        amrex::ParallelForRNG(bx, 
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, 
-                                  RandomEngine const& engine) noexcept
+        amrex::ParallelFor(bx, 
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv = {i, j, k};
+            amrex::InitRandom(m_params.random_seed * (645950 * uint64_t(iv[0])
+                                                    + 520666 * uint64_t(iv[1])
+                                                    + 767051 * uint64_t(iv[2])));
 
             if(m_params.scalar_init)
             {
-                Real draw1 = amrex::Random(engine);
-                            /*get_spatial_random(i, invert_index_with_sign(j), 
-                                                   invert_index_with_sign(k), 
-                                                   4, m_params.random_seed);*/
-                                                   
-                Real draw2 = amrex::Random(engine);
-                            /*get_spatial_random(i, invert_index_with_sign(j), 
-                                                   invert_index_with_sign(k), 
-                                                   5, m_params.random_seed);*/
-
-                AllPrintToFile("dump/amrex-rand-check") << iv[0] << ", ";
-                AllPrintToFile("dump/amrex-rand-check") << iv[1] << ", ";
-                AllPrintToFile("dump/amrex-rand-check") << iv[2] << ", ";
-                AllPrintToFile("dump/amrex-rand-check").SetPrecision(12) << draw1 << ", ";
-                AllPrintToFile("dump/amrex-rand-check").SetPrecision(12) << draw2 << "\n";
+                Real draw1 = amrex::Random();                             
+                Real draw2 = amrex::Random();
                 
                 for(int f=0; f<4; f++)
                 {
@@ -653,10 +618,8 @@ inline void RandomField::init(amrex::MultiFab &state)
                 // Find the mode function realisation
                 for(int p=0; p<2; p++)
                 {
-                    Real draw1 = amrex::Random(engine);
-                    //get_spatial_random(i, invert_index_with_sign(j), invert_index_with_sign(k), 2*p, m_params.random_seed);
-                    Real draw2 = amrex::Random(engine);
-                    //get_spatial_random(i, invert_index_with_sign(j), invert_index_with_sign(k), 2*p+1, m_params.random_seed);
+                    Real draw1 = amrex::Random();
+                    Real draw2 = amrex::Random();
 
                     hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
                     As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
