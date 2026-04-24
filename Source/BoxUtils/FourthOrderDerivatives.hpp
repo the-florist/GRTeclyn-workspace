@@ -32,7 +32,6 @@ class FourthOrderDerivatives
                                                      const int stride) const
     {
         const auto *in = SIMDIFY<data_t>(in_ptr);
-
         data_t weight_far  = 8.33333333333333333333e-2;
         data_t weight_near = 6.66666666666666666667e-1;
 
@@ -55,18 +54,22 @@ class FourthOrderDerivatives
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         vars_t<Tensor<1, data_t>> d1;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
         d1.enum_mapping(
             [&](const int &ivar, Tensor<1, data_t> &var)
             {
                 AMREX_D_TERM(
-                    var[0] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
+                    var[0] = diff1<data_t>(state_ptr_ijk + ivar * n_stride,
                                            0, 1);
                     ,
-                    var[1] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
-                                           0, static_cast<int>(state.jstride));
+                    var[1] = diff1<data_t>(state_ptr_ijk + ivar * n_stride,
+                                           0, static_cast<int>(j_stride));
                     ,
-                    var[2] = diff1<data_t>(state_ptr_ijk + ivar * state.nstride,
-                                           0, static_cast<int>(state.kstride)));
+                    var[2] = diff1<data_t>(state_ptr_ijk + ivar * n_stride,
+                                           0, static_cast<int>(k_stride)));
             });
         return d1;
     }
@@ -131,13 +134,17 @@ class FourthOrderDerivatives
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         vars_t<Tensor<2, data_t>> d2;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
+            1, static_cast<int>(j_stride),
+            static_cast<int>(k_stride)};
         d2.enum_mapping(
             [&](const int &ivar, Tensor<2, data_t> &var)
             {
-                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+                const auto *pvar = state_ptr_ijk + ivar * n_stride;
                 FOR (dir1) // First calculate the repeated derivatives
                 {
                     var[dir1][dir1] = diff2<data_t>(pvar, 0, strides[dir1]);
@@ -200,14 +207,18 @@ class FourthOrderDerivatives
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         vars_t<data_t> advec;
         const auto *state_ptr_ijk = state.ptr(i, j, k);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
+            1, static_cast<int>(j_stride),
+            static_cast<int>(k_stride)};
         advec.enum_mapping(
             [&](const int &ivar, data_t &var)
             {
                 var              = 0.;
-                const auto *pvar = state_ptr_ijk + ivar * state.nstride;
+                const auto *pvar = state_ptr_ijk + ivar * n_stride;
                 FOR (dir)
                 {
                     const auto shift_positive =
@@ -245,9 +256,13 @@ class FourthOrderDerivatives
                     const double factor) const
     {
         const auto *state_ptr_ijk = state.ptr(i, j, k);
+        int j_stride              = static_cast<int>(state.stride.a[0]);
+        int k_stride              = static_cast<int>(state.stride.a[1]);
+        int n_stride              = static_cast<int>(state.stride.a[2]);
+
         amrex::GpuArray<int, AMREX_SPACEDIM> strides{
-            1, static_cast<int>(state.jstride),
-            static_cast<int>(state.kstride)};
+            1, static_cast<int>(j_stride),
+            static_cast<int>(k_stride)};
         vars.enum_mapping(
             [&](const int &ivar, data_t &var)
             {
@@ -256,7 +271,7 @@ class FourthOrderDerivatives
                     const auto stride  = strides[dir];
                     var               += factor *
                            dissipation_term<data_t>(
-                               state_ptr_ijk + ivar * state.nstride, 0, stride);
+                               state_ptr_ijk + ivar * n_stride, 0, stride);
                 }
             });
     }
