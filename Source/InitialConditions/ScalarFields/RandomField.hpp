@@ -48,7 +48,7 @@ class RandomField
 
             // Grid parameters
             Real L;                   //!< Length of the box
-            Real A;                   //!< Amplitude factor (for basic tests)
+            Real A = 1.;                   //!< Amplitude factor (for basic tests)
             Real Mp = 1.;             //!< Energy scale of the problem
             Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
             int N_readin;               //!< used to read in the private N variable

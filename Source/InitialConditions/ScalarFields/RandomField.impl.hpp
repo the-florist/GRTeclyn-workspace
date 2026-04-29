@@ -857,7 +857,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
 
     // Print the power spectrum to a new file in data/
 #pragma omp single
-    for(int s=0; s<=N/2; s++)
+    for(int s=0; s<N/2; s++)
     {
         power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., (Real)ps_map[s]/kcount[s]});
     }
