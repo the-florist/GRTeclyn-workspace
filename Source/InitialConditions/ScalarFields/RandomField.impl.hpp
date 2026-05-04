@@ -593,7 +593,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
-    Print() << "RandomField::init, Starting initial condition generation/read in...\n";
+    Print() << "RandomField::init, Starting initial condition generation...\n";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
@@ -631,6 +631,11 @@ inline void RandomField::init(amrex::MultiFab &state)
                         scalar_fields_ptr(i, j, k, f) *= m_params.A;
                     }
                 }
+            }
+
+            if(iv == IntVect{128, 256, 256})
+            {
+                AllPrint() << "Halfway point reached...";
             }
 
             if(m_params.tensor_init)
