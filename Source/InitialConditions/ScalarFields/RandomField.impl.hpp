@@ -721,7 +721,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
 
-    AllPrint() << scalar_fields_x.sum(0) / static_cast<Real>(pow(N, 3)) << "\n";
+    // AllPrint() << scalar_fields_x.sum(0) / static_cast<Real>(pow(N, 3)) << "\n";
 
     // Put these initial conditions into the state MF
     for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
@@ -1262,15 +1262,15 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     const Real phi_bar = state.sum(c_phi)/static_cast<Real>(vol);
     const Real chi_bar = state.sum(c_chi)/static_cast<Real>(vol);
 
-    AllPrint().SetPrecision(20) << phi_bar << "\n";
+    // AllPrint().SetPrecision(20) << phi_bar << "\n";
 
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
     scalars_x.plus(-chi_bar, m_c_chi, 1);
     scalars_x.mult(1./norm);
 
-    AllPrint() << scalars_x.sum(m_c_phi)/static_cast<Real>(vol) << "\n";
-    Error();
+    // AllPrint() << scalars_x.sum(m_c_phi)/static_cast<Real>(vol) << "\n";
+    // Error();
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
