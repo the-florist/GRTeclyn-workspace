@@ -560,6 +560,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     IntVect domain_low(0, 0, 0);
+    BoxArray xba = (m_params.N_fine != 0 ? sba.refine(dN) : sba);
+
     IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     Box k_domain(domain_low, k_domain_high);
     Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
@@ -571,12 +573,11 @@ inline void RandomField::init(amrex::MultiFab &state)
     cMultiFab As_k(kba, kdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
     cMultiFab Aij_k(kba, kdm, 6, 0);
-
-    MultiFab hij_x(sba, sdm, 6, 0);
-    MultiFab Aij_x(sba, sdm, 6, 0);
+    MultiFab hij_x(xba, sdm, 6, 0);
+    MultiFab Aij_x(xba, sdm, 6, 0);
 
     cMultiFab scalar_fields_k(kba, kdm, 4, 0);
-    MultiFab scalar_fields_x(sba, sdm, 4, 0);
+    MultiFab scalar_fields_x(xba, sdm, 4, 0);
 
     hs_k.setVal(0.0);
     As_k.setVal(0.0);
@@ -679,25 +680,6 @@ inline void RandomField::init(amrex::MultiFab &state)
     apply_nyquist_conditions(Aij_k, Ni);
     apply_nyquist_conditions(scalar_fields_k, Ni);
 
-    // for (MFIter mfi(scalar_fields_k); mfi.isValid(); ++mfi) 
-    // {
-    //     // Define the domain on this MPI rank
-    //     const Box& bx = mfi.fabbox();
-    //     Array4<GpuComplex<Real>> const& scalar_fields_ptr = scalar_fields_k.array(mfi);
-
-    //     // Loop to create mode functions, then hij(k) and Aij(k)
-    //     amrex::ParallelFor(bx, 
-    //         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    //     {
-    //         IntVect iv = {i, j, k};
-
-    //         std::string fname = "./dump/downsample-tests/init-64";
-    //         AllPrintToFile(fname) << iv[0] << ", " << iv[1] << ", " << iv[2] << ", ";
-    //         AllPrintToFile(fname).SetPrecision(12) << scalar_fields_ptr(iv, 0).real() << ", ";
-    //         AllPrintToFile(fname).SetPrecision(12) << scalar_fields_ptr(iv, 0).imag() << "\n";
-    //     });
-    // }
-
     // Do the Fourier transform
     tensor_fft.backward(hij_k, hij_x);
     tensor_fft.backward(Aij_k, Aij_x);
@@ -721,10 +703,8 @@ inline void RandomField::init(amrex::MultiFab &state)
     for (int l=0; l<3; l++) { hij_x.plus(1., lut[l][l], 1); }
     Aij_x.mult(-0.5);
 
-    // AllPrint() << scalar_fields_x.sum(0) / static_cast<Real>(pow(N, 3)) << "\n";
-
     // Put these initial conditions into the state MF
-    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) 
     {
         const Box& bx = mfi.fabbox();
         Array4<Real> const& state_ptr = state.array(mfi);
@@ -734,34 +714,37 @@ inline void RandomField::init(amrex::MultiFab &state)
 
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            const IntVect iv_ds{i / dN, j / dN, k / dN};
-            const IntVect iv{i, j, k};
+            const IntVect iv_ds{i, j, k};
+            const IntVect iv{i * dN, j * dN, k * dN};
 
-            // Add scalar perturbations to the existing background values
-            if(m_params.scalar_init)
+            if (iv_ds.min() >= 0 && iv_ds.max() < N)
             {
-                state_ptr(iv_ds, c_phi) += scalar_ptr(iv, 0);
-                state_ptr(iv_ds, c_Pi) += scalar_ptr(iv, 1);
-                state_ptr(iv_ds, c_chi) += scalar_ptr(iv, 2);
-                state_ptr(iv_ds, c_K) += scalar_ptr(iv, 3);
-            }
+                // Add scalar perturbations to the existing background values
+                if(m_params.scalar_init)
+                {
+                    state_ptr(iv_ds, c_phi) += scalar_ptr(iv, 0);
+                    state_ptr(iv_ds, c_Pi) += scalar_ptr(iv, 1);
+                    state_ptr(iv_ds, c_chi) += scalar_ptr(iv, 2);
+                    state_ptr(iv_ds, c_K) += scalar_ptr(iv, 3);
+                }
 
-            // Set the entire tensor object here
-            if(m_params.tensor_init)
-            {
-                state_ptr(iv_ds, c_h11) = hij_ptr(iv, lut[0][0]);
-                state_ptr(iv_ds, c_h12) = hij_ptr(iv, lut[0][1]);
-                state_ptr(iv_ds, c_h13) = hij_ptr(iv, lut[0][2]);
-                state_ptr(iv_ds, c_h22) = hij_ptr(iv, lut[1][1]);
-                state_ptr(iv_ds, c_h23) = hij_ptr(iv, lut[1][2]);
-                state_ptr(iv_ds, c_h33) = hij_ptr(iv, lut[2][2]);
+                // Set the entire tensor object here
+                if(m_params.tensor_init)
+                {
+                    state_ptr(iv_ds, c_h11) = hij_ptr(iv, lut[0][0]);
+                    state_ptr(iv_ds, c_h12) = hij_ptr(iv, lut[0][1]);
+                    state_ptr(iv_ds, c_h13) = hij_ptr(iv, lut[0][2]);
+                    state_ptr(iv_ds, c_h22) = hij_ptr(iv, lut[1][1]);
+                    state_ptr(iv_ds, c_h23) = hij_ptr(iv, lut[1][2]);
+                    state_ptr(iv_ds, c_h33) = hij_ptr(iv, lut[2][2]);
 
-                state_ptr(iv_ds, c_A11) = Aij_ptr(iv, lut[0][0]);
-                state_ptr(iv_ds, c_A12) = Aij_ptr(iv, lut[0][1]);
-                state_ptr(iv_ds, c_A13) = Aij_ptr(iv, lut[0][2]);
-                state_ptr(iv_ds, c_A22) = Aij_ptr(iv, lut[1][1]);
-                state_ptr(iv_ds, c_A23) = Aij_ptr(iv, lut[1][2]);
-                state_ptr(iv_ds, c_A33) = Aij_ptr(iv, lut[2][2]);
+                    state_ptr(iv_ds, c_A11) = Aij_ptr(iv, lut[0][0]);
+                    state_ptr(iv_ds, c_A12) = Aij_ptr(iv, lut[0][1]);
+                    state_ptr(iv_ds, c_A13) = Aij_ptr(iv, lut[0][2]);
+                    state_ptr(iv_ds, c_A22) = Aij_ptr(iv, lut[1][1]);
+                    state_ptr(iv_ds, c_A23) = Aij_ptr(iv, lut[1][2]);
+                    state_ptr(iv_ds, c_A33) = Aij_ptr(iv, lut[2][2]);
+                }
             }
         });
     }
@@ -1262,15 +1245,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     const Real phi_bar = state.sum(c_phi)/static_cast<Real>(vol);
     const Real chi_bar = state.sum(c_chi)/static_cast<Real>(vol);
 
-    // AllPrint().SetPrecision(20) << phi_bar << "\n";
-
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
     scalars_x.plus(-chi_bar, m_c_chi, 1);
     scalars_x.mult(1./norm);
-
-    // AllPrint() << scalars_x.sum(m_c_phi)/static_cast<Real>(vol) << "\n";
-    // Error();
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
@@ -1327,11 +1305,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=, &hij_tr_max, &hSV_tr_max] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
-
-            std::string fname = "./dump/downsample-tests/extr-64";
-            AllPrintToFile(fname) << iv[0] << ", " << iv[1] << ", " << iv[2] << ", ";
-            AllPrintToFile(fname).SetPrecision(12) << scalars_ptr(iv, m_c_phi).real() << ", ";
-            AllPrintToFile(fname).SetPrecision(12) << scalars_ptr(iv, m_c_phi).imag() << "\n";
             
             Vector<Real> mhat = calculate_basis_vector(iv, 0);
             Vector<Real> nhat = calculate_basis_vector(iv, 1);
