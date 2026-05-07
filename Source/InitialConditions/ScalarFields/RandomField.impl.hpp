@@ -1151,7 +1151,7 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
                         Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
 
                         // Combine the above to find R(k)
-                        R_k_ptr(i, j, k) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+                        R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
 
                         // Print() << Phi << "\n";
                         // Print() << K_bar << "\n";
@@ -1378,7 +1378,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                     Phi += 0.5 * (scalars_ptr(i, j, k, m_c_chi));
 
                     // Combine the above to find R(k)
-                    R_k_ptr(i, j, k) = Phi - K_bar * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+                    R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
                 }
             }
         });
