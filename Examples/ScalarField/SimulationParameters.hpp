@@ -64,6 +64,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("kstar", random_field_params.kstar, 0.);
         pp.load("Delta", random_field_params.Delta, 1.);
         pp.load("N_coarse", random_field_params.N_coarse, 0);
+        pp.load("N_fine", random_field_params.N_fine, 0);
 
         pp.load("calc_binned_power_spectrum", random_field_params.calc_binned_power_spectrum, 0);
         pp.load("bin_number", random_field_params.bin_number, random_field_params.N_readin/2); 

@@ -16,36 +16,35 @@
 ****/
 
 // Nyquist condition
-inline int RandomField::flip_index(const int indx) { return std::abs(N - indx); }
+inline int RandomField::flip_index(const int indx, int m_N = 0) 
+{ 
+    if (m_N == 0) { m_N = N; }
+    return std::abs(m_N - indx); 
+}
 
 // Nyquist condition and calculation of kmag
-inline int RandomField::invert_index(const int indx) { return (int)(N/2 - std::abs(N/2 - indx)); }
+inline int RandomField::invert_index(const int indx, int m_N = 0) 
+{ 
+    if (m_N == 0) { m_N = N; }
+    return (int)(m_N/2 - std::abs(m_N/2 - indx)); 
+}
 
 // For calculation of polarisation tensors
-inline int RandomField::invert_index_with_sign(const int indx) 
+inline int RandomField::invert_index_with_sign(const int indx, int m_N = 0) 
 { 
-    if(indx <= N/2) { return indx; }
-    else { return std::abs(N/2 - indx) - N/2; }
+    if (m_N == 0) { m_N = N; }
+    if(indx <= m_N/2) { return indx; }
+    else { return std::abs(m_N/2 - indx) - m_N/2; }
 }
 
 // Find the magnitude of the Fourier wavevector at this point
-inline Real RandomField::get_kmag(IntVect iv)
+inline Real RandomField::get_kmag(IntVect iv, int m_N = 0)
 {
+    if (m_N == 0) { m_N = N; }
     const int i = iv[0];
-    const int j = invert_index(iv[1]);
-    const int k = invert_index(iv[2]);
+    const int j = invert_index(iv[1], m_N);
+    const int k = invert_index(iv[2], m_N);
     return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / m_params.L;
-}
-
-// Ensures no calculation on ghost cells
-inline bool RandomField::is_ghost_index(const IntVect vector)
-{
-    bool ret = false;
-    for(int d=0; d<3; d++) 
-    { 
-        if(vector[d] < 0 || vector[d] > N-1) { ret = true; }
-    }
-    return ret;
 }
 
 // Makes subdirectories in data/
@@ -221,8 +220,9 @@ inline void RandomField::Test_polarisation_tensor_orthonorm(const IntVect iv, co
 }
 
 // Written by Gemini
-inline Real RandomField::calculate_total_power(const cMultiFab& fk) 
+inline Real RandomField::calculate_total_power(const cMultiFab& fk, int m_N = 0) 
 {
+    if (m_N == 0) { m_N = N; }
     // 1. Set up the parallel reduction operation (Sum)
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<Real> reduce_data(reduce_op);
@@ -245,7 +245,7 @@ inline Real RandomField::calculate_total_power(const cMultiFab& fk)
                 Real pow = re * re + im * im;
                 // Multiply by 2 in most of the bulk,
                 // to account for Hermitian modes.
-                if (i != 0 && i != N/2) { pow *= 2.; }
+                if (i != 0 && i != m_N/2) { pow *= 2.; }
                 
                 return pow;
             });
@@ -261,12 +261,13 @@ inline Real RandomField::calculate_total_power(const cMultiFab& fk)
     return total_local_power;
 }
 
-inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk)
+inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk, int m_N = 0)
 {
+    if (m_N == 0) { m_N = N; }
     Real xsum = std::pow(hx.norm2(), 2.);
-    xsum /= std::pow(N, 3.);
+    xsum /= std::pow(m_N, 3.);
 
-    Real ksum = calculate_total_power(hk);
+    Real ksum = calculate_total_power(hk, m_N);
 
     int p = std::round(std::log10((ksum + ksum) / 2.));
     Real tol = tolerance * std::pow(10., p);
@@ -323,34 +324,46 @@ inline GpuComplex<Real> RandomField::find_in_stoiic(const Real km, const int fie
     int spec_index;
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
-        if(std::abs(km - m_params.init_k[idx]) < 1e-10) { spec_index = idx; break; }
+        if(std::abs(km - m_params.init_k[idx]) < 1e-10) 
+        { 
+            spec_index = idx; 
+            break; 
+        }
         else if (idx == m_params.init_k.size() - 1) 
         { 
             Print() << km << "\n"; 
-            Error("RandomField::find_in_stoiic, The above k was not found in the STOIIC file."); 
+            Error("RandomField::find_in_stoiic, "
+                  "The above k was not found in the STOIIC file."); 
         }
     }
 
     if(field_type == "tensor")
     {
-        return GpuComplex<Real>{m_params.tensor_ps[2*field_indx][spec_index], m_params.tensor_ps[2*field_indx+1][spec_index]};
+        return GpuComplex<Real>{m_params.tensor_ps[2*field_indx][spec_index], 
+                                m_params.tensor_ps[2*field_indx+1][spec_index]};
     }
     else if(field_type == "scalar")
     {
-        return GpuComplex<Real>{m_params.scalar_ps[2*field_indx][spec_index], m_params.scalar_ps[2*field_indx+1][spec_index]};
+        return GpuComplex<Real>{m_params.scalar_ps[2*field_indx][spec_index], 
+                                m_params.scalar_ps[2*field_indx+1][spec_index]};
     }
-    else { Error("RandomField::find_in_stoiic field cannot be found."); return GpuComplex<Real>{0., 0.}; }
+    else 
+    { 
+        Error("RandomField::find_in_stoiic field cannot be found."); 
+        return GpuComplex<Real>{0., 0.}; 
+    }
 }
 
 // Turns analytic PS into GRF and applies window function if requested
 inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, const int field_index, 
                                                             const Real rand_amp, const Real rand_phase, 
-                                                            std::string field_type)
+                                                            std::string field_type, int m_N = 0)
 {
+    if (m_N == 0) { m_N = N; }
     GpuComplex<Real> value(0., 0.);
 
     // Find kmag with FFTW-style inversion on the last two indices
-    Real kmag = get_kmag(iv);
+    Real kmag = get_kmag(iv, m_N);
 
     // Find the analytic power spectrum
     if(m_params.read_from_stoiic) { value = find_in_stoiic(kmag, field_index, field_type); }
@@ -392,13 +405,14 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
 }
 
 // Calculates basis vectors required for polarisation tensors
-inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const int which_vector)
+inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const int which_vector, int m_N = 0)
 {
+    if (m_N == 0) { m_N = N; }
     // Hermitian symmetry inversion on j and k, with sign on the last two indices.
     // (!!) The FT implemented in AMReX symmetrises across the i index.
     const Real i = static_cast<Real>(iv[0]);
-    const Real j = static_cast<Real>(invert_index_with_sign(iv[1]));
-    const Real k = static_cast<Real>(invert_index_with_sign(iv[2]));
+    const Real j = static_cast<Real>(invert_index_with_sign(iv[1], m_N));
+    const Real k = static_cast<Real>(invert_index_with_sign(iv[2], m_N));
 
     Vector<Real> mhat(3, 0.);
     Vector<Real> nhat(3, 0.);
@@ -480,8 +494,9 @@ inline Vector<Real> RandomField::calculate_basis_vector(const IntVect iv, const 
 }
 
 // Applies above Nyquist conditions to a given MF
-inline void RandomField::apply_nyquist_conditions(cMultiFab &field)
+inline void RandomField::apply_nyquist_conditions(cMultiFab &field, int m_N = 0)
 {
+    if (m_N == 0) { m_N = N; }
     int nc = field.nComp();
     for (MFIter mfi(field); mfi.isValid(); ++mfi) 
     {
@@ -493,7 +508,7 @@ inline void RandomField::apply_nyquist_conditions(cMultiFab &field)
         {
             IntVect iv = {i, j, k};
 
-            if ((i == 0 || i == N/2) && (j == 0 || j == N/2) && (k == 0 || k == N/2))
+            if ((i == 0 || i == m_N/2) && (j == 0 || j == m_N/2) && (k == 0 || k == m_N/2))
             {
                 for(int comp = 0; comp < nc; comp++)
                 {
@@ -502,25 +517,25 @@ inline void RandomField::apply_nyquist_conditions(cMultiFab &field)
                 }
             }
 
-            else if (i==0 || i==N/2) 
+            else if (i==0 || i==m_N/2) 
             {
-                if((k > N/2 && j == N/2) || (k == 0 && j > N/2) ||
-                    (k > N/2 && j == 0) || (k == N/2 && j > N/2))
+                if((k > m_N/2 && j == m_N/2) || (k == 0 && j > m_N/2) ||
+                    (k > m_N/2 && j == 0) || (k == m_N/2 && j > m_N/2))
                 {
                     for(int comp = 0; comp < nc; comp++) 
                     {
-                        GpuComplex<Real> temp(field_ptr(i, invert_index(j), invert_index(k), comp).real(), 
-                                                -field_ptr(i, invert_index(j), invert_index(k), comp).imag());
+                        GpuComplex<Real> temp(field_ptr(i, invert_index(j, m_N), invert_index(k, m_N), comp).real(), 
+                                                -field_ptr(i, invert_index(j, m_N), invert_index(k, m_N), comp).imag());
                         field_ptr(i, j, k, comp) = temp;
                     }
                 }
                 
-                else if(j > N/2)
+                else if(j > m_N/2)
                 {
                     for(int comp = 0; comp < nc; comp++) 
                     {
-                        GpuComplex<Real> temp(field_ptr(i, invert_index(j), flip_index(k), comp).real(), 
-                                                -field_ptr(i, invert_index(j), flip_index(k), comp).imag());
+                        GpuComplex<Real> temp(field_ptr(i, invert_index(j, m_N), flip_index(k, m_N), comp).real(), 
+                                                -field_ptr(i, invert_index(j, m_N), flip_index(k, m_N), comp).imag());
                         field_ptr(i, j, k, comp) = temp;
                     }
                 }
@@ -538,10 +553,16 @@ inline void RandomField::init(amrex::MultiFab &state)
     BoxArray sba = state.boxArray();
     DistributionMapping sdm = state.DistributionMap();
 
+    int Ni = N;
+    int dN = 1;
+    if(m_params.N_fine != 0) { Ni = m_params.N_fine; dN = m_params.N_fine / N; }
+
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     IntVect domain_low(0, 0, 0);
-    IntVect k_domain_high(N/2, N-1, N-1);
+    BoxArray xba = (m_params.N_fine != 0 ? sba.refine(dN) : sba);
+
+    IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     Box k_domain(domain_low, k_domain_high);
     Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
     BoxArray kba = decompose(k_domain, ParallelContext::NProcsAll(), slicing);
@@ -552,12 +573,11 @@ inline void RandomField::init(amrex::MultiFab &state)
     cMultiFab As_k(kba, kdm, 2, 0);
     cMultiFab hij_k(kba, kdm, 6, 0);
     cMultiFab Aij_k(kba, kdm, 6, 0);
-
-    MultiFab hij_x(sba, sdm, 6, 0);
-    MultiFab Aij_x(sba, sdm, 6, 0);
+    MultiFab hij_x(xba, sdm, 6, 0);
+    MultiFab Aij_x(xba, sdm, 6, 0);
 
     cMultiFab scalar_fields_k(kba, kdm, 4, 0);
-    MultiFab scalar_fields_x(sba, sdm, 4, 0);
+    MultiFab scalar_fields_x(xba, sdm, 4, 0);
 
     hs_k.setVal(0.0);
     As_k.setVal(0.0);
@@ -569,12 +589,12 @@ inline void RandomField::init(amrex::MultiFab &state)
     scalar_fields_x.setVal(0.0);
 
     // Construct the Fourier transform
-    IntVect x_domain_high(N-1, N-1, N-1);
+    IntVect x_domain_high(Ni-1, Ni-1, Ni-1);
     Box x_domain(domain_low, x_domain_high);
     FFT::R2C<Real> tensor_fft(x_domain, FFT::Info().setBatchSize(hij_k.nComp()));
     FFT::R2C<Real> scalar_fft(x_domain, FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
-    Print() << "RandomField::init, Starting initial condition generation/read in...\n";
+    Print() << "RandomField::init, Starting initial condition generation...\n";
     for (MFIter mfi(hs_k); mfi.isValid(); ++mfi) 
     {
         // Define the domain on this MPI rank
@@ -595,8 +615,9 @@ inline void RandomField::init(amrex::MultiFab &state)
         {
             IntVect iv = {i, j, k};
             amrex::InitRandom(m_params.random_seed * (645950 * uint64_t(iv[0])
-                                                    + 520666 * uint64_t(iv[1])
-                                                    + 767051 * uint64_t(iv[2])));
+                                                    + 520666 * uint64_t(invert_index_with_sign(iv[1], Ni))
+                                                    + 767051 * uint64_t(invert_index_with_sign(iv[2], Ni))
+                                                ));
 
             if(m_params.scalar_init)
             {
@@ -605,12 +626,17 @@ inline void RandomField::init(amrex::MultiFab &state)
                 
                 for(int f=0; f<4; f++)
                 {
-                    scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
+                    scalar_fields_ptr(i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar", Ni);
                     if (m_params.A != 1.0)
                     {
                         scalar_fields_ptr(i, j, k, f) *= m_params.A;
                     }
                 }
+            }
+
+            if(iv == IntVect{128, 256, 256})
+            {
+                AllPrint() << "Halfway point reached...";
             }
 
             if(m_params.tensor_init)
@@ -621,13 +647,13 @@ inline void RandomField::init(amrex::MultiFab &state)
                     Real draw1 = amrex::Random();
                     Real draw2 = amrex::Random();
 
-                    hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
-                    As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
+                    hs_ptr(i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor", Ni);
+                    As_ptr(i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor", Ni);
                 }
                 
                 // Find basis vectors
-                Vector<Real> mhat = calculate_basis_vector(iv, 0);;
-                Vector<Real> nhat = calculate_basis_vector(iv, 1);
+                Vector<Real> mhat = calculate_basis_vector(iv, 0, Ni);
+                Vector<Real> nhat = calculate_basis_vector(iv, 1, Ni);
                 Test_vector_orthonorm(iv, mhat, nhat);
 
                 // Construct polarisation tensors from basis vectors
@@ -650,9 +676,9 @@ inline void RandomField::init(amrex::MultiFab &state)
     }
 
     // Apply the DC and Nyquist symmetry conditions
-    apply_nyquist_conditions(hij_k);
-    apply_nyquist_conditions(Aij_k);
-    apply_nyquist_conditions(scalar_fields_k);
+    apply_nyquist_conditions(hij_k, Ni);
+    apply_nyquist_conditions(Aij_k, Ni);
+    apply_nyquist_conditions(scalar_fields_k, Ni);
 
     // Do the Fourier transform
     tensor_fft.backward(hij_k, hij_x);
@@ -660,9 +686,10 @@ inline void RandomField::init(amrex::MultiFab &state)
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
 
     // Apply normalisation into physical units
+    // TODO: how does downsampling change this norm?
     hij_x.mult(norm * std::pow(N, -3./2.));
     Aij_x.mult(norm * std::pow(N, -3./2.));
-    scalar_fields_x.mult(norm * std::pow(N, -3./2.));
+    scalar_fields_x.mult(norm * static_cast<Real>(std::pow(N, -3./2.)));
 
     Print() << "RandomField::init, Precision lost in phi is ";
     Print() << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
@@ -677,7 +704,7 @@ inline void RandomField::init(amrex::MultiFab &state)
     Aij_x.mult(-0.5);
 
     // Put these initial conditions into the state MF
-    for (MFIter mfi(hij_x); mfi.isValid(); ++mfi) 
+    for (MFIter mfi(state); mfi.isValid(); ++mfi) 
     {
         const Box& bx = mfi.fabbox();
         Array4<Real> const& state_ptr = state.array(mfi);
@@ -687,35 +714,36 @@ inline void RandomField::init(amrex::MultiFab &state)
 
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            const IntVect iv{i, j, k};
-            bool in_ghost_index = is_ghost_index(iv);
-            if(!in_ghost_index)
+            const IntVect iv_ds{i, j, k};
+            const IntVect iv{i * dN, j * dN, k * dN};
+
+            if (iv_ds.min() >= 0 && iv_ds.max() < N)
             {
                 // Add scalar perturbations to the existing background values
                 if(m_params.scalar_init)
                 {
-                    state_ptr(iv, c_phi) += scalar_ptr(i, j, k, 0);
-                    state_ptr(iv, c_Pi) += scalar_ptr(i, j, k, 1);
-                    state_ptr(iv, c_chi) += scalar_ptr(i, j, k, 2);
-                    state_ptr(iv, c_K) += scalar_ptr(i, j, k, 3);
+                    state_ptr(iv_ds, c_phi) += scalar_ptr(iv, 0);
+                    state_ptr(iv_ds, c_Pi) += scalar_ptr(iv, 1);
+                    state_ptr(iv_ds, c_chi) += scalar_ptr(iv, 2);
+                    state_ptr(iv_ds, c_K) += scalar_ptr(iv, 3);
                 }
 
                 // Set the entire tensor object here
                 if(m_params.tensor_init)
                 {
-                    state_ptr(iv, c_h11) = hij_ptr(i, j, k, lut[0][0]);
-                    state_ptr(iv, c_h12) = hij_ptr(i, j, k, lut[0][1]);
-                    state_ptr(iv, c_h13) = hij_ptr(i, j, k, lut[0][2]);
-                    state_ptr(iv, c_h22) = hij_ptr(i, j, k, lut[1][1]);
-                    state_ptr(iv, c_h23) = hij_ptr(i, j, k, lut[1][2]);
-                    state_ptr(iv, c_h33) = hij_ptr(i, j, k, lut[2][2]);
+                    state_ptr(iv_ds, c_h11) = hij_ptr(iv, lut[0][0]);
+                    state_ptr(iv_ds, c_h12) = hij_ptr(iv, lut[0][1]);
+                    state_ptr(iv_ds, c_h13) = hij_ptr(iv, lut[0][2]);
+                    state_ptr(iv_ds, c_h22) = hij_ptr(iv, lut[1][1]);
+                    state_ptr(iv_ds, c_h23) = hij_ptr(iv, lut[1][2]);
+                    state_ptr(iv_ds, c_h33) = hij_ptr(iv, lut[2][2]);
 
-                    state_ptr(iv, c_A11) = Aij_ptr(i, j, k, lut[0][0]);
-                    state_ptr(iv, c_A12) = Aij_ptr(i, j, k, lut[0][1]);
-                    state_ptr(iv, c_A13) = Aij_ptr(i, j, k, lut[0][2]);
-                    state_ptr(iv, c_A22) = Aij_ptr(i, j, k, lut[1][1]);
-                    state_ptr(iv, c_A23) = Aij_ptr(i, j, k, lut[1][2]);
-                    state_ptr(iv, c_A33) = Aij_ptr(i, j, k, lut[2][2]);
+                    state_ptr(iv_ds, c_A11) = Aij_ptr(iv, lut[0][0]);
+                    state_ptr(iv_ds, c_A12) = Aij_ptr(iv, lut[0][1]);
+                    state_ptr(iv_ds, c_A13) = Aij_ptr(iv, lut[0][2]);
+                    state_ptr(iv_ds, c_A22) = Aij_ptr(iv, lut[1][1]);
+                    state_ptr(iv_ds, c_A23) = Aij_ptr(iv, lut[1][2]);
+                    state_ptr(iv_ds, c_A33) = Aij_ptr(iv, lut[2][2]);
                 }
             }
         });
@@ -772,82 +800,79 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         {
             // Check to see if you're in a ghost cell
             IntVect iv{i, j, k};
-            bool in_ghost_index = is_ghost_index(iv);
-            if(!in_ghost_index)
-            {
-                Real kmag = get_kmag(iv);
 
-                // make sure you're still in the domain
-                if(kmag - kiso_max > tolerance) 
+            Real kmag = get_kmag(iv);
+
+            // make sure you're still in the domain
+            if(kmag - kiso_max > tolerance) 
+            { 
+                Print() << iv << "\n";
+                Print() << kmag << "," << kiso_max << "\n";
+                Error("RandomField::print_power_spectrum Found magnitude larger than (N/2,N/2,N/2)."); 
+            }
+
+            // Loop over the isotropic axis
+            for (int s=1; s<=N/2; s++) 
+            {
+                // If smaller than the smallest bin
+                if(kmag < kiso[0])
+                {
+                    Print() << iv << "\n";
+                    Error("RandomField::print_power_spectrum kmag below the kiso domain.");
+                }
+
+                // If you're larger than the largest bin
+                else if(kmag - kiso[N/2] > tolerance)
+                {
+                    Print() << iv << "\n";
+                    Error("RandomField::print_power_spectrum kmag above the kiso domain.");
+                }
+
+                // If you're somewhere in the middle
+                else if (kmag < kiso[s] && kmag >= kiso[(s-1)]) 
+                {
+                    Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
+                                + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+
+                    if (i != 0 && i != N/2) { power *= 2.; }
+                    
+                    Gpu::Atomic::Add(&kcount[s-1], 1);
+                    if(power > tolerance)
+                    {
+                        Gpu::Atomic::Add(&ps_map[s-1], power);   
+                    }
+
+                    break;
+                }
+
+                // If you're at the largest bin
+                else if (kmag == kiso[N/2])
+                { 
+                    Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
+                                + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+
+                    if (i != 0 && i != N/2) { power *= 2.; }
+                    
+                    Gpu::Atomic::Add(&kcount[N/2], 1);
+                    if(power > tolerance)
+                    {
+                        Gpu::Atomic::Add(&ps_map[N/2], power);
+                    }
+
+                    break;
+                }
+
+                // If you've reached the largest bin but not been captured
+                else if(s > N/2)
                 { 
                     Print() << iv << "\n";
-                    Print() << kmag << "," << kiso_max << "\n";
-                    Error("RandomField::print_power_spectrum Found magnitude larger than (N/2,N/2,N/2)."); 
+                    Print() << kmag << "\n";
+                    Print() << kiso[s] << "," << kiso[s-1] << "\n";
+                    Error("RandomField::print_power_spectrum Part of the spectrum isn't captured.");
                 }
 
-                // Loop over the isotropic axis
-                for (int s=1; s<=N/2; s++) 
-                {
-                    // If smaller than the smallest bin
-                    if(kmag < kiso[0])
-                    {
-                        Print() << iv << "\n";
-                        Error("RandomField::print_power_spectrum kmag below the kiso domain.");
-                    }
-
-                    // If you're larger than the largest bin
-                    else if(kmag - kiso[N/2] > tolerance)
-                    {
-                        Print() << iv << "\n";
-                        Error("RandomField::print_power_spectrum kmag above the kiso domain.");
-                    }
-
-                    // If you're somewhere in the middle
-                    else if (kmag < kiso[s] && kmag >= kiso[(s-1)]) 
-                    {
-                        Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
-                                    + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
-
-                        if (i != 0 && i != N/2) { power *= 2.; }
-                        
-                        Gpu::Atomic::Add(&kcount[s-1], 1);
-                        if(power > tolerance)
-                        {
-                            Gpu::Atomic::Add(&ps_map[s-1], power);   
-                        }
-
-                        break;
-                    }
-
-                    // If you're at the largest bin
-                    else if (kmag == kiso[N/2])
-                    { 
-                        Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
-                                    + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
-
-                        if (i != 0 && i != N/2) { power *= 2.; }
-                        
-                        Gpu::Atomic::Add(&kcount[N/2], 1);
-                        if(power > tolerance)
-                        {
-                            Gpu::Atomic::Add(&ps_map[N/2], power);
-                        }
-
-                        break;
-                    }
-
-                    // If you've reached the largest bin but not been captured
-                    else if(s > N/2)
-                    { 
-                        Print() << iv << "\n";
-                        Print() << kmag << "\n";
-                        Print() << kiso[s] << "," << kiso[s-1] << "\n";
-                        Error("RandomField::print_power_spectrum Part of the spectrum isn't captured.");
-                    }
-
-                    // If you haven't found the right bin yet
-                    else { continue; }
-                }
+                // If you haven't found the right bin yet
+                else { continue; }
             }
         });
     }
@@ -1176,13 +1201,10 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             const IntVect iv{i, j, k};
-            bool in_ghost_index = is_ghost_index(iv);
-            if(!in_ghost_index)
-            {
-                out_ptr(iv, dcomp) = hx_ptr(i, j, k, 0);
-                out_ptr(iv, dcomp + 1) = hx_ptr(i, j, k, 1);
-                out_ptr(iv, dcomp + 2) = Rx_ptr(i, j, k);
-            }
+
+            out_ptr(iv, dcomp) = hx_ptr(i, j, k, 0);
+            out_ptr(iv, dcomp + 1) = hx_ptr(i, j, k, 1);
+            out_ptr(iv, dcomp + 2) = Rx_ptr(i, j, k);
         });
     }
 }
@@ -1220,8 +1242,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     const Real K_bar = state.sum(c_K)/vol;
     const Real alpha_bar = state.sum(c_lapse)/vol;
     const Real Pi_bar = state.sum(c_Pi)/vol;
-    const Real phi_bar = state.sum(c_phi)/vol;
-    const Real chi_bar = state.sum(c_chi)/vol;
+    const Real phi_bar = state.sum(c_phi)/static_cast<Real>(vol);
+    const Real chi_bar = state.sum(c_chi)/static_cast<Real>(vol);
 
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
@@ -1264,7 +1286,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
     // Normalise the fft (fftw style)
     for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(N, -3./2.), comp, 1); }
-    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(N, -3./2.), comp, 1); }
+    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(static_cast<Real>(std::pow(N, -3./2.)), comp, 1); }
 
     // Set variables to store the maximum trace 
     // of the scalar and tensor components
@@ -1361,6 +1383,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             }
         });
     }
+
+    // Error("Check downsample test files");
 
     // Output the max traces of the tensor components as a diagnostic
     SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time, 
