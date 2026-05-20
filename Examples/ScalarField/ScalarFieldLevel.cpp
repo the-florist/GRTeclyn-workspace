@@ -49,17 +49,6 @@ void ScalarFieldLevel::variableSetUp()
     // We only need the non-gauge CCZ4 variables to calculate the constraints
     derive_lst.addComponent("constraints", desc_lst, State_Type, 0, NUM_VARS);
 
-    /*derive_lst.add(
-        "constraints_norm", amrex::IndexType::TheCellType(),
-        static_cast<int>(Constraints::var_names_norm.size()), Constraints::var_names_norm,
-        amrex::DeriveFuncFab(), // null function because we won't use
-                                // it.
-        [=](const amrex::Box &box) { return amrex::grow(box, nghost); },
-        &amrex::cell_quartic_interp);
-
-    // We only need the non-gauge CCZ4 variables to calculate the constraints
-    derive_lst.addComponent("constraints_norm", desc_lst, State_Type, 0, NUM_VARS);*/
-
     // Add Weyl4 to the derive list
     derive_lst.add(
         "Weyl4", amrex::IndexType::TheCellType(),
@@ -69,7 +58,7 @@ void ScalarFieldLevel::variableSetUp()
         &amrex::cell_quartic_interp);
 
     // We need all of the CCZ4 variables to calculate Weyl4 (except B)
-    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, c_B1);
+    derive_lst.addComponent("Weyl4", desc_lst, State_Type, 0, NUM_VARS);
 
     derive_lst.add(
         "TensorPolarisations", amrex::IndexType::TheCellType(),
@@ -79,7 +68,7 @@ void ScalarFieldLevel::variableSetUp()
         &amrex::cell_quartic_interp);
 
     // We only need the spatial metric to find the polarisation fields
-    derive_lst.addComponent("TensorPolarisation", desc_lst, State_Type, 0, c_K);
+    derive_lst.addComponent("TensorPolarisation", desc_lst, State_Type, 0, NUM_VARS);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -119,7 +108,8 @@ void ScalarFieldLevel::initData()
                        << std::endl;
 
     const auto dx = geom.CellSizeArray();
-    InitialBackgroundData FLRW_background(simParams().background_params);
+    Potential potential(simParams().potential_params);
+    InitialBackgroundData FLRW_background(simParams().background_params, potential);
 
     amrex::MultiFab &state  = get_new_data(State_Type);
     auto const &state_array = state.arrays();
@@ -138,7 +128,7 @@ void ScalarFieldLevel::initData()
             FLRW_background.compute(i, j, k, state_array[box_ind]);
         });
 
-    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params);
+    RandomField random_field_initialiser(simParams().random_field_params, simParams().background_params, simParams().potential_params);
     random_field_initialiser.init(state);
 
     if (simParams().nan_check)
@@ -354,26 +344,13 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         {
             const auto &out_arrays = multifab.arrays();
             int iham               = dcomp;
-            Interval imom = Interval(dcomp + 1, dcomp + 1);
+            int iham_resc          = dcomp + 1;
+            Interval imom = Interval(dcomp + 2, dcomp + 2);
+            Interval imom_resc = Interval(dcomp + 3, 
+                                          dcomp + 3 + AMREX_SPACEDIM);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
-                imom);
-            amrex::ParallelFor(
-                multifab, multifab.nGrowVect(),
-                [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
-                    constraints.compute(i, j, k, out_arrays[box_no],
-                                        src_arrays[box_no]);
-                });
-        }
-        else if (name == "constraints_norm")
-        {
-            const auto &out_arrays = multifab.arrays();
-            int iham     = dcomp;
-            Interval imom = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
-            int iham_abs = dcomp + AMREX_SPACEDIM + 1;
-            MatterConstraints<ScalarFieldWithPotential> constraints(
-                scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
-                imom, iham_abs);
+                imom, -1, Interval(), iham_resc, imom_resc);
             amrex::ParallelFor(
                 multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
@@ -399,7 +376,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         }
         else if (name=="TensorPolarisations")
         {
-            RandomField random_field_derive(simParams().random_field_params, simParams().background_params);
+            RandomField random_field_derive(simParams().random_field_params);
             random_field_derive.derive(src_mf, multifab, dcomp);
         }
         else
@@ -437,35 +414,21 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     int ncomp = state_new.nComp();
     int ngrow = state_new.nGrow();
 
-    amrex::MultiFab phi_alias(ba, dm, ncomp, ngrow);
-    amrex::MultiFab chi_alias(ba, dm, ncomp, ngrow);
-    amrex::MultiFab::Copy(phi_alias, state_new, c_phi, c_phi, 1, ngrow);
-    amrex::MultiFab::Copy(chi_alias, state_new, c_chi, c_chi, 1, ngrow);
-
-    if(phi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
-    else if(chi_alias.empty()) { amrex::Error("ScalarFieldLevel::specificPostTimeStep Copy failed"); }
-
-    phi_alias.plus(-phi_avg, c_phi, 1, nghost);
-    chi_alias.plus(-chi_avg, c_chi, 1, nghost);
-    
-    Multiply(phi_alias, phi_alias, c_phi, c_phi, 1, nghost);
-    Multiply(chi_alias, chi_alias, c_chi, c_chi, 1, nghost);
-    
-    const double phi_var = phi_alias.sum(c_phi)/vol;// - std::pow(phi_avg, 2.);
-    const double chi_var = chi_alias.sum(c_chi)/vol;// - std::pow(chi_avg, 2.);
-
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
 
+#pragma omp single
     if(first_step) 
     {
-        means_file.write_header_line({"PhiMean","PhiVar","PiMean","ScaleFactMean","ChiVar","HubbleMean","LapseMean"});
+        means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
     }
-    means_file.write_time_data_line({phi_avg, sqrt(phi_var), Pi_avg, scale_fact_avg, sqrt(chi_var), Hubble_fact_avg, lapse_avg});
+    
+#pragma omp single
+    means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
-    RandomField random_field_extractor(simParams().random_field_params, simParams().background_params);
-    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step, simParams().plot_interval);
+    RandomField random_field_extractor(simParams().random_field_params);
+    random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 
     // Make a file object for constraint statistics
     SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
@@ -483,12 +446,8 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
     constr_alias.setVal(0.0);
     derive("constraints", cur_time, constr_alias, 0);
-    
-    /*MultiFab pol_fields_alias(ba, dm, 2, ngrow, MFInfo(), Factory());
-    pol_fields_alias.setVal(0.0);
-    derive("TensorPolarisations", cur_time, pol_fields_alias, 0);
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
-    random_field_extractor.print_tensor_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);*/ 
+    random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
 }

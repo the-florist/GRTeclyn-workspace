@@ -15,6 +15,7 @@
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
 #include "IntegrationMethodSetup.hpp"
+#include <AMReX_ParallelDescriptor.H>
 
 #include "simd.hpp"
 
@@ -52,6 +53,9 @@ void mainSetup(int argc, char *argv[])
                           pp.queryAdd("the_arena_is_managed",
                                       the_arena_is_managed);
                       });
+    amrex::AllPrint() << "[debug] after amrex::Initialize: rank "
+                  << amrex::ParallelDescriptor::MyProc() << '\n';
+    amrex::ParallelDescriptor::Barrier("after amrex::Initialize");
 
 #ifdef EQUATION_DEBUG_MODE
     EquationDebugging::check_no_omp();
