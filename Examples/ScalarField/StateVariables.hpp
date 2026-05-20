@@ -24,13 +24,13 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
+static const std::array<std::string, static_cast<int>(NUM_VARS) - static_cast<int>(NUM_CCZ4_VARS)>
     additional_names = {"phi", "Pi"};
 
 static const std::array<std::string, NUM_VARS> names =
     ArrayTools::concatenate(CCZ4Variables::names, additional_names);
 
-static const std::array<BCParity, NUM_VARS - NUM_CCZ4_VARS>
+static const std::array<BCParity, static_cast<int>(NUM_VARS) - static_cast<int>(NUM_CCZ4_VARS)>
     additional_parities = {BCParity::even, BCParity::even};
 
 static const std::array<BCParity, NUM_VARS> parities =

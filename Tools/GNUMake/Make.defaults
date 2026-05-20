@@ -26,7 +26,7 @@ DIM = 3
 BL_NO_FORT = TRUE
 AMREX_NO_PROBINIT = TRUE
 
-CXXSTD = c++17
+CXXSTD = c++20
 
 GRTECLYN_HOME ?= $(realpath ../..)
 
