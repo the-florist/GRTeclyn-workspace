@@ -1130,6 +1130,9 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
                 {
                     // Find the unitful k vector
                     Vector<Real> iv_k(iv.begin(), iv.end());
+                    iv_k[1] = invert_index_with_sign(iv_k[1]);
+                    iv_k[2] = invert_index_with_sign(iv_k[2]);
+                
                     for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
                     Real kmag = get_kmag(iv);
                     GpuComplex<Real> Phi = 0;
@@ -1357,6 +1360,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             {
                 // Find the unitful k vector
                 Vector<Real> iv_k(iv.begin(), iv.end());
+                iv_k[1] = invert_index_with_sign(iv_k[1]);
+                iv_k[2] = invert_index_with_sign(iv_k[2]);
+
                 for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
                 Real kmag = get_kmag(iv);
                 GpuComplex<Real> Phi = 0;
