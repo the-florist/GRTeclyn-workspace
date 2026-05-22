@@ -687,9 +687,9 @@ inline void RandomField::init(amrex::MultiFab &state)
 
     // Apply normalisation into physical units
     // TODO: how does downsampling change this norm?
-    hij_x.mult(norm * fft_norm_ift);
-    Aij_x.mult(norm * fft_norm_ift);
-    scalar_fields_x.mult(norm * fft_norm_ift);
+    hij_x.mult(norm);
+    Aij_x.mult(norm);
+    scalar_fields_x.mult(norm);
 
     Print() << "RandomField::init, Precision lost in phi is ";
     Print() << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
@@ -1076,8 +1076,8 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
     scalar_fft.forward(scalars_x, scalars_k);
 
     // Normalise the fft (fftw style)
-    for(int comp = 0; comp < 6; comp++) { gij_k.mult(fft_norm_ft/norm, comp, 1); }
-    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(fft_norm_ft/norm, comp, 1); }
+    for(int comp = 0; comp < 6; comp++) { gij_k.mult(1./norm/pow(N, 3.), comp, 1); }
+    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(1./norm/pow(N, 3.), comp, 1); }
 
     // Loop to extract the Fourier-space mode functions
     for (MFIter mfi(gij_k); mfi.isValid(); ++mfi) 
@@ -1189,8 +1189,8 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
     Test_Parsevals_thm(R_x, R_k);
 
     // Apply physical normalisation
-    hs_x.mult(norm * fft_norm_ift);
-    R_x.mult(norm * fft_norm_ift);
+    hs_x.mult(norm);
+    R_x.mult(norm);
 
     for (MFIter mfi(hs_x); mfi.isValid(); ++mfi) 
     {
@@ -1284,8 +1284,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     scalar_fft.forward(scalars_x, scalars_k);
 
     // Normalise the fft (fftw style)
-    for(int comp = 0; comp < 6; comp++) { gij_k.mult(fft_norm_ft/norm, comp, 1); }
-    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(fft_norm_ft/norm, comp, 1); }
+    for(int comp = 0; comp < 6; comp++) { gij_k.mult(1./norm/pow(N, 3.), comp, 1); }
+    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(1./norm/pow(N, 3.), comp, 1); }
 
     // Set variables to store the maximum trace 
     // of the scalar and tensor components
@@ -1454,8 +1454,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         if (m_params.scalar_init) { Test_Parsevals_thm(R_x, R_k); }
 
         // Apply physical normalisation
-        hs_x.mult(norm * fft_norm_ift);
-        R_x.mult(norm * fft_norm_ift);
+        hs_x.mult(norm);
+        R_x.mult(norm);
 
         // Print() << "Max tensor polarisations: " << hs_x.max(0) << ", " << hs_x.max(1) << "\n";
         // Print() << "R max and min bounds: " << R_x.max(0) << ", " << R_x.min(0) << "\n";

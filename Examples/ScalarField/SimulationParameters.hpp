@@ -72,7 +72,6 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("calc_higher_order_statistics", random_field_params.calc_higher_order_statistics, 0);
         pp.load("num_moments", random_field_params.num_orders, 0);
         pp.getarr("moments_to_print", random_field_params.orders, 0, random_field_params.num_orders);
-        pp.load("unitary", random_field_params.unitary, 1);
 
         if(random_field_params.read_from_stoiic)
         {
