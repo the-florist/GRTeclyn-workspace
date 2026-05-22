@@ -75,7 +75,6 @@ class RandomField
             Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
             Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
             Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
-            int unitary = 1;
         };
 
         // Constructor used when initialising stochastic fields
@@ -111,9 +110,6 @@ class RandomField
 
             // Set protected class parameters
             N = m_params.N_readin;
-
-            fft_norm_ft = (m_params.unitary==1) ? std::pow(N, -3./2.) : std::pow(N, -3.); // Numerical FFT norms
-            fft_norm_ift = (m_params.unitary==1) ? std::pow(N, -3./2.) : 1;
             norm = pow(sqrt(2. * M_PI) / m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-10; // Numerical tolerance, for tests
 
@@ -138,9 +134,6 @@ class RandomField
             N = m_params.N_readin;
             norm = pow(sqrt(2. * M_PI) / m_params.L, 3.); // Physical FFT normalisation
             tolerance = 1.e-10; // Numerical tolerance, for tests
-
-            fft_norm_ft = (m_params.unitary==1) ? std::pow(N, -3./2.) : std::pow(N, -3.); // Numerical FFT norms
-            fft_norm_ift = (m_params.unitary==1) ? std::pow(N, -3./2.) : 1;
 
             // Look-up table 
             // Used to construct polarisation basis tensors
