@@ -45,6 +45,7 @@ class RandomField
             int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
             int use_rand = 1;           //!< Choose whether to use random initial conditions
             int plot_int;
+            int window_in_extraction = 0;
 
             // Grid parameters
             Real L;                   //!< Length of the box

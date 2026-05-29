@@ -59,6 +59,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("use_rand", random_field_params.use_rand, 1);
         pp.load("random_seed", random_field_params.random_seed, 3539263);
         pp.load("alpha", random_field_params.alpha, 0.);
+        pp.load("window_in_extraction", random_field_params.window_in_extraction, 0);
 
         pp.load("use_window", random_field_params.use_window, 0);
         pp.load("kstar", random_field_params.kstar, 0.);
@@ -108,7 +109,7 @@ class SimulationParameters : public SimulationParametersBase
                 pp.getarr("im_K_k", random_field_params.scalar_ps[7], 0, num_modes);
             }
 
-            if(random_field_params.tensor_init == 1)
+            if(random_field_params.tensor_init)
             {
                 amrex::Print() << "SimulationParameters::read_params, Begin read in of tensors...\n";
 

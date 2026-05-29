@@ -837,10 +837,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     if (i != 0 && i != N/2) { power *= 2.; }
                     
                     Gpu::Atomic::Add(&kcount[s-1], 1);
-                    if(power > tolerance)
-                    {
-                        Gpu::Atomic::Add(&ps_map[s-1], power);   
-                    }
+                    Gpu::Atomic::Add(&ps_map[s-1], power);   
 
                     break;
                 }
@@ -854,10 +851,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                     if (i != 0 && i != N/2) { power *= 2.; }
                     
                     Gpu::Atomic::Add(&kcount[N/2], 1);
-                    if(power > tolerance)
-                    {
-                        Gpu::Atomic::Add(&ps_map[N/2], power);
-                    }
+                    Gpu::Atomic::Add(&ps_map[N/2], power);
 
                     break;
                 }
@@ -1106,6 +1100,18 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 
                     hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                     hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+
+                    if (m_params.window_in_extraction)
+                    {
+                        Real kmag = get_kmag(iv, N);
+                        Real ks = (m_params.N_coarse != 0 ? 
+                                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
+                                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
+                        Real Dt = m_params.L/m_params.Delta;
+
+                        hs_ptr(i, j, k, 0) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+                        hs_ptr(i, j, k, 1) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+                    }
                 }
 
                 if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
@@ -1153,6 +1159,17 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 
                         // Combine the above to find R(k)
                         R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+
+                        if (m_params.window_in_extraction)
+                        {
+                            Real kmag = get_kmag(iv, N);
+                            Real ks = (m_params.N_coarse != 0 ? 
+                                        std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
+                                        std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
+                            Real Dt = m_params.L/m_params.Delta;
+
+                            R_k_ptr(i, j, k) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+                        }
 
                         // Print() << Phi << "\n";
                         // Print() << K_bar << "\n";
@@ -1317,6 +1334,18 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                 hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
+
+                if (m_params.window_in_extraction)
+                {
+                    Real kmag = get_kmag(iv, N);
+                    Real ks = (m_params.N_coarse != 0 ? 
+                                std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
+                                std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
+                    Real Dt = m_params.L/m_params.Delta;
+
+                    hs_ptr(i, j, k, 0) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+                    hs_ptr(i, j, k, 1) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+                }
             }
 
             if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
@@ -1381,6 +1410,17 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                     // Combine the above to find R(k)
                     R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
+
+                    if (m_params.window_in_extraction)
+                    {
+                        Real kmag = get_kmag(iv, N);
+                        Real ks = (m_params.N_coarse != 0 ? 
+                                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
+                                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
+                        Real Dt = m_params.L/m_params.Delta;
+
+                        R_k_ptr(i, j, k) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+                    }
                 }
             }
         });
