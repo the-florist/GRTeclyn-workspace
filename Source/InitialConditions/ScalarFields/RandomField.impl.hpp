@@ -133,7 +133,7 @@ inline void RandomField::Test_is_trace_free(MultiFab &field)
         Array4<Real> const& field_ptr = field.array(mfi);
         const Box& bx = mfi.fabbox();
 
-        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
             Real sum = 0.;
@@ -504,7 +504,7 @@ inline void RandomField::apply_nyquist_conditions(cMultiFab &field, int m_N = 0)
         const Box& bx = mfi.fabbox();
         Array4<GpuComplex<Real>> const& field_ptr = field.array(mfi);
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv = {i, j, k};
 
@@ -611,7 +611,7 @@ inline void RandomField::init(amrex::MultiFab &state)
 
         // Loop to create mode functions, then hij(k) and Aij(k)
         amrex::ParallelFor(bx, 
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv = {i, j, k};
             amrex::InitRandom(m_params.random_seed * (645950 * uint64_t(iv[0])
@@ -712,7 +712,7 @@ inline void RandomField::init(amrex::MultiFab &state)
         Array4<Real> const& Aij_ptr = Aij_x.array(mfi);
         Array4<Real> const& scalar_ptr = scalar_fields_x.array(mfi);
 
-        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             const IntVect iv_ds{i, j, k};
             const IntVect iv{i * dN, j * dN, k * dN};
@@ -796,7 +796,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
         Array4<GpuComplex<Real>> const& field_ptr = field_array.array(mfi);
         const Box& bx = mfi.fabbox();
 
-        amrex::ParallelFor(bx, [=, &ps_map, &kcount] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, this, &ps_map, &kcount] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Check to see if you're in a ghost cell
             IntVect iv{i, j, k};
@@ -895,7 +895,7 @@ inline Real RandomField::find_field_moment_x(MultiFab &field, const Vector<Real>
         Array4<Real> const& field_ptr = field.array(mfi);
         const Box& bx = mfi.fabbox();
 
-        amrex::ParallelFor(bx, [=, &sum] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, this, &sum] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             sum += std::pow(field_ptr(i, j, k, component) - mean[component], moment);
         });
@@ -1082,7 +1082,7 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
         Array4<GpuComplex<Real>> const& scalars_ptr = scalars_k.array(mfi);
         Array4<GpuComplex<Real>> const& R_k_ptr = R_k.array(mfi);
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
 
@@ -1216,7 +1216,7 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
         Array4<Real> const& Rx_ptr = R_x.array(mfi);
 
         const Box& bx = mfi.fabbox();
-        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             const IntVect iv{i, j, k};
 
@@ -1318,7 +1318,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         Array4<GpuComplex<Real>> const& scalars_ptr = scalars_k.array(mfi);
         Array4<GpuComplex<Real>> const& R_k_ptr = R_k.array(mfi);
 
-        amrex::ParallelFor(bx, [=, &hij_tr_max, &hSV_tr_max] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, this, &hij_tr_max, &hSV_tr_max] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
             
@@ -1516,7 +1516,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 Array4<Real> const& hx_ptr = hs_x.array(mfi);
                 const Box& bx = mfi.fabbox();
 
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     AllPrintToFile(filename) << i + N*(j + N*k) << ",";
                     for(int c=0; c<2; c++)
