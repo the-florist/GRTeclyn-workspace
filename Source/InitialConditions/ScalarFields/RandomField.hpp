@@ -24,8 +24,12 @@
 #include <AMReX_Array.H>
 #include <AMReX_Reduce.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Gpu.H>
 
 using namespace amrex;
+
+//! Identifies field type for GPU-compatible dispatch (replaces std::string)
+enum class FieldType { Tensor, Scalar };
 
 //! Class to create a Gaussian random field, 
 //! originally created for 2 massless tensor polarisation fields
@@ -75,6 +79,40 @@ class RandomField
             Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
             Vector<Vector<Real>> scalar_ps;       //!< Structure: four fields * two components, power spec values
             Vector<Vector<Real>> tensor_ps;       //!< Structure: two fields * two components, power spec values
+        };
+
+        //! POD struct bundling all scalars needed inside GPU device kernels.
+        //! Constructed once per kernel launch via make_gpu_params(); captured
+        //! by value in ParallelFor lambdas so no host `this` pointer is touched.
+        struct GpuParams
+        {
+            // Grid / physics scalars
+            int  N         = 0;
+            int  Ni        = N;
+            Real H0        = 0.;
+            Real norm      = 0.;
+            Real tolerance = 0.;
+            int  lut[3][3] = {};
+
+            // Scalar fields from params_t needed in device code
+            int  scalar_init      = 0;
+            int  tensor_init      = 0;
+            int  use_rand         = 1;
+            int  use_window       = 0;
+            int  N_coarse         = 0;
+            int  read_from_stoiic = 0;
+            int  random_seed      = 0;
+            Real L                = 0.;
+            Real A                = 1.;
+            Real alpha            = 0.;
+            Real Delta            = 0.;
+
+            // Raw device pointers for STOIIC lookup tables (nullptr when unused)
+            const Real* d_init_k    = nullptr;
+            const Real* d_tensor_ps = nullptr;
+            const Real* d_scalar_ps = nullptr;
+            int init_k_size = 0;
+            int ps_row_size = 0;
         };
 
         // Constructor used when initialising stochastic fields
@@ -168,11 +206,19 @@ class RandomField
         int fft_norm_ft;
         int fft_norm_ift;
 
-        // Small functions
-        int flip_index(const int indx, const int m_N);
-        int invert_index(const int indx, const int m_N);
-        int invert_index_with_sign(const int indx, const int m_N);
-        Real get_kmag(IntVect iv, const int m_N);
+        //! Build a GpuParams from current class state (stoiic device pointers left null).
+        GpuParams make_gpu_params() const;
+
+        // Index utilities — static so no implicit this capture in GPU lambdas
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static int flip_index(const int indx, const int m_N);
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static int invert_index(const int indx, const int m_N);
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static int invert_index_with_sign(const int indx, const int m_N);
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static Real get_kmag(IntVect iv, const int m_N, const Real L);
+
         Real find_precision_loss(MultiFab &field, int comp, Real bkgd);
 
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
@@ -182,21 +228,47 @@ class RandomField
                                     const int is_first_step);
 
         // Tests
-        void Test_is_trace_free(MultiFab &field);
-        void Test_vector_orthonorm(const IntVect iv, const Vector<Real> mhat, 
-                                                                 const Vector<Real> nhat);
+        void Test_is_trace_free(MultiFab &field, const GpuParams& gp);
+        void Test_vector_orthonorm(const IntVect iv, const GpuArray<Real, 3>& mhat,
+                                                     const GpuArray<Real, 3>& nhat);
         void Test_polarisation_tensor_orthonorm(const IntVect iv, const Tensor<2, Real> eplus,
                                                 const Tensor<2, Real> ecross);
         Real calculate_total_power(const cMultiFab& fk, const int m_N);
         void Test_Parsevals_thm(const MultiFab &hx, const cMultiFab &hk, const int m_N);
 
-        // Initialisation routines 
-        GpuComplex<Real> calculate_mode_function(const Real km, const int spec_indx);
-        GpuComplex<Real> find_in_stoiic(const Real km, const int field_indx, std::string field_type);
-        GpuComplex<Real> calculate_random_field(const IntVect iv, const int field_index, 
-                                                const Real rand_amp, const Real rand_phase, 
-                                                std::string field_type, const int m_N);
-        Vector<Real> calculate_basis_vector(const IntVect iv, const int which_vector, const int m_N);
+        // Device-callable computation functions (static — all inputs via parameters)
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static GpuComplex<Real> calculate_mode_function(const Real km, const int spec_indx,
+                                                         const Real H0);
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static GpuComplex<Real> find_in_stoiic_device(const Real km, const int field_indx,
+                                                        const FieldType field_type,
+                                                        const Real* d_init_k,
+                                                        const Real* d_tensor_ps,
+                                                        const Real* d_scalar_ps,
+                                                        const int init_k_size,
+                                                        const int ps_row_size);
+
+        // Host-only STOIIC lookup (accesses m_params Vectors)
+        GpuComplex<Real> find_in_stoiic(const Real km, const int field_indx,
+                                         const FieldType field_type);
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static GpuComplex<Real> calculate_random_field(const IntVect iv,
+                                                        const int field_index,
+                                                        const Real rand_amp,
+                                                        const Real rand_phase,
+                                                        const FieldType field_type,
+                                                        const int m_N,
+                                                        const GpuParams& gp);
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static GpuArray<Real, 3> calculate_basis_vector(const IntVect iv,
+                                                         const int which_vector,
+                                                         const int m_N,
+                                                         const Real alpha);
+
         void apply_nyquist_conditions(cMultiFab &field, const int m_N);
         
         // Extraction routines
