@@ -638,20 +638,23 @@ inline void RandomField::init(amrex::MultiFab &state)
     Gpu::DeviceVector<Real> dv_init_k, dv_tensor_ps, dv_scalar_ps;
     if (m_params.read_from_stoiic)
     {
-        dv_init_k = Gpu::DeviceVector<Real>(m_params.init_k.begin(), m_params.init_k.end());
+        dv_init_k.resize(m_params.init_k.size());
+        Gpu::copy(Gpu::hostToDevice, m_params.init_k.begin(), m_params.init_k.end(), dv_init_k.begin());
 
         const int ps_row = static_cast<int>(m_params.init_k.size());
         Gpu::HostVector<Real> h_tensor(m_params.tensor_ps.size() * ps_row, 0.);
         for (int r = 0; r < (int)m_params.tensor_ps.size(); r++)
             for (int c = 0; c < ps_row; c++)
                 h_tensor[r * ps_row + c] = m_params.tensor_ps[r][c];
-        dv_tensor_ps = Gpu::DeviceVector<Real>(h_tensor.begin(), h_tensor.end());
+        dv_tensor_ps.resize(h_tensor.size());
+        Gpu::copy(Gpu::hostToDevice, h_tensor.begin(), h_tensor.end(), dv_tensor_ps.begin());
 
         Gpu::HostVector<Real> h_scalar(m_params.scalar_ps.size() * ps_row, 0.);
         for (int r = 0; r < (int)m_params.scalar_ps.size(); r++)
             for (int c = 0; c < ps_row; c++)
                 h_scalar[r * ps_row + c] = m_params.scalar_ps[r][c];
-        dv_scalar_ps = Gpu::DeviceVector<Real>(h_scalar.begin(), h_scalar.end());
+        dv_scalar_ps.resize(h_scalar.size());
+        Gpu::copy(Gpu::hostToDevice, h_scalar.begin(), h_scalar.end(), dv_scalar_ps.begin());
 
         gp.d_init_k    = dv_init_k.data();
         gp.d_tensor_ps = dv_tensor_ps.data();
@@ -837,7 +840,8 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     int*  d_kcount_ptr = d_kcount.data();
 
     // kiso array on device
-    Gpu::DeviceVector<Real> d_kiso(kiso.begin(), kiso.end());
+    Gpu::DeviceVector<Real> d_kiso(kiso.size());
+    Gpu::copy(Gpu::hostToDevice, kiso.begin(), kiso.end(), d_kiso.begin());
     const Real* d_kiso_ptr = d_kiso.data();
 
     GpuParams gp = make_gpu_params();

@@ -59,6 +59,9 @@ class ScalarFieldLevel : public GRAMRLevel
     void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
                   amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
 
+    // Bring both GRAMRLevel::derive overloads into scope so the compiler
+    // does not warn about the unique_ptr overload being partially hidden.
+    using GRAMRLevel::derive;
     void derive(const std::string &name, amrex::Real time,
                 amrex::MultiFab &multifab, int dcomp) override;
 
