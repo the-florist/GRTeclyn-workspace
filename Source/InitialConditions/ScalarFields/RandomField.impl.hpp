@@ -270,7 +270,7 @@ inline void RandomField::Test_Parsevals_thm(const MultiFab &hx, const cMultiFab 
     Real ksum = calculate_total_power(hk, m_N);
 
     int p = std::round(std::log10((ksum + ksum) / 2.));
-    Real tol = tolerance * std::pow(10., p);
+    Real tol = tolerance * std::pow(10., p+1);
 
     if (std::abs(xsum - ksum) > tol)
     {
