@@ -887,6 +887,59 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     }
 }
 
+// Calculates and prints the binned power spectrum of a single real-space
+// component of the given MultiFab (e.g. a constraint field obtained from a
+// call to derive())
+inline void RandomField::print_power_spectrum_of_constraints(MultiFab &field, const int comp, const std::string field_name,
+                                                        const std::string data_path, const Real dt, const Real cur_time,
+                                                        const int restart_time, const int first_step)
+{
+    BL_PROFILE("RandomField::print_power_spectrum_of_field");
+
+    if (!(m_params.calc_binned_power_spectrum)
+        || (static_cast<int>(cur_time/dt) % m_params.plot_int != 0))
+    {
+        return;
+    }
+
+    // Extract the requested component into a ghost-free MultiFab for the FFT
+    BoxArray sba = field.boxArray();
+    DistributionMapping sdm = field.DistributionMap();
+    MultiFab field_x(sba, sdm, 1, 0);
+    Copy(field_x, field, comp, 0, 1, 0);
+
+    // Set up the problem domain in Fourier space
+    // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
+    IntVect domain_low(0, 0, 0);
+    IntVect k_domain_high(N/2, N-1, N-1);
+    Box k_domain(domain_low, k_domain_high);
+    Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    BoxArray kba = decompose(k_domain, ParallelContext::NProcsAll(), slicing);
+    DistributionMapping kdm(kba);
+
+    cMultiFab field_k(kba, kdm, 1, 0);
+    field_k.setVal(0.0);
+
+    // Set up and perform the FFT
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> field_fft(x_domain, FFT::Info().setBatchSize(field_k.nComp()));
+    field_fft.forward(field_x, field_k);
+
+    // Normalise the fft (fftw style)
+    field_k.mult(1./norm/pow(N, 3.), 0, 1);
+
+    apply_nyquist_conditions(field_k);
+
+    Print() << "RandomField::print_power_spectrum_of_field, Time step at print: ";
+    Print() << static_cast<int>(std::round(cur_time/dt)) << "\n";
+
+    std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
+    std::string filename = spec_path+"spectrum-"+field_name+"-time-";
+    SmallDataIO spectrum_file(filename, dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+    print_power_spectrum(field_k, spectrum_file, 0);
+}
+
 // Finds statistical moment x of given MultiFab
 inline Real RandomField::find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                              const int moment, const int component)

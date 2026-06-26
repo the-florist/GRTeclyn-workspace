@@ -182,6 +182,22 @@ Constraints::store_vars(const Vars<data_t> &out,
             current_cell[ivar] = out.Mom[i] / Mom_abs_terms;
         }
     }
+    else if (m_c_Mom_rescaled.size() == 1)
+    {
+        data_t Mom_abs_terms_sq = 0.0;
+        data_t Mom_terms_sq = 0.0;
+        FOR (i)
+        {
+            Mom_abs_terms_sq += out.Mom_abs_terms[i] * out.Mom_abs_terms[i];
+        }
+        data_t Mom_abs_terms                     = sqrt(Mom_abs_terms_sq);
+
+        FOR (i)
+        {
+            Mom_terms_sq += out.Mom[i] * out.Mom[i];
+        }
+        current_cell[m_c_Mom_rescaled.begin()] = sqrt(Mom_terms_sq) / Mom_abs_terms;
+    }
 
 }
 

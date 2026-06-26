@@ -346,8 +346,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
             int iham               = dcomp;
             int iham_resc          = dcomp + 1;
             Interval imom = Interval(dcomp + 2, dcomp + 2);
-            Interval imom_resc = Interval(dcomp + 3,
-                                          dcomp + 2 + AMREX_SPACEDIM);
+            Interval imom_resc = Interval(dcomp + 3, dcomp + 3);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
                 imom, -1, Interval(), iham_resc, imom_resc);
@@ -450,4 +449,12 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
     random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+
+    // Print the binned power spectrum of the rescaled Hamiltonian constraint
+    random_field_extractor.print_power_spectrum_of_constraints(constr_alias, 1, "ham_resc",
+                                                          simParams().data_path, dt, cur_time,
+                                                          restart_time, first_step);
+    random_field_extractor.print_power_spectrum_of_constraints(constr_alias, 3, "mom_resc",
+                                                          simParams().data_path, dt, cur_time,
+                                                          restart_time, first_step);
 }

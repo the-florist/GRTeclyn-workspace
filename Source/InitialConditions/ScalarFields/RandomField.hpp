@@ -154,10 +154,17 @@ class RandomField
         void extract(const MultiFab &state, const std::string data_path, const Real dt,  
                      const Real cur_time, const int restart_time, const int first_step);
 
-        Vector<Real> print_moment(MultiFab &field, const Vector<std::string> names,  
-                                 const Vector<int> &moment_orders, SmallDataIO &file, 
+        Vector<Real> print_moment(MultiFab &field, const Vector<std::string> names,
+                                 const Vector<int> &moment_orders, SmallDataIO &file,
                                  const int is_first_step);
-        
+
+        // Calculates and prints the binned power spectrum of a single
+        // real-space component of a MultiFab (e.g. a constraint field
+        // populated by a call to derive())
+        void print_power_spectrum_of_constraints(MultiFab &field, const int comp, const std::string field_name,
+                                           const std::string data_path, const Real dt, const Real cur_time,
+                                           const int restart_time, const int first_step);
+
     private:
         int N = 0;
         Real H0 = 0.;
