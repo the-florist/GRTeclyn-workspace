@@ -346,8 +346,8 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
             int iham               = dcomp;
             int iham_resc          = dcomp + 1;
             Interval imom = Interval(dcomp + 2, dcomp + 2);
-            Interval imom_resc = Interval(dcomp + 3, 
-                                          dcomp + 3 + AMREX_SPACEDIM);
+            Interval imom_resc = Interval(dcomp + 3,
+                                          dcomp + 2 + AMREX_SPACEDIM);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
                 imom, -1, Interval(), iham_resc, imom_resc);
