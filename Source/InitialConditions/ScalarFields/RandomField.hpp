@@ -174,6 +174,7 @@ class RandomField
         int invert_index(const int indx, const int m_N);
         int invert_index_with_sign(const int indx, const int m_N);
         Real get_kmag(IntVect iv, const int m_N);
+        Real window_function(const Real kmag);
         Real find_precision_loss(MultiFab &field, int comp, Real bkgd);
 
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);

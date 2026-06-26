@@ -47,6 +47,15 @@ inline Real RandomField::get_kmag(IntVect iv, int m_N = 0)
     return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / m_params.L;
 }
 
+inline Real RandomField::window_function(const Real kmag)
+{
+    int N_w = m_params.N_coarse != 0 ? m_params.N_coarse : N;
+    Real ks = std::sqrt(3.) * N_w * M_PI / m_params.L / 5. / 2.;  //m_params.kstar * 2. * M_PI/m_params.L;
+    Real Dt = m_params.L/m_params.Delta;
+
+    return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
+}
+
 // Makes subdirectories in data/
 inline std::string RandomField::make_subdirectory(const std::string base, const std::string dir, const int is_first_step)
 {
@@ -301,12 +310,12 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const Real km, cons
     Real kpr = km/H0;
     if (spec_indx == 0) // Position mode funcion
     {
-        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
+        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2./pow(m_params.Mp, 2.));
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
     else if (spec_indx == 1) // Velocity mode funcion
     {
-        ms_mag = sqrt(km/2.);
+        ms_mag = sqrt(km/2./pow(m_params.Mp, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
     else { Error("RandomField::calculate_mode_function Value of spec_type not allowed."); }
@@ -393,12 +402,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        Real ks = (m_params.N_coarse != 0 ? 
-                   std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                   std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-        //m_params.kstar * 2. * M_PI/m_params.L;
-        Real Dt = m_params.L/m_params.Delta;
-        value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+        value *= window_function(kmag);
+         
     }
 
     return value;
@@ -1085,6 +1090,7 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
         amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+            const Real kmag = get_kmag(iv);
 
             if (iv != IntVect{0, 0, 0})
             {
@@ -1100,18 +1106,6 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 
                     hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                     hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
-
-                    if (m_params.window_in_extraction)
-                    {
-                        Real kmag = get_kmag(iv, N);
-                        Real ks = (m_params.N_coarse != 0 ? 
-                                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                        Real Dt = m_params.L/m_params.Delta;
-
-                        hs_ptr(i, j, k, 0) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                        hs_ptr(i, j, k, 1) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                    }
                 }
 
                 if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
@@ -1138,7 +1132,6 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
                     iv_k[2] = invert_index_with_sign(iv_k[2]);
                 
                     for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-                    Real kmag = get_kmag(iv);
                     GpuComplex<Real> Phi = 0;
 
                     // Set the zero mode
@@ -1159,26 +1152,14 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 
                         // Combine the above to find R(k)
                         R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
-
-                        if (m_params.window_in_extraction)
-                        {
-                            Real kmag = get_kmag(iv, N);
-                            Real ks = (m_params.N_coarse != 0 ? 
-                                        std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                        std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                            Real Dt = m_params.L/m_params.Delta;
-
-                            R_k_ptr(i, j, k) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                        }
-
-                        // Print() << Phi << "\n";
-                        // Print() << K_bar << "\n";
-                        // Print() << alpha_bar << "\n";
-                        // Print() << Pi_bar << "\n";
-                        // Print() << scalars_ptr(i, j, k, m_c_phi) << "\n";
-                        // Print() << R_k_ptr(i, j, k) << "\n";
-                        // Error();
                     }
+                }
+
+                if (m_params.window_in_extraction)
+                {
+                    R_k_ptr(i, j, k) *= window_function(kmag); 
+                    hs_ptr(i, j, k, 0) *= window_function(kmag); 
+                    hs_ptr(i, j, k, 1) *= window_function(kmag); 
                 }
             }
         });
@@ -1321,6 +1302,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=, this, &hij_tr_max, &hSV_tr_max] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+            const Real kmag = get_kmag(iv);
             
             Vector<Real> mhat = calculate_basis_vector(iv, 0);
             Vector<Real> nhat = calculate_basis_vector(iv, 1);
@@ -1334,18 +1316,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                 hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
-
-                if (m_params.window_in_extraction)
-                {
-                    Real kmag = get_kmag(iv, N);
-                    Real ks = (m_params.N_coarse != 0 ? 
-                                std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                    Real Dt = m_params.L/m_params.Delta;
-
-                    hs_ptr(i, j, k, 0) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                    hs_ptr(i, j, k, 1) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                }
             }
 
             if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
@@ -1389,7 +1359,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 iv_k[2] = invert_index_with_sign(iv_k[2]);
 
                 for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-                Real kmag = get_kmag(iv);
                 GpuComplex<Real> Phi = 0;
 
                 // Set the zero mode
@@ -1410,18 +1379,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                     // Combine the above to find R(k)
                     R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
-
-                    if (m_params.window_in_extraction)
-                    {
-                        Real kmag = get_kmag(iv, N);
-                        Real ks = (m_params.N_coarse != 0 ? 
-                                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                        Real Dt = m_params.L/m_params.Delta;
-
-                        R_k_ptr(i, j, k) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                    }
                 }
+            }
+
+            if (m_params.window_in_extraction)
+            {
+                R_k_ptr(i, j, k) *= window_function(kmag); 
+                hs_ptr(i, j, k, 0) *= window_function(kmag); 
+                hs_ptr(i, j, k, 1) *= window_function(kmag); 
             }
         });
     }
