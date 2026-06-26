@@ -897,7 +897,7 @@ inline void RandomField::print_power_spectrum_of_constraints(MultiFab &field, co
     BL_PROFILE("RandomField::print_power_spectrum_of_field");
 
     if (!(m_params.calc_binned_power_spectrum)
-        || (static_cast<int>(cur_time/dt) % m_params.plot_int != 0))
+        || (static_cast<int>(std::round(cur_time/dt)) % m_params.plot_int != 0))
     {
         return;
     }
@@ -1459,8 +1459,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     apply_nyquist_conditions(R_k);
 
     // Find the binned PS for each mode function and print to data/
-    if((m_params.calc_binned_power_spectrum) 
-	    && (static_cast<int>(cur_time/dt) % m_params.plot_int == 0))
+    if((m_params.calc_binned_power_spectrum)
+	    && (static_cast<int>(std::round(cur_time/dt)) % m_params.plot_int == 0))
     {
 	    Print() << "RandomField::extract, Time step at print: ";
         Print() << static_cast<int>(std::round(cur_time/dt)) << "\n";
