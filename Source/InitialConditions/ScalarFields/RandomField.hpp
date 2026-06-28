@@ -151,8 +151,8 @@ class RandomField
 
         void init(amrex::MultiFab &state);
         void derive(const MultiFab &source, MultiFab &out, int dcomp);
-        void extract(const MultiFab &state, const std::string data_path, const Real dt,  
-                     const Real cur_time, const int restart_time, const int first_step);
+        void extract(const MultiFab &state, const std::string data_path, const Real dt,
+                     const Real cur_time, const Real restart_time, const int first_step);
 
         Vector<Real> print_moment(MultiFab &field, const Vector<std::string> names,
                                  const Vector<int> &moment_orders, SmallDataIO &file,
@@ -163,7 +163,7 @@ class RandomField
         // populated by a call to derive())
         void print_power_spectrum_of_constraints(MultiFab &field, const int comp, const std::string field_name,
                                            const std::string data_path, const Real dt, const Real cur_time,
-                                           const int restart_time, const int first_step);
+                                           const Real restart_time, const int first_step);
 
     private:
         int N = 0;

@@ -390,7 +390,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
+void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, amrex::Real restart_time)
 {
 	BL_PROFILE("ScalarFieldLevel::specificPostTimeStep");
 
