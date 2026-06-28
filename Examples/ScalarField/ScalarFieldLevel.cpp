@@ -344,12 +344,12 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         {
             const auto &out_arrays = multifab.arrays();
             int iham               = dcomp;
-            int iham_resc          = dcomp + 1;
+            int iham_abs          = dcomp + 1;
             Interval imom = Interval(dcomp + 2, dcomp + 2);
-            Interval imom_resc = Interval(dcomp + 3, dcomp + 3);
+            Interval imom_abs = Interval(dcomp + 3, dcomp + 3);
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
-                imom, -1, Interval(), iham_resc, imom_resc);
+                imom, iham_abs, imom_abs, -1, Interval());
             amrex::ParallelFor(
                 multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
