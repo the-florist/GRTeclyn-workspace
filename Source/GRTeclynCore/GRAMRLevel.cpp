@@ -207,7 +207,7 @@ void GRAMRLevel::post_timestep(int /*iteration*/)
     }
 
     amrex::Real dt = parent->dtLevel(level);
-    int restart_time = get_gramr_ptr()->get_restart_time();
+    amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
     specificPostTimeStep(dt, restart_time);
 }
 
@@ -224,7 +224,7 @@ void GRAMRLevel::post_init(amrex::Real /*stop_time*/)
     }
 
     amrex::Real dt = parent->dtLevel(level);
-    int restart_time = get_gramr_ptr()->get_restart_time();
+    amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
     specificPostTimeStep(dt, restart_time);
 }
 
@@ -235,7 +235,7 @@ void GRAMRLevel::post_restart()
         get_gramr_ptr()->set_restart_time(get_gramr_ptr()->cumTime());
     }
     amrex::Real dt = parent->dtLevel(level);
-    int restart_time = get_gramr_ptr()->get_restart_time();
+    amrex::Real restart_time = get_gramr_ptr()->get_restart_time();
     specificPostTimeStep(dt, restart_time);
 }
 

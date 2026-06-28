@@ -62,11 +62,14 @@ inline std::string RandomField::make_subdirectory(const std::string base, const 
     std::string new_path = base+"../"+dir+"/";
     if(is_first_step)
     {
-        if (FilesystemTools::directory_exists(base)) { FilesystemTools::mkdir_recursive(new_path); }
-        else 
-        { 
+        if (!FilesystemTools::directory_exists(base))
+        {
             Print() << "RandomField::make_subdirectory, Directory creation failed for " << new_path << "\n";
-            Error("RandomField::extract Data directory has not been created."); 
+            Error("RandomField::extract Data directory has not been created.");
+        }
+        else if (!FilesystemTools::directory_exists(new_path))
+        {
+            FilesystemTools::mkdir_recursive(new_path);
         }
     }
     return new_path;
@@ -892,9 +895,9 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
 // call to derive())
 inline void RandomField::print_power_spectrum_of_constraints(MultiFab &field, const int comp, const std::string field_name,
                                                         const std::string data_path, const Real dt, const Real cur_time,
-                                                        const int restart_time, const int first_step)
+                                                        const Real restart_time, const int first_step)
 {
-    BL_PROFILE("RandomField::print_power_spectrum_of_field");
+    BL_PROFILE("RandomField::print_power_spectrum_of_constraints");
 
     if (!(m_params.calc_binned_power_spectrum)
         || (static_cast<int>(std::round(cur_time/dt)) % m_params.plot_int != 0))
@@ -931,7 +934,7 @@ inline void RandomField::print_power_spectrum_of_constraints(MultiFab &field, co
 
     apply_nyquist_conditions(field_k);
 
-    Print() << "RandomField::print_power_spectrum_of_field, Time step at print: ";
+    Print() << "RandomField::print_power_spectrum_of_constraints, Time step at print: ";
     Print() << static_cast<int>(std::round(cur_time/dt)) << "\n";
 
     std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
@@ -1262,8 +1265,8 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 }
 
 // Main extraction routine
-inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,  
-                                 const Real cur_time, const int restart_time, const int first_step)
+inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,
+                                 const Real cur_time, const Real restart_time, const int first_step)
 {
     BL_PROFILE("RandomField::extract");
 
@@ -1447,9 +1450,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     // Error("Check downsample test files");
 
     // Output the max traces of the tensor components as a diagnostic
-    SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time, 
+    SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time,
                                 restart_time, SmallDataIO::APPEND, first_step, ".dat");
-    if(first_step) 
+    trace_file.remove_duplicate_time_data();
+    if(first_step)
     { 
         trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
     }
@@ -1550,8 +1554,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         Vector<Real> stdevs;
         if (m_params.calc_higher_order_statistics)
         {
-            SmallDataIO stats_file(data_path+"field-statistics", dt, cur_time, 
+            SmallDataIO stats_file(data_path+"field-statistics", dt, cur_time,
                                     restart_time, SmallDataIO::APPEND, first_step, ".dat");
+            stats_file.remove_duplicate_time_data();
 
             if (!m_params.orders.empty())
             {
@@ -1562,8 +1567,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             }
         }
         
-        SmallDataIO ts_file(data_path+"tensor-scalar-ratio", dt, cur_time, 
+        SmallDataIO ts_file(data_path+"tensor-scalar-ratio", dt, cur_time,
                                     restart_time, SmallDataIO::APPEND, first_step, ".dat");
+        ts_file.remove_duplicate_time_data();
 #pragma omp single
         if(first_step) 
     	{ 
