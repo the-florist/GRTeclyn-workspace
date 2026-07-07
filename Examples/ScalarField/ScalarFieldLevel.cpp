@@ -344,13 +344,15 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         {
             const auto &out_arrays = multifab.arrays();
             int iham               = dcomp;
-            int iham_resc          = dcomp + 1;
-            Interval imom = Interval(dcomp + 2, dcomp + 2);
-            Interval imom_resc = Interval(dcomp + 3, 
-                                          dcomp + 3 + AMREX_SPACEDIM);
+            int iham_abs           = dcomp + 1;
+            Interval imom          = Interval(dcomp + 2, dcomp + 2);
+            Interval imom_abs      = Interval(dcomp + 3, dcomp + 3);
+            int iham_resc          = dcomp + 4;
+            Interval imom_resc     = Interval(dcomp + 5, dcomp + 5);
+
             MatterConstraints<ScalarFieldWithPotential> constraints(
                 scalar_field, Geom().CellSize(0), simParams().G_Newton, iham,
-                imom, -1, Interval(), iham_resc, imom_resc);
+                imom, iham_abs, imom_abs, iham_resc, imom_resc);
             amrex::ParallelFor(
                 multifab, multifab.nGrowVect(),
                 [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k) noexcept {
@@ -391,7 +393,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
+void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, amrex::Real restart_time)
 {
 	BL_PROFILE("ScalarFieldLevel::specificPostTimeStep");
 
@@ -417,13 +419,11 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
 	SmallDataIO means_file(simParams().data_path+"means-file", dt, cur_time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
 	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
 
-#pragma omp single
     if(first_step) 
     {
         means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
     }
     
-#pragma omp single
     means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
@@ -435,19 +435,29 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, int restart_time)
     constrs_file.remove_duplicate_time_data();
     
     // Find the constraints and put them in a MF
-    int num=0;
-    const std::list<DeriveRec>& dlist = derive_lst.dlist();
-    for (auto const& var: dlist)
-    {
-        if(var.name() == "constraints") { num = var.numDerive(); }
+    auto cnames = Constraints::var_names;
+    if (first_step) 
+    { 
+        amrex::Print() << "Num derive vars requested: " << cnames.size() << "\n"; 
+        for (std::string name : cnames)
+        {
+            amrex::Print() << name << "\n";
+        }
     }
-    if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
-
-    MultiFab constr_alias(ba, dm, num, ngrow, MFInfo(), Factory());
+    MultiFab constr_alias(ba, dm, cnames.size(), ngrow, MFInfo(), Factory());
     constr_alias.setVal(0.0);
     derive("constraints", cur_time, constr_alias, 0);
 
     // Print statistics on the abs constraint terms
     Vector<int> moments{1,2};
     random_field_extractor.print_moment(constr_alias, Constraints::var_names, moments, constrs_file, first_step);
+
+    // Print the binned power spectrum of the rescaled Hamiltonian constraint
+    for (int i=0; i<cnames.size(); i++)
+    {
+        random_field_extractor.print_power_spectrum_of_constraints(constr_alias, i, cnames[i],
+                                                          simParams().data_path, dt, cur_time,
+                                                          restart_time, first_step);
+    }
+
 }

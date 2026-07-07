@@ -47,17 +47,29 @@ inline Real RandomField::get_kmag(IntVect iv, int m_N = 0)
     return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / m_params.L;
 }
 
+inline Real RandomField::window_function(const Real kmag)
+{
+    int N_w = m_params.N_coarse != 0 ? m_params.N_coarse : N;
+    Real ks = std::sqrt(3.) * N_w * M_PI / m_params.L / 5. / 2.;  //m_params.kstar * 2. * M_PI/m_params.L;
+    Real Dt = m_params.L/m_params.Delta;
+
+    return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
+}
+
 // Makes subdirectories in data/
 inline std::string RandomField::make_subdirectory(const std::string base, const std::string dir, const int is_first_step)
 {
     std::string new_path = base+"../"+dir+"/";
     if(is_first_step)
     {
-        if (FilesystemTools::directory_exists(base)) { FilesystemTools::mkdir_recursive(new_path); }
-        else 
-        { 
+        if (!FilesystemTools::directory_exists(base))
+        {
             Print() << "RandomField::make_subdirectory, Directory creation failed for " << new_path << "\n";
-            Error("RandomField::extract Data directory has not been created."); 
+            Error("RandomField::extract Data directory has not been created.");
+        }
+        else if (!FilesystemTools::directory_exists(new_path))
+        {
+            FilesystemTools::mkdir_recursive(new_path);
         }
     }
     return new_path;
@@ -301,12 +313,12 @@ inline GpuComplex<Real> RandomField::calculate_mode_function(const Real km, cons
     Real kpr = km/H0;
     if (spec_indx == 0) // Position mode funcion
     {
-        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
+        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2./pow(m_params.Mp, 2.));
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
     else if (spec_indx == 1) // Velocity mode funcion
     {
-        ms_mag = sqrt(km/2.);
+        ms_mag = sqrt(km/2./pow(m_params.Mp, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
     else { Error("RandomField::calculate_mode_function Value of spec_type not allowed."); }
@@ -393,12 +405,8 @@ inline GpuComplex<Real> RandomField::calculate_random_field(const IntVect iv, co
     if(m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomField::calculate_random_field Window function is used")
-        Real ks = (m_params.N_coarse != 0 ? 
-                   std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                   std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-        //m_params.kstar * 2. * M_PI/m_params.L;
-        Real Dt = m_params.L/m_params.Delta;
-        value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+        value *= window_function(kmag);
+         
     }
 
     return value;
@@ -882,6 +890,59 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     }
 }
 
+// Calculates and prints the binned power spectrum of a single real-space
+// component of the given MultiFab (e.g. a constraint field obtained from a
+// call to derive())
+inline void RandomField::print_power_spectrum_of_constraints(MultiFab &field, const int comp, const std::string field_name,
+                                                        const std::string data_path, const Real dt, const Real cur_time,
+                                                        const Real restart_time, const int first_step)
+{
+    BL_PROFILE("RandomField::print_power_spectrum_of_constraints");
+
+    if (!(m_params.calc_binned_power_spectrum)
+        || (static_cast<int>(std::round(cur_time/dt)) % m_params.plot_int != 0))
+    {
+        return;
+    }
+
+    // Extract the requested component into a ghost-free MultiFab for the FFT
+    BoxArray sba = field.boxArray();
+    DistributionMapping sdm = field.DistributionMap();
+    MultiFab field_x(sba, sdm, 1, 0);
+    Copy(field_x, field, comp, 0, 1, 0);
+
+    // Set up the problem domain in Fourier space
+    // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
+    IntVect domain_low(0, 0, 0);
+    IntVect k_domain_high(N/2, N-1, N-1);
+    Box k_domain(domain_low, k_domain_high);
+    Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    BoxArray kba = decompose(k_domain, ParallelContext::NProcsAll(), slicing);
+    DistributionMapping kdm(kba);
+
+    cMultiFab field_k(kba, kdm, 1, 0);
+    field_k.setVal(0.0);
+
+    // Set up and perform the FFT
+    IntVect x_domain_high(N-1, N-1, N-1);
+    Box x_domain(domain_low, x_domain_high);
+    FFT::R2C<Real> field_fft(x_domain, FFT::Info().setBatchSize(field_k.nComp()));
+    field_fft.forward(field_x, field_k);
+
+    // Normalise the fft (fftw style)
+    field_k.mult(1./norm/pow(N, 3.), 0, 1);
+
+    apply_nyquist_conditions(field_k);
+
+    Print() << "RandomField::print_power_spectrum_of_constraints, Time step at print: ";
+    Print() << static_cast<int>(std::round(cur_time/dt)) << "\n";
+
+    std::string spec_path = make_subdirectory(data_path, "spectra", first_step);
+    std::string filename = spec_path+"spectrum-"+field_name+"-time-";
+    SmallDataIO spectrum_file(filename, dt, cur_time, restart_time, SmallDataIO::NEW, first_step, ".dat");
+    print_power_spectrum(field_k, spectrum_file, 0);
+}
+
 // Finds statistical moment x of given MultiFab
 inline Real RandomField::find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
                                              const int moment, const int component)
@@ -1085,6 +1146,7 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
         amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+            const Real kmag = get_kmag(iv);
 
             if (iv != IntVect{0, 0, 0})
             {
@@ -1100,18 +1162,6 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 
                     hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                     hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
-
-                    if (m_params.window_in_extraction)
-                    {
-                        Real kmag = get_kmag(iv, N);
-                        Real ks = (m_params.N_coarse != 0 ? 
-                                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                        Real Dt = m_params.L/m_params.Delta;
-
-                        hs_ptr(i, j, k, 0) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                        hs_ptr(i, j, k, 1) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                    }
                 }
 
                 if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
@@ -1138,7 +1188,6 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
                     iv_k[2] = invert_index_with_sign(iv_k[2]);
                 
                     for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-                    Real kmag = get_kmag(iv);
                     GpuComplex<Real> Phi = 0;
 
                     // Set the zero mode
@@ -1159,26 +1208,14 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 
                         // Combine the above to find R(k)
                         R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
-
-                        if (m_params.window_in_extraction)
-                        {
-                            Real kmag = get_kmag(iv, N);
-                            Real ks = (m_params.N_coarse != 0 ? 
-                                        std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                        std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                            Real Dt = m_params.L/m_params.Delta;
-
-                            R_k_ptr(i, j, k) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                        }
-
-                        // Print() << Phi << "\n";
-                        // Print() << K_bar << "\n";
-                        // Print() << alpha_bar << "\n";
-                        // Print() << Pi_bar << "\n";
-                        // Print() << scalars_ptr(i, j, k, m_c_phi) << "\n";
-                        // Print() << R_k_ptr(i, j, k) << "\n";
-                        // Error();
                     }
+                }
+
+                if (m_params.window_in_extraction)
+                {
+                    R_k_ptr(i, j, k) *= window_function(kmag); 
+                    hs_ptr(i, j, k, 0) *= window_function(kmag); 
+                    hs_ptr(i, j, k, 1) *= window_function(kmag); 
                 }
             }
         });
@@ -1228,8 +1265,8 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
 }
 
 // Main extraction routine
-inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,  
-                                 const Real cur_time, const int restart_time, const int first_step)
+inline void RandomField::extract(const MultiFab &state, const std::string data_path, const Real dt,
+                                 const Real cur_time, const Real restart_time, const int first_step)
 {
     BL_PROFILE("RandomField::extract");
 
@@ -1321,6 +1358,7 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         amrex::ParallelFor(bx, [=, this, &hij_tr_max, &hSV_tr_max] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             IntVect iv{i, j, k};
+            const Real kmag = get_kmag(iv);
             
             Vector<Real> mhat = calculate_basis_vector(iv, 0);
             Vector<Real> nhat = calculate_basis_vector(iv, 1);
@@ -1334,18 +1372,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                 hs_ptr(i, j, k, 0) += (hij_ptr(i, j, k, lut[l][p]) * eplus[l][p])/2.;
                 hs_ptr(i, j, k, 1) += (hij_ptr(i, j, k, lut[l][p]) * ecross[l][p])/2.;
-
-                if (m_params.window_in_extraction)
-                {
-                    Real kmag = get_kmag(iv, N);
-                    Real ks = (m_params.N_coarse != 0 ? 
-                                std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                    Real Dt = m_params.L/m_params.Delta;
-
-                    hs_ptr(i, j, k, 0) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                    hs_ptr(i, j, k, 1) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                }
             }
 
             if (m_params.alpha != 0) { Test_polarisation_tensor_orthonorm(iv, eplus, ecross); }
@@ -1389,7 +1415,6 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
                 iv_k[2] = invert_index_with_sign(iv_k[2]);
 
                 for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-                Real kmag = get_kmag(iv);
                 GpuComplex<Real> Phi = 0;
 
                 // Set the zero mode
@@ -1410,18 +1435,14 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
 
                     // Combine the above to find R(k)
                     R_k_ptr(i, j, k) = Phi - (K_bar/3.) * scalars_ptr(i, j, k, m_c_phi) / alpha_bar / Pi_bar;
-
-                    if (m_params.window_in_extraction)
-                    {
-                        Real kmag = get_kmag(iv, N);
-                        Real ks = (m_params.N_coarse != 0 ? 
-                                    std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2. :
-                                    std::sqrt(3.) * N * M_PI / m_params.L / 5. / 2.);
-                        Real Dt = m_params.L/m_params.Delta;
-
-                        R_k_ptr(i, j, k) *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
-                    }
                 }
+            }
+
+            if (m_params.window_in_extraction)
+            {
+                R_k_ptr(i, j, k) *= window_function(kmag); 
+                hs_ptr(i, j, k, 0) *= window_function(kmag); 
+                hs_ptr(i, j, k, 1) *= window_function(kmag); 
             }
         });
     }
@@ -1429,9 +1450,10 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     // Error("Check downsample test files");
 
     // Output the max traces of the tensor components as a diagnostic
-    SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time, 
+    SmallDataIO trace_file(data_path+"tensor-traces", dt, cur_time,
                                 restart_time, SmallDataIO::APPEND, first_step, ".dat");
-    if(first_step) 
+    trace_file.remove_duplicate_time_data();
+    if(first_step)
     { 
         trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
     }
@@ -1441,8 +1463,8 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     apply_nyquist_conditions(R_k);
 
     // Find the binned PS for each mode function and print to data/
-    if((m_params.calc_binned_power_spectrum) 
-	    && (static_cast<int>(cur_time/dt) % m_params.plot_int == 0))
+    if((m_params.calc_binned_power_spectrum)
+	    && (static_cast<int>(std::round(cur_time/dt)) % m_params.plot_int == 0))
     {
 	    Print() << "RandomField::extract, Time step at print: ";
         Print() << static_cast<int>(std::round(cur_time/dt)) << "\n";
@@ -1532,8 +1554,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
         Vector<Real> stdevs;
         if (m_params.calc_higher_order_statistics)
         {
-            SmallDataIO stats_file(data_path+"field-statistics", dt, cur_time, 
+            SmallDataIO stats_file(data_path+"field-statistics", dt, cur_time,
                                     restart_time, SmallDataIO::APPEND, first_step, ".dat");
+            stats_file.remove_duplicate_time_data();
 
             if (!m_params.orders.empty())
             {
@@ -1544,8 +1567,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
             }
         }
         
-        SmallDataIO ts_file(data_path+"tensor-scalar-ratio", dt, cur_time, 
+        SmallDataIO ts_file(data_path+"tensor-scalar-ratio", dt, cur_time,
                                     restart_time, SmallDataIO::APPEND, first_step, ".dat");
+        ts_file.remove_duplicate_time_data();
 #pragma omp single
         if(first_step) 
     	{ 
