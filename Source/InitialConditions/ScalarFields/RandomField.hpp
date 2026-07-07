@@ -90,6 +90,9 @@ class RandomField
                 case 1:
                     potential.quadratic(V, dV, bkgd_params.phi0);
                     break;
+                case 4:
+                    potential.quadratic_bump(V, dV, bkgd_params.phi0);
+                    break;
                 case 9:
                     potential.monodromy(V, dV, bkgd_params.phi0);
                     break;

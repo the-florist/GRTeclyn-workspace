@@ -31,6 +31,12 @@ class Potential
 		// Punctuated inflation params
 		int n;
 		amrex::Real lambda;
+		// mass
+
+		// Quadratic with Gaussian feature (quadbump) parameters
+		// location
+		// amp
+		// width
     };
 
   private:
@@ -44,6 +50,13 @@ class Potential
 		{
 			case 1:
 				m_params.scalar_mass = m_params.param1;
+				break;
+
+			case 4:
+				m_params.scalar_mass = m_params.param1;
+				m_params.location = m_params.param2;
+				m_params.amplitude = m_params.param3;
+				m_params.width = m_params.param4;
 				break;
 
 			case 8:
@@ -85,6 +98,26 @@ class Potential
 
 		V = std::pow(m_params.scalar_mass * phi, 2.) / 2.;
 		dV = std::pow(m_params.scalar_mass, 2.) * phi;
+	}
+
+	// Classic quadratic potenital
+	template <class data_t>
+	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	quadratic_bump(data_t &V, data_t &dV, const data_t &phi) const
+	{
+		if (m_params.scalar_mass == 0)
+		{
+			amrex::Error("Potential::quadratic, Scalar mass is un-initialised.");
+		}
+
+		amrex::Real feature = m_params.amplitude * std::exp(
+							-std::pow((phi - m_params.location) / m_params.width, 2.) 
+							/ 2.0);
+		
+		V = std::pow(m_params.scalar_mass * phi, 2.) * (1.0 + feature) / 2.;
+		dV = std::pow(m_params.scalar_mass, 2.) * (phi * (1.0 + feature)
+			 - (std::pow(phi, 2.0) * (phi - m_params.location) * feature 
+			   / std::pow(m_params.width, 2.0) / 4.0));
 	}
 
 	// Monodromy potential, as used in STOIIC and also in arXiv:2403.12811
@@ -175,6 +208,10 @@ class Potential
 				quadratic<data_t>(V_of_phi, dVdphi, vars.phi);
 				break;
 			
+			case 4:
+				quadratic_bump<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+
 			case 8:
 				USR<data_t>(V_of_phi, dVdphi, vars.phi);
 				break;
@@ -193,9 +230,9 @@ class Potential
 							"requested potential type is not supported.");
 		}
     
-		/*amrex::Print().SetPrecision(15) << "V: " << V_of_phi << "\n";
+		/* amrex::Print().SetPrecision(15) << "V: " << V_of_phi << "\n";
 		amrex::Print().SetPrecision(15) << "dV: " << dVdphi << "\n";
-		amrex::Error();*/
+		amrex::Error(); */
     }
 };
 
