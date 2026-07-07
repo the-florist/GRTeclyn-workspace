@@ -810,6 +810,7 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
             IntVect iv{i, j, k};
 
             Real kmag = get_kmag(iv);
+            if (kmag == 0) { return; } // exclude the zero mode
 
             // make sure you're still in the domain
             if(kmag - kiso_max > tolerance) 
