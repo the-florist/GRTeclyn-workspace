@@ -67,10 +67,15 @@ inline std::string RandomField::make_subdirectory(const std::string base, const 
             Print() << "RandomField::make_subdirectory, Directory creation failed for " << new_path << "\n";
             Error("RandomField::extract Data directory has not been created.");
         }
-        else if (!FilesystemTools::directory_exists(new_path))
+        
+        if (ParallelDescriptor::IOProcessor() && !FilesystemTools::directory_exists(new_path))
         {
-            FilesystemTools::mkdir_recursive(new_path);
+            if (!UtilCreateDirectory(new_path, 0755))
+            {
+                CreateDirectoryFailed(new_path);
+            }
         }
+        ParallelDescriptor::Barrier("RandomField::make_subdirectory");
     }
     return new_path;
 }
@@ -775,24 +780,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
     {
         Error("RandomField::print_power_spectrum Isotropic k axis is too large.");
     }
-    // check you aren't sampling above the max sampling rate
-    else if (m_params.bin_number > kiso_max/dkiso)
-    {
-        Error("RandomField::print_power_spectrum Bin number is too large.");
-    }
-    // check your bin number isn't greater than the max resolvable bins
-    else if(m_params.bin_number > m_params.N_readin/2)
-    {
-        Error("RandomField::print_power_spectrum bin number must be less than N/2.");
-    }
 
     // Set up isotropic k axis and PS map
-    Real dk_to_bin = (Real)m_params.bin_number/((Real)N/2);
-    Real kmag = 0.;
     Vector<Real> kiso(N/2+1, 0.);
-
-    Vector<Real> ps_map(m_params.bin_number+1, 0.);
-    Vector<int> kcount(m_params.bin_number+1, 0);
+    Vector<Real> ps_map(N/2+1, 0.);
+    Vector<int> kcount(N/2+1, 0);
 
     for (int s=0; s<=N/2; s++) { kiso[s] = s*dkiso; }
 
