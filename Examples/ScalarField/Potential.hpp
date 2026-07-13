@@ -117,7 +117,7 @@ class Potential
 		V = std::pow(m_params.scalar_mass * phi, 2.) * (1.0 + feature) / 2.;
 		dV = std::pow(m_params.scalar_mass, 2.) * (phi * (1.0 + feature)
 			 - (std::pow(phi, 2.0) * (phi - m_params.location) * feature 
-			   / std::pow(m_params.width, 2.0) / 4.0));
+			   / std::pow(m_params.width, 2.0) / 2.0));
 	}
 
 	// Monodromy potential, as used in STOIIC and also in arXiv:2403.12811
