@@ -78,6 +78,13 @@ class Potential
 				m_params.lambda = m_params.param3;
 				break;
 
+			case 11:
+				m_params.scalar_mass = m_params.param1;
+				m_params.location = m_params.param2;
+				m_params.amplitude = m_params.param3;
+				m_params.width = m_params.param4;
+				break;
+
 			default:
 				amrex::Print() << m_params.type << ", ";
 				amrex::Print() << typeid(m_params.type).name() << "\n";
@@ -117,6 +124,26 @@ class Potential
 		V = std::pow(m_params.scalar_mass * phi, 2.) * (1.0 + feature) / 2.;
 		dV = std::pow(m_params.scalar_mass, 2.) * (phi * (1.0 + feature)
 			 - (std::pow(phi, 2.0) * (phi - m_params.location) * feature 
+			   / std::pow(m_params.width, 2.0) / 2.0));
+	}
+
+	// Classic quadratic potenital
+	template <class data_t>
+	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	inverted_quadratic_bump(data_t &V, data_t &dV, const data_t &phi) const
+	{
+		if (m_params.scalar_mass == 0)
+		{
+			amrex::Error("Potential::quadratic, Scalar mass is un-initialised.");
+		}
+
+		amrex::Real feature = m_params.amplitude * std::exp(
+							-std::pow((phi - m_params.location) / m_params.width, 2.) 
+							/ 2.0);
+		
+		V = std::pow(m_params.scalar_mass * phi, 2.) * (1.0 - feature) / 2.;
+		dV = std::pow(m_params.scalar_mass, 2.) * (phi * (1.0 - feature)
+			 + (std::pow(phi, 2.0) * (phi - m_params.location) * feature 
 			   / std::pow(m_params.width, 2.0) / 2.0));
 	}
 
@@ -222,6 +249,10 @@ class Potential
 
 			case 10:
 				punctuated<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+
+			case 11:
+				inverted_quadratic_bump<data_t>(V_of_phi, dVdphi, vars.phi);
 				break;
 			
 			default:

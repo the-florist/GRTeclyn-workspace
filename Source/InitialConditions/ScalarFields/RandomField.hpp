@@ -101,6 +101,9 @@ class RandomField
                 case 10:
                     potential.punctuated(V, dV, bkgd_params.phi0);
                     break;
+                case 11:
+                    potential.inverted_quadratic_bump(V, dV, bkgd_params.phi0);
+                    break;
                 default:
                     Error("RandomField::RandomField, requested " 
                           "potential type is not implemented.");
