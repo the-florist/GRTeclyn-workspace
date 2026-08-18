@@ -834,10 +834,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                 {
                     Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                 + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                    int count = 1;
 
-                    if (i != 0 && i != N/2) { power *= 2.; }
+                    if (i != 0 && i != N/2) { power *= 2.; count = 2; }
                     
-                    Gpu::Atomic::Add(&kcount[s-1], 1);
+                    Gpu::Atomic::Add(&kcount[s-1], count);
                     Gpu::Atomic::Add(&ps_map[s-1], power);   
 
                     break;
@@ -848,10 +849,11 @@ inline void RandomField::print_power_spectrum(cMultiFab &field_array, SmallDataI
                 { 
                     Real power = (std::pow(field_ptr(i, j, k, component).real(), 2.0) 
                                 + std::pow(field_ptr(i, j, k, component).imag(), 2.0));
+                    int count = 1;
 
-                    if (i != 0 && i != N/2) { power *= 2.; }
+                    if (i != 0 && i != N/2) { power *= 2.; count = 2; }
                     
-                    Gpu::Atomic::Add(&kcount[N/2], 1);
+                    Gpu::Atomic::Add(&kcount[N/2], count);
                     Gpu::Atomic::Add(&ps_map[N/2], power);
 
                     break;
