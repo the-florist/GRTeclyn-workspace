@@ -487,6 +487,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     mode_fn_fft.backward(hs_k, hs);
     R_fft.backward(R_k, R);
 
+    // Confirm Parseval's theorem holds between config and Fourier space
+    // (before applying the physical normalisation)
+    TensorTests::Test_Parsevals_thm(hs, hs_k, m_params.N);
+    TensorTests::Test_Parsevals_thm(R, R_k, m_params.N);
+
     // Apply physical normalisation
     hs.mult(m_params.norm());
     R.mult(m_params.norm());
