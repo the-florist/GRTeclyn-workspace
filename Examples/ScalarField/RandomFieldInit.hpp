@@ -13,7 +13,9 @@ class RandomFieldInit
 {
     protected:
         amrex::Real H0;
-        static amrex::Real calc_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
+        
+        static amrex::Real 
+        calc_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
         {
             return sqrt((8. * M_PI * G / 3.)*(0.5*pow(Pi, 2.) + V));
         }
@@ -35,6 +37,9 @@ class RandomFieldInit
                 case 1:
                     potential.quadratic(V, dV, bkgd_params.phi0);
                     break;
+                case 4:
+                    potential.quadratic_bump(V, dV, bkgd_params.phi0);
+                    break;
                 case 8:
                     potential.USR(V, dV, bkgd_params.phi0);
                     break;
@@ -45,7 +50,8 @@ class RandomFieldInit
                     potential.punctuated(V, dV, bkgd_params.phi0);
                     break;
                 default:
-                    amrex::Error("RandomFieldInit::RandomFieldInit, potential type not provided");
+                    amrex::Error("RandomFieldInit::RandomFieldInit,"
+                                 "potential type not provided");
             }
 
             // Compute initial Hubble parameter
