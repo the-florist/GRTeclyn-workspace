@@ -220,6 +220,13 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     scalar_fields_k.setVal(0.0);
     scalar_fields_x.setVal(0.0);
 
+    // One-time validation that the polarisation basis is orthonormal across
+    // the Fourier grid (host-side; runs once here rather than per field point)
+    if (m_params.tensor_init && m_params.test_normalisation)
+    {
+        m_params.test_polarisation_normalisation(hs_k);
+    }
+
     // Construct the Fourier transform
     amrex::IntVect x_domain_high(Ni-1, Ni-1, Ni-1);
     amrex::Box x_domain(domain_low, x_domain_high);

@@ -37,6 +37,7 @@ struct InflationConfig
     int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
     int use_rand = 1;           //!< Choose whether to use random initial conditions
     int use_window = 0;         //!< Choose whether to use window function
+    int test_normalisation = 0; //!< Run the one-time polarisation-basis orthonormality check
 
     // Grid parameters
     amrex::Real L = 0;                   //!< Length of the box
@@ -121,16 +122,15 @@ struct InflationConfig
     calculate_basis_vector(const amrex::IntVect iv, 
                            const int which_vector);
 
-    inline Tensor<2, amrex::Real> 
+    inline Tensor<2, amrex::Real>
     calculate_polarisation_tensor(const amrex::IntVect iv,
                                   const int which_pol)
     {
         // Find basis vectors
         amrex::GpuArray<amrex::Real, 3> mhat = calculate_basis_vector(iv, 0);
         amrex::GpuArray<amrex::Real, 3> nhat = calculate_basis_vector(iv, 1);
-        TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
 
-        Tensor<2, amrex::Real> eplus, ecross; 
+        Tensor<2, amrex::Real> eplus, ecross;
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
         {
             // Assemble the polarisation tensors
@@ -138,15 +138,36 @@ struct InflationConfig
             ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
         }
 
-        TensorTests::Test_polarisation_tensor_orthonorm(iv, eplus, ecross);
-
         if (which_pol == 0) { return eplus; }
         else if (which_pol == 1) { return ecross; }
-        else 
+        else
         {
             amrex::Error("InflationConfig::calculate_polarisation_tensor, "
                          "polarisation flag is not set correctly.");
             return eplus;
+        }
+    }
+å
+    inline void test_polarisation_normalisation(const amrex::cMultiFab &kfield)
+    {
+        for (amrex::MFIter mfi(kfield); mfi.isValid(); ++mfi)
+        {
+            const amrex::Box &bx = mfi.fabbox();
+            const amrex::IntVect lo = bx.smallEnd();
+            const amrex::IntVect hi = bx.bigEnd();
+            for (int k = lo[2]; k <= hi[2]; k++)
+            for (int j = lo[1]; j <= hi[1]; j++)
+            for (int i = lo[0]; i <= hi[0]; i++)
+            {
+                const amrex::IntVect iv{i, j, k};
+                amrex::GpuArray<amrex::Real, 3> mhat = calculate_basis_vector(iv, 0);
+                amrex::GpuArray<amrex::Real, 3> nhat = calculate_basis_vector(iv, 1);
+                TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
+
+                Tensor<2, amrex::Real> eplus  = calculate_polarisation_tensor(iv, 0);
+                Tensor<2, amrex::Real> ecross = calculate_polarisation_tensor(iv, 1);
+                TensorTests::Test_polarisation_tensor_orthonorm(iv, eplus, ecross);
+            }
         }
     }
 
