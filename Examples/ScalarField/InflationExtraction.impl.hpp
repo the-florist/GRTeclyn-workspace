@@ -23,7 +23,7 @@ InflationExtraction::make_subdirectory(const std::string base,
         }
         else 
         { 
-            amrex::Print() << "Directory creation failed for " 
+            amrex::Print() << "Directory creation failed for ";
             amrex::Print() << new_path << "\n";
             amrex::Error("InflationExtraction::extract "
                          "Data directory has not been created."); 
@@ -64,14 +64,14 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
     if (kiso_max/dkiso - m_params.N/2 > InflationUtils::tolerance)
     {
         amrex::Error("RandomField::print_power_spectrum "
-              "Isotropic k axis is too large.");
+                     "Isotropic k axis is too large.");
     }
 
     // Set up isotropic k axis and PS map
     amrex::Real kmag = 0.;
     amrex::Vector<amrex::Real> kiso(m_params.N / 2 + 1, 0.);
-    amrex::Vector<amrex::Real> ps_map(N/2 + 1, 0.);
-    amrex::Vector<int> kcount(N/2 + 1, 0);
+    amrex::Vector<amrex::Real> ps_map(m_params.N/2 + 1, 0.);
+    amrex::Vector<int> kcount(m_params.N/2 + 1, 0);
     for (int s=0; s<=m_params.N/2; s++) { kiso[s] = s*dkiso; }
 
     // Needed to pass the map to the amrex::ParallelFor loop
