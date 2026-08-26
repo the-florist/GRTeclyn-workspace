@@ -12,7 +12,9 @@
 #define INFLATIONCONFIG_IMPL_HPP_
 
 // Calculates basis vectors required for polarisation tensors
-inline amrex::GpuArray<amrex::Real, 3> InflationConfig::calculate_basis_vector(const amrex::IntVect iv, const int which_vector)
+inline amrex::GpuArray<amrex::Real, 3> 
+InflationConfig::calculate_basis_vector(const amrex::IntVect iv, 
+                                        const int which_vector)
 {
     AMREX_ASSERT(norm > 0);
 

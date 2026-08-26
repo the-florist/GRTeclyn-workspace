@@ -9,9 +9,10 @@
 /* Helper functions */
 
 // Makes subdirectories in data/
-inline std::string InflationExtraction::make_subdirectory(const std::string base, 
-                                                          const std::string dir, 
-                                                          const int is_m_first_step) const
+inline std::string 
+InflationExtraction::make_subdirectory(const std::string base, 
+                                       const std::string dir, 
+                                       const int is_m_first_step) const
 {
     std::string new_path = base+"../"+dir+"/";
     if(is_m_first_step)
@@ -22,18 +23,25 @@ inline std::string InflationExtraction::make_subdirectory(const std::string base
         }
         else 
         { 
-            amrex::Print() << "Directory creation failed for " << new_path << "\n";
-            amrex::Error("InflationExtraction::extract Data directory has not been created."); 
+            amrex::Print() << "Directory creation failed for " 
+            amrex::Print() << new_path << "\n";
+            amrex::Error("InflationExtraction::extract "
+                         "Data directory has not been created."); 
         }
     }
     return new_path;
 }
 
 // Creates a custom data file layout 
-inline void InflationExtraction::assign_statistics_data(amrex::Vector<std::string> &header_storage, const std::string name, 
-                            amrex::Vector<amrex::Real> &data_storage, const amrex::Vector<amrex::Real> data, const int component, const int num_comps,
-                            const amrex::Vector<int>::const_iterator itr, const amrex::Vector<int>::const_iterator start, 
-                            const int is_m_first_step)
+inline void 
+InflationExtraction::assign_statistics_data(amrex::Vector<std::string> &header_storage, 
+                                            const std::string name, 
+                                            amrex::Vector<amrex::Real> &data_storage, 
+                                            const amrex::Vector<amrex::Real> data, 
+                                            const int component, const int num_comps,
+                                            const amrex::Vector<int>::const_iterator itr, 
+                                            const amrex::Vector<int>::const_iterator start, 
+                                            const int is_m_first_step)
 {
     int loc = component + num_comps*(itr - start);
     if(is_m_first_step) 
@@ -58,27 +66,12 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
         amrex::Error("RandomField::print_power_spectrum "
               "Isotropic k axis is too large.");
     }
-    // check you aren't sampling above the max sampling rate
-    else if (m_params.bin_number > kiso_max/dkiso)
-    {
-        amrex::Error("RandomField::print_power_spectrum "
-              "Bin number is too large.");
-    }
-    // check your bin number isn't greater than the max resolvable bins
-    else if(m_params.bin_number > m_params.N/2)
-    {
-        amrex::Error("RandomField::print_power_spectrum "
-              "bin number must be less than N/2.");
-    }
 
     // Set up isotropic k axis and PS map
-    amrex::Real dk_to_bin = m_params.bin_number / (m_params.N/2.);
     amrex::Real kmag = 0.;
     amrex::Vector<amrex::Real> kiso(m_params.N / 2 + 1, 0.);
-
-    amrex::Vector<amrex::Real> ps_map(m_params.bin_number + 1, 0.);
-    amrex::Vector<int> kcount(m_params.bin_number + 1, 0);
-
+    amrex::Vector<amrex::Real> ps_map(N/2 + 1, 0.);
+    amrex::Vector<int> kcount(N/2 + 1, 0);
     for (int s=0; s<=m_params.N/2; s++) { kiso[s] = s*dkiso; }
 
     // Needed to pass the map to the amrex::ParallelFor loop
@@ -156,9 +149,9 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
     amrex::Gpu::streamSynchronize();
 
     amrex::ParallelAllReduce::Sum(kcount.data(), static_cast<int>(kcount.size()), 
-                                          amrex::ParallelContext::CommunicatorSub());
+                                  amrex::ParallelContext::CommunicatorSub());
     amrex::ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), 
-                                          amrex::ParallelContext::CommunicatorSub());
+                                  amrex::ParallelContext::CommunicatorSub());
 
     // amrex::Print the power spectrum to a new file in data/
     for(int s = 0; s <= m_params.N/2; s++)
@@ -168,8 +161,10 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
 }
 
 // Finds statistical moment x of given MultiFab
-inline amrex::Real InflationExtraction::calculate_field_moment_x(const amrex::MultiFab &field, const amrex::Vector<amrex::Real> mean, 
-                                                          const int moment, const int component)
+inline amrex::Real 
+InflationExtraction::calculate_field_moment_x(const amrex::MultiFab &field, 
+                                              const amrex::Vector<amrex::Real> mean, 
+                                              const int moment, const int component)
 {
     amrex::Real sum = 0.;
     const amrex::Real vol = std::pow(m_params.N, 3.);
@@ -179,7 +174,8 @@ inline amrex::Real InflationExtraction::calculate_field_moment_x(const amrex::Mu
     amrex::ParallelFor(field, [=, &sum] AMREX_GPU_DEVICE
                 (int bx, int i, int j, int k)
         {
-            sum += std::pow(field_arrs[bx](i, j, k, component) - mean[component], moment);
+            sum += std::pow(field_arrs[bx](i, j, k, component) 
+                            - mean[component], moment);
         });
     amrex::Gpu::streamSynchronize();
     amrex::ParallelAllReduce::Sum(sum, amrex::ParallelContext::CommunicatorSub());
@@ -191,9 +187,12 @@ inline amrex::Real InflationExtraction::calculate_field_moment_x(const amrex::Mu
 }
 
 // Calculates and prints requested moments (any between 1 and 4)
-inline amrex::Vector<amrex::Real> InflationExtraction::print_moment(amrex::MultiFab &field, const amrex::Vector<std::string> names,  
-                                             const amrex::Vector<int> &moment_orders, SmallDataIO &file, 
-                                             const int is_first_step)
+inline amrex::Vector<amrex::Real> 
+InflationExtraction::print_moment(amrex::MultiFab &field, 
+                                  const amrex::Vector<std::string> names,  
+                                  const amrex::Vector<int> &moment_orders, 
+                                  SmallDataIO &file, 
+                                  const int is_first_step)
 {
     // Trap instance where the user requests too large a moment
     for(const auto moment : moment_orders)
@@ -215,10 +214,14 @@ inline amrex::Vector<amrex::Real> InflationExtraction::print_moment(amrex::Multi
 
     // Find iterators, which determine which moments are requested and their ordering
     amrex::Vector<int>::const_iterator start = moment_orders.begin();
-    amrex::Vector<int>::const_iterator mean_itr = std::find(moment_orders.begin(), moment_orders.end(), 1);
-    amrex::Vector<int>::const_iterator stdev_itr = std::find(moment_orders.begin(), moment_orders.end(), 2);
-    amrex::Vector<int>::const_iterator skew_itr = std::find(moment_orders.begin(), moment_orders.end(), 3);
-    amrex::Vector<int>::const_iterator kurt_itr = std::find(moment_orders.begin(), moment_orders.end(), 4);
+    amrex::Vector<int>::const_iterator mean_itr = std::find(moment_orders.begin(), 
+                                                            moment_orders.end(), 1);
+    amrex::Vector<int>::const_iterator stdev_itr = std::find(moment_orders.begin(), 
+                                                             moment_orders.end(), 2);
+    amrex::Vector<int>::const_iterator skew_itr = std::find(moment_orders.begin(), 
+                                                            moment_orders.end(), 3);
+    amrex::Vector<int>::const_iterator kurt_itr = std::find(moment_orders.begin(), 
+                                                            moment_orders.end(), 4);
 
     // Allocate vectors to store header line and data lines
     amrex::Vector<amrex::Real> data_to_print(nc * moment_orders.size(), 0.);
