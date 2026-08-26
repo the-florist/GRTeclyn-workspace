@@ -133,11 +133,11 @@ class SimulationParameters : public SimulationParametersBase
                        "moment orders must be provided");
 
         check_parameter("N_fine", inflt_params.N_fine, 
-                        N_fine >= N,
+                        inflt_params.N_fine >= inflt_params.N,
                         "finest resolution must be larger than N");
 
         warn_parameter("N_coarse", inflt_params.N_coarse, 
-                       N_coarse <= N,
+                       inflt_params.N_coarse <= inflt_params.N,
                        "coarsest resolution should be smaller than N");
     }
 

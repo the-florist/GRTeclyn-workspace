@@ -181,18 +181,18 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::DistributionMapping sdm = state.DistributionMap();
 
     // If coarse graining is requested, set up the coarse grid Ns
-    int Ni = N;
+    int Ni = m_params.N;
     int dN = 1;
-    if(m_params.N_fine != N) 
+    if(m_params.N_fine != m_params.N) 
     { 
         Ni = m_params.N_fine; 
-        dN = m_params.N_fine / N; 
+        dN = m_params.N_fine / m_params.N; 
     }
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    BoxArray xba = (m_params.N_fine != 0 ? sba.refine(dN) : sba);
+    amrex::BoxArray xba = (m_params.N_fine != 0 ? sba.refine(dN) : sba);
 
     amrex::IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     amrex::Box k_domain(domain_low, k_domain_high);
@@ -240,15 +240,15 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
         amrex::IntVect iv = {i, j, k};
         amrex::InitRandom(m_params.random_seed 
             * (645950 * uint64_t(iv[0])
-             + 520666 * uint64_t(invert_index_with_sign(iv[1]))
-             + 767051 * uint64_t(invert_index_with_sign(iv[2]))
+             + 520666 * uint64_t(m_params.invert_index_with_sign(iv[1]))
+             + 767051 * uint64_t(m_params.invert_index_with_sign(iv[2]))
               )
             );
 
         if (m_params.scalar_init)
         {
-            Real draw1 = amrex::Random();                             
-            Real draw2 = amrex::Random();
+            amrex::Real draw1 = amrex::Random();                             
+            amrex::Real draw2 = amrex::Random();
             for(int f=0; f<4; f++)
             {
                 scalar_field_arrs[bx](i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
@@ -260,8 +260,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = amrex::Random();
-                Real draw2 = amrex::Random();
+                amrex::Real draw1 = amrex::Random();
+                amrex::Real draw2 = amrex::Random();
 
                 hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
                 As_arrs[bx](i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
@@ -322,10 +322,10 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::ParallelFor(hij_x,
         [=, this] AMREX_GPU_DEVICE (int bx, int i, int j, int k) noexcept
     {
-        const IntVect iv_ds{i, j, k};
-        const IntVect iv{i * dN, j * dN, k * dN};
+        const amrex::IntVect iv_ds{i, j, k};
+        const amrex::IntVect iv{i * dN, j * dN, k * dN};
 
-        if (iv_ds.min() >= 0 && iv_ds.max() < N)
+        if (iv_ds.min() >= 0 && iv_ds.max() < m_params.N)
         {
             // Add scalar perturbations to the existing background values
             if (m_params.scalar_init)

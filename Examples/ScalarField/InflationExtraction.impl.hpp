@@ -12,15 +12,17 @@
 inline std::string 
 InflationExtraction::make_subdirectory(const std::string base, 
                                        const std::string dir, 
-                                       const int is_m_first_step) const
+                                       const int is_first_step) const
 {
     std::string new_path = base+"../"+dir+"/";
     if(is_first_step)
     {
         if (!FilesystemTools::directory_exists(base))
         {
-            Print() << "RandomField::make_subdirectory, Directory creation failed for " << new_path << "\n";
-            Error("RandomField::extract Data directory has not been created.");
+            amrex::Print() << "RandomField::make_subdirectory, "
+                              "Directory creation failed for "; 
+            amrex::Print() << new_path << "\n";
+            amrex::Error("RandomField::extract Data directory has not been created.");
         }
         else if (!FilesystemTools::directory_exists(new_path))
         {
@@ -122,7 +124,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                     int comp = (kmag == kiso[m_params.N/2]) ? m_params.N/2 : s - 1;
 
                     int count = 0;
-                    if (i != 0 && i != N/2) { power *= 2.; count = 2; }
+                    if (i != 0 && i != m_params.N/2) { power *= 2.; count = 2; }
 
                     amrex::Gpu::Atomic::Add(&kcount[comp], count);
                     amrex::Gpu::Atomic::Add(&ps_map[comp], power);
@@ -430,9 +432,9 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 if(m_params.scalar_init)
                 {
                     // Find the unitful k vector
-                    Vector<Real> iv_k(iv.begin(), iv.end());
-                    iv_k[1] = invert_index_with_sign(iv_k[1]);
-                    iv_k[2] = invert_index_with_sign(iv_k[2]);
+                    amrex::Vector<amrex::Real> iv_k(iv.begin(), iv.end());
+                    iv_k[1] = m_params.invert_index_with_sign(iv_k[1]);
+                    iv_k[2] = m_params.invert_index_with_sign(iv_k[2]);
                 
                     for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
                     amrex::GpuComplex<amrex::Real> Phi = 0;
@@ -522,7 +524,7 @@ inline void InflationExtraction::derive(const amrex::MultiFab &source, amrex::Mu
     const auto& R_arrs = R_x.arrays();
     const auto& out_arrs = out.arrays();
 
-    amrex::ParallelFor(hs_x, [=, this,] AMREX_GPU_DEVICE
+    amrex::ParallelFor(hs_x, [=, this] AMREX_GPU_DEVICE
                 (int bx, int i, int j, int k)
         {
             const amrex::IntVect iv{i, j, k};
