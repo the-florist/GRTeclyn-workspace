@@ -147,7 +147,7 @@ struct InflationConfig
             return eplus;
         }
     }
-å
+    
     inline void test_polarisation_normalisation(const amrex::cMultiFab &kfield)
     {
         for (amrex::MFIter mfi(kfield); mfi.isValid(); ++mfi)

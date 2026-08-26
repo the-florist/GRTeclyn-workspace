@@ -254,8 +254,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
 
         if (m_params.scalar_init)
         {
-            Real draw1 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + 0ULL));
-            Real draw2 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + 1ULL));
+            amrex::Real draw1 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + 0ULL));
+            amrex::Real draw2 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + 1ULL));
             for(int f=0; f<4; f++)
             {
                 scalar_field_arrs[bx](i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
@@ -267,8 +267,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                Real draw1 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + uint64_t(2 + 2*p)));
-                Real draw2 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
+                amrex::Real draw1 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + uint64_t(2 + 2*p)));
+                amrex::Real draw2 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
 
                 hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
                 As_arrs[bx](i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
