@@ -151,7 +151,7 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_random_field(co
     if (m_params.use_window == 1) 
     { 
         BL_PROFILE("RandomFieldInit::calculate_random_field Window function is used")
-        amrex::Real ks = std::sqrt(3.) * m_params.N * M_PI / m_params.L / 5. / 2.;
+        amrex::Real ks = std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2.;
         //m_params.kstar * 2. * M_PI/m_params.L;
         amrex::Real Dt = m_params.L/m_params.Delta;
         value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
@@ -169,10 +169,19 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::BoxArray sba = state.boxArray();
     amrex::DistributionMapping sdm = state.DistributionMap();
 
+    // If coarse graining is requested, set up the coarse grid Ns
+    int Ni = N;
+    int dN = 1;
+    if(m_params.N_fine != N) 
+    { 
+        Ni = m_params.N_fine; 
+        dN = m_params.N_fine / N; 
+    }
+
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    amrex::IntVect k_domain_high(m_params.N/2, m_params.N-1, m_params.N-1);
+    amrex::IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     amrex::Box k_domain(domain_low, k_domain_high);
     amrex::Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
     amrex::BoxArray kba = decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
@@ -200,19 +209,11 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     scalar_fields_x.setVal(0.0);
 
     // Construct the Fourier transform
-    amrex::IntVect x_domain_high(m_params.N-1, m_params.N-1, m_params.N-1);
+    amrex::IntVect x_domain_high(Ni-1, Ni-1, Ni-1);
     amrex::Box x_domain(domain_low, x_domain_high);
     amrex::FFT::R2C<amrex::Real> tensor_fft(x_domain, amrex::FFT::Info().setBatchSize(hij_k.nComp()));
     amrex::FFT::R2C<amrex::Real> scalar_fft(x_domain, amrex::FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
-    // Construct MFs to hold the random number draws
-    amrex::MultiFab random_draws(kba, kdm, 6, 0);
-    make_random_draws(random_draws, k_domain, m_params.random_seed);
-    amrex::MultiFab tensor_draws(random_draws, amrex::make_alias, 0, 4);
-    amrex::MultiFab scalar_draws(random_draws, amrex::make_alias, 4, 2);
-
-    const auto &tensor_draw_arrs = tensor_draws.arrays();
-    const auto &scalar_draw_arrs = tensor_draws.arrays();
     const auto &hs_arrs = hs_k.arrays();
     const auto &hij_k_arrs = hij_k.arrays();
     const auto &As_arrs = As_k.arrays();
@@ -225,14 +226,21 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
         [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
     {
         amrex::IntVect iv = {i, j, k};
+        amrex::InitRandom(m_params.random_seed 
+            * (645950 * uint64_t(iv[0])
+             + 520666 * uint64_t(invert_index_with_sign(iv[1]))
+             + 767051 * uint64_t(invert_index_with_sign(iv[2]))
+              )
+            );
+
         if (iv != amrex::IntVect{0, 0, 0})
         {
             if (m_params.scalar_init)
             {
                 for(int f=0; f<4; f++)
                 {
-                    amrex::Real draw1 = scalar_draw_arrs[bx](i, j, k, 0);
-                    amrex::Real draw2 = scalar_draw_arrs[bx](i, j, k, 1);
+                    Real draw1 = amrex::Random();                             
+                    Real draw2 = amrex::Random();
 
                     scalar_field_arrs[bx](i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
                 }
@@ -243,8 +251,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
                 // Find the mode function realisation
                 for(int p=0; p<2; p++)
                 {
-                    amrex::Real draw1 = tensor_draw_arrs[bx](i, j, k, 2*p);
-                    amrex::Real draw2 = tensor_draw_arrs[bx](i, j, k, 2*p+1);
+                    Real draw1 = amrex::Random();
+                    Real draw2 = amrex::Random();
 
                     hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
                     As_arrs[bx](i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");

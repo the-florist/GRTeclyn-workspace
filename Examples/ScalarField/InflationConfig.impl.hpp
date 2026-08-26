@@ -100,7 +100,7 @@ InflationConfig::calculate_basis_vector(const amrex::IntVect iv,
 // Applies above Nyquist conditions to a given MF
 inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
 {
-    AMREX_ASSERT(N > 0);
+    AMREX_ASSERT(N_fine > 0);
     
     int nc = field.nComp();
     for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi) 
@@ -113,7 +113,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
         {
             amrex::IntVect iv = {i, j, k};
 
-            if ((i == 0 || i == N/2) && (j == 0 || j == N/2) && (k == 0 || k == N/2))
+            if ((i == 0 || i == N_fine/2) && (j == 0 || j == N_fine/2) && (k == 0 || k == N_fine/2))
             {
                 for(int comp = 0; comp < nc; comp++)
                 {
@@ -122,10 +122,10 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                 }
             }
 
-            else if (i==0 || i==N/2) 
+            else if (i==0 || i==N_fine/2) 
             {
-                if((k > N/2 && j == N/2) || (k == 0 && j > N/2) ||
-                    (k > N/2 && j == 0) || (k == N/2 && j > N/2))
+                if((k > N_fine/2 && j == N_fine/2) || (k == 0 && j > N_fine/2) ||
+                    (k > N_fine/2 && j == 0) || (k == N_fine/2 && j > N_fine/2))
                 {
                     for(int comp = 0; comp < nc; comp++) 
                     {
@@ -135,7 +135,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                     }
                 }
                 
-                else if(j > N/2)
+                else if(j > N_fine/2)
                 {
                     for(int comp = 0; comp < nc; comp++) 
                     {
