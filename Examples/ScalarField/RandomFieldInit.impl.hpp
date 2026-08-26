@@ -288,9 +288,9 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
 
     // Apply normalisation into physical units
-    hij_x.mult(norm);
-    Aij_x.mult(norm);
-    scalar_fields_x.mult(norm);
+    hij_x.mult(m_params.norm());
+    Aij_x.mult(m_params.norm());
+    scalar_fields_x.mult(m_params.norm());
 
     // Test that the resuling tensor perturbation field is trace-free
     TensorTests::Test_is_trace_free(hij_x);

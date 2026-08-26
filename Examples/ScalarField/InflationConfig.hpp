@@ -99,6 +99,14 @@ struct InflationConfig
         return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / L;
     }
 
+    // Physical FFT normalisation, shared by the init and extraction classes.
+    // CHANGE WITH CARE
+    inline amrex::Real norm() const
+    {
+        AMREX_ASSERT(L > 0);
+        return std::pow(std::sqrt(2. * M_PI) / L, 3.);
+    }
+
     inline amrex::GpuArray<amrex::Real, 3> 
     calculate_basis_vector(const amrex::IntVect iv, 
                            const int which_vector);

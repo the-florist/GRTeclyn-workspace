@@ -13,21 +13,19 @@ class RandomFieldInit
 {
     protected:
         amrex::Real H0;
-        
+
         static amrex::Real 
         calc_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
         {
             return sqrt((8. * M_PI * G / 3.)*(0.5*pow(Pi, 2.) + V));
         }
-        // CHANGE WITH CARE
-        const amrex::Real norm;
 
     public:
                 // Constructor used when initialising stochastic fields
-        RandomFieldInit(const InflationConfig a_config, 
-                        const InitialBackgroundData::params_t bkgd_params, 
+        RandomFieldInit(const InflationConfig a_config,
+                        const InitialBackgroundData::params_t bkgd_params,
                         const Potential::params_t potential_params)
-                        : m_params(a_config), norm(std::pow(a_config.L, -3.))
+                        : m_params(a_config)
         {
             // Compute background potential
             amrex::Real V, dV;

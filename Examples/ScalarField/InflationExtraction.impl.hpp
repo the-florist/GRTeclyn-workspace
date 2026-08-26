@@ -326,11 +326,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
     scalars_x.plus(-chi_bar, m_c_chi, 1);
-    scalars_x.mult(1./norm);
+    scalars_x.mult(1./m_params.norm());
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { gij_x.plus(-1., InflationUtils::lut[l][l], 1); }
-    gij_x.mult(1./norm);
+    gij_x.mult(1./m_params.norm());
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
@@ -488,8 +488,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     R_fft.backward(R_k, R);
 
     // Apply physical normalisation
-    hs.mult(norm);
-    R.mult(norm);
+    hs.mult(m_params.norm());
+    R.mult(m_params.norm());
 }
 
 // Put R and hs into plotfiles
