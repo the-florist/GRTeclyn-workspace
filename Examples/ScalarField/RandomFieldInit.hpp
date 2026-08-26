@@ -62,7 +62,6 @@ class RandomFieldInit
 
     private:
         InflationConfig m_params;
-        void make_random_draws(amrex::MultiFab &rand_fab, const amrex::Box &domain, const int seed);
         amrex::GpuComplex<amrex::Real> calculate_mode_function(const amrex::Real km, const int spec_indx);
         amrex::GpuComplex<amrex::Real> find_in_stoiic(const amrex::Real km, const int field_indx, 
                                         const std::string field_type);

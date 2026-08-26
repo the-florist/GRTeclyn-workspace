@@ -109,7 +109,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
         const amrex::Box& bx = mfi.fabbox();
         amrex::Array4<amrex::GpuComplex<amrex::Real>> const& field_ptr = field.array(mfi);
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             amrex::IntVect iv = {i, j, k};
 

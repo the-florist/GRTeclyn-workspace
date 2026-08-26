@@ -101,7 +101,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                 {
                     amrex::Print() << iv << "\n";
                     amrex::Error("RandomField::print_power_spectrum "
-                          "kmag below the kiso domain.");
+                                 "kmag below the kiso domain.");
                 }
 
                 // If you're larger than the largest bin
@@ -109,7 +109,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                 {
                     amrex::Print() << iv << "\n";
                     amrex::Error("RandomField::print_power_spectrum "
-                          "kmag above the kiso domain.");
+                                 "kmag above the kiso domain.");
                 }
 
                 // If you're somewhere in the middle
@@ -117,14 +117,15 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                         || kmag == kiso[m_params.N/2]) 
                 {
                     amrex::Real power = (std::pow(field_arrs[bx](i, j, k, component).real(), 2.0) 
-                                + std::pow(field_arrs[bx](i, j, k, component).imag(), 2.0));
+                                        + std::pow(field_arrs[bx](i, j, k, component).imag(), 2.0));
                     
                     int comp = (kmag == kiso[m_params.N/2]) ? m_params.N/2 : s - 1;
-                    amrex::Gpu::Atomic::Add(&kcount[comp], 1);
-                    if(power > InflationUtils::tolerance)
-                    {
-                        amrex::Gpu::Atomic::Add(&ps_map[comp], power);   
-                    }
+
+                    int count = 0;
+                    if (i != 0 && i != N/2) { power *= 2.; count = 2; }
+
+                    amrex::Gpu::Atomic::Add(&kcount[comp], count);
+                    amrex::Gpu::Atomic::Add(&ps_map[comp], power);
 
                     break;
                 }
@@ -136,7 +137,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                     amrex::Print() << kmag << "\n";
                     amrex::Print() << kiso[s] << "," << kiso[s-1] << "\n";
                     amrex::Error("RandomField::print_power_spectrum "
-                          "Part of the spectrum isn't captured.");
+                                 "Part of the spectrum isn't captured.");
                 }
 
                 // If you haven't found the right bin yet
@@ -380,6 +381,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             amrex::IntVect iv{i, j, k};
+            amrex::Real kmag = m_params.get_kmag(iv);
+
             if (iv != amrex::IntVect{0, 0, 0})
             {
                 Tensor<2, amrex::Real> eplus = m_params.calculate_polarisation_tensor(iv, 0);
@@ -427,9 +430,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 if(m_params.scalar_init)
                 {
                     // Find the unitful k vector
-                    amrex::Vector<amrex::Real> iv_k(iv.begin(), iv.end());
+                    Vector<Real> iv_k(iv.begin(), iv.end());
+                    iv_k[1] = invert_index_with_sign(iv_k[1]);
+                    iv_k[2] = invert_index_with_sign(iv_k[2]);
+                
                     for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
-                    amrex::Real kmag = m_params.get_kmag(iv);
                     amrex::GpuComplex<amrex::Real> Phi = 0;
 
                     // converstion from chi and gamma_ij -> Phi
@@ -441,22 +446,13 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     Phi += 0.5 * (scalars_arrs[bx](i, j, k, m_c_chi));
 
                     // Combine the above to find R(k)
-                    R_k_arrs[bx](i, j, k, 0) = Phi - (K_bar * scalars_arrs[bx](i, j, k, m_c_phi) 
+                    R_k_arrs[bx](i, j, k, 0) = Phi - ((K_bar/3.) * scalars_arrs[bx](i, j, k, m_c_phi) 
                                                         / alpha_bar / Pi_bar);
                 }
             }
         });
 
     amrex::Gpu::streamSynchronize();
-
-    // Output the max traces of the tensor components as a diagnostic
-    SmallDataIO trace_file(m_data_path+"tensor-traces", m_dt, m_cur_time, 
-                                m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
-    if(m_first_step) 
-    { 
-        trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
-    }
-    trace_file.write_time_data_line({hij_tr_max, hSV_tr_max}); 
 
     // Prepare to IFT the polarisation fields and R field
     m_params.apply_nyquist_conditions(hs_k);
@@ -466,6 +462,15 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     if ((print_spec) && (static_cast<int>(m_cur_time/m_dt) 
                          % m_params.plot_int == 0))
     {
+        // Output the max traces of the tensor components as a diagnostic
+        SmallDataIO trace_file(m_data_path+"tensor-traces", m_dt, m_cur_time, 
+                                    m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
+        if(m_first_step) 
+        { 
+            trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
+        }
+        trace_file.write_time_data_line({hij_tr_max, hSV_tr_max}); 
+
 	    amrex::Print() << "Time step at print: " << static_cast<int>(std::round(m_cur_time/m_dt)) << "\n";
         std::string spec_path = make_subdirectory(m_data_path, "spectra", m_first_step);
 
@@ -487,8 +492,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 
     // Confirm Parseval's theorem holds between config and Fourier space
     // (before applying the physical normalisation)
-    TensorTests::Test_Parsevals_thm(hs, hs_k, m_params.N);
-    TensorTests::Test_Parsevals_thm(R, R_k, m_params.N);
+    if(print_spec)
+    {
+        TensorTests::Test_Parsevals_thm(hs, hs_k, m_params.N);
+        TensorTests::Test_Parsevals_thm(R, R_k, m_params.N);
+    }
 
     // Apply physical normalisation
     hs.mult(m_params.norm());

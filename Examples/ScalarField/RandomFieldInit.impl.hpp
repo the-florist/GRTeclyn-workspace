@@ -55,40 +55,6 @@ inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field, 
     return pow(10., p_bkgd + p_field);
 }
 
-// Generate unique random draws for each MFI box.
-inline void RandomFieldInit::make_random_draws(amrex::MultiFab &rand_fab, const amrex::Box &domain, 
-                                               const int seed)
-{
-    amrex::BoxArray ba = rand_fab.boxArray();
-    amrex::DistributionMapping dm = rand_fab.DistributionMap();
-    amrex::MultiFab tmp(ba, dm, rand_fab.nComp(), 0, amrex::MFInfo{}.SetArena(amrex::The_Cpu_Arena()));
-
-    // CHECKME: should this go inside the MFI loop, or does it not matter?
-    std::mt19937 generator(seed);
-    std::uniform_real_distribution<amrex::Real> distribution(amrex::Real(0), amrex::Real(1));
-
-    for(amrex::MFIter mfi(tmp); mfi.isValid(); ++mfi)
-    {
-        amrex::Box const& bx = mfi.validbox();
-        auto const& tmp_ptr = tmp.array(mfi);
-
-        auto offset = domain.index(bx.smallEnd()) * tmp.nComp();
-        for(int ofs = 0; ofs < offset; ofs++)
-        {
-            distribution(generator);
-        }
-        amrex::LoopOnCpu(bx, [&] (int i, int j, int k)
-        {
-            for(int l=0; l<tmp.nComp(); l++)
-            {
-                tmp_ptr(i, j, k, l) = distribution(generator);
-            }
-        });
-    }
-
-    rand_fab.ParallelCopy(tmp);
-}
-
 inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amrex::Real km, const int field_indx, 
                                                     const std::string field_type)
 {
@@ -99,7 +65,11 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amre
     int spec_index;
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
-        if (std::abs(km - m_params.init_k[idx]) < 1e-13) { spec_index = idx; break; }
+        if (std::abs(km - m_params.init_k[idx]) < InflationUtils::tolerance) 
+        { 
+            spec_index = idx; 
+            break; 
+        }
         else if (idx == m_params.init_k.size() - 1) 
         { 
             amrex::Print() << km << "\n"; 
@@ -139,12 +109,12 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_mode_function(c
     amrex::Real kpr = km/H0;
     if (spec_indx == 0) // Position mode funcion
     {
-        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2.);
+        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2./pow(m_params.Mp, 2.));
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
     else if (spec_indx == 1) // Velocity mode funcion
     {
-        ms_mag = sqrt(km/2.);
+        ms_mag = sqrt(km/2./pow(m_params.Mp, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
     else { amrex::Error("RandomFieldInit::calculate_mode_function Value of spec_type not allowed."); }
@@ -222,6 +192,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     amrex::IntVect domain_low(0, 0, 0);
+    BoxArray xba = (m_params.N_fine != 0 ? sba.refine(dN) : sba);
+
     amrex::IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     amrex::Box k_domain(domain_low, k_domain_high);
     amrex::Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
@@ -233,12 +205,11 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::cMultiFab As_k(kba, kdm, 2, 0);
     amrex::cMultiFab hij_k(kba, kdm, 6, 0);
     amrex::cMultiFab Aij_k(kba, kdm, 6, 0);
-
-    amrex::MultiFab hij_x(sba, sdm, 6, 0);
-    amrex::MultiFab Aij_x(sba, sdm, 6, 0);
+    amrex::MultiFab hij_x(xba, sdm, 6, 0);
+    amrex::MultiFab Aij_x(xba, sdm, 6, 0);
 
     amrex::cMultiFab scalar_fields_k(kba, kdm, 4, 0);
-    amrex::MultiFab scalar_fields_x(sba, sdm, 4, 0);
+    amrex::MultiFab scalar_fields_x(xba, sdm, 4, 0);
 
     hs_k.setVal(0.0);
     As_k.setVal(0.0);
@@ -264,7 +235,7 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::Print() << "Starting initial condition generation/read in...\n";
     
     amrex::ParallelFor(hs_k,
-        [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
+        [=, this] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
     {
         amrex::IntVect iv = {i, j, k};
         amrex::InitRandom(m_params.random_seed 
@@ -274,43 +245,39 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
               )
             );
 
-        if (iv != amrex::IntVect{0, 0, 0})
+        if (m_params.scalar_init)
         {
-            if (m_params.scalar_init)
+            Real draw1 = amrex::Random();                             
+            Real draw2 = amrex::Random();
+            for(int f=0; f<4; f++)
             {
-                for(int f=0; f<4; f++)
-                {
-                    Real draw1 = amrex::Random();                             
-                    Real draw2 = amrex::Random();
-
-                    scalar_field_arrs[bx](i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
-                }
+                scalar_field_arrs[bx](i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, "scalar");
             }
+        }
 
-            if (m_params.tensor_init)
+        if (m_params.tensor_init)
+        {
+            // Find the mode function realisation
+            for(int p=0; p<2; p++)
             {
-                // Find the mode function realisation
-                for(int p=0; p<2; p++)
-                {
-                    Real draw1 = amrex::Random();
-                    Real draw2 = amrex::Random();
+                Real draw1 = amrex::Random();
+                Real draw2 = amrex::Random();
 
-                    hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
-                    As_arrs[bx](i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
-                }
-                
-                // Construct polarisation tensors from basis vectors
-                Tensor<2, amrex::Real> eplus = m_params.calculate_polarisation_tensor(iv, 0);
-                Tensor<2, amrex::Real> ecross = m_params.calculate_polarisation_tensor(iv, 1);
+                hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, "tensor");
+                As_arrs[bx](i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, "tensor");
+            }
+            
+            // Construct polarisation tensors from basis vectors
+            Tensor<2, amrex::Real> eplus = m_params.calculate_polarisation_tensor(iv, 0);
+            Tensor<2, amrex::Real> ecross = m_params.calculate_polarisation_tensor(iv, 1);
 
-                // Find basis tensors and initial tensor realisation
-                for (int l=0; l<3; l++) for (int p=0; p<3; p++)
-                {
-                    hij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) = (hs_arrs[bx](i, j, k, 0) * eplus[l][p] 
-                                                                        + hs_arrs[bx](i, j, k, 1) * ecross[l][p]);
-                    Aij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) = (As_arrs[bx](i, j, k, 0) * eplus[l][p] 
-                                                                        + As_arrs[bx](i, j, k, 1) * ecross[l][p]);
-                }
+            // Find basis tensors and initial tensor realisation
+            for (int l=0; l<3; l++) for (int p=0; p<3; p++)
+            {
+                hij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) = (hs_arrs[bx](i, j, k, 0) * eplus[l][p] 
+                                                                    + hs_arrs[bx](i, j, k, 1) * ecross[l][p]);
+                Aij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) = (As_arrs[bx](i, j, k, 0) * eplus[l][p] 
+                                                                    + As_arrs[bx](i, j, k, 1) * ecross[l][p]);
             }
         }
     });
@@ -318,7 +285,6 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::Gpu::streamSynchronize();
 
     // Apply the DC and Nyquist symmetry conditions
-    m_params.apply_nyquist_conditions(hs_k);
     m_params.apply_nyquist_conditions(hij_k);
     m_params.apply_nyquist_conditions(Aij_k);
     m_params.apply_nyquist_conditions(scalar_fields_k);
@@ -354,37 +320,41 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     const auto &scalar_field_x_arrs = scalar_fields_x.arrays();
 
     amrex::ParallelFor(hij_x,
-        [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) noexcept
+        [=, this] AMREX_GPU_DEVICE (int bx, int i, int j, int k) noexcept
     {
-        const amrex::IntVect iv{i, j, k};
-        // Add scalar perturbations to the existing background values
-        if (m_params.scalar_init)
-        {
-            state_arrs[bx](iv, c_phi) += scalar_field_x_arrs[bx](i, j, k, 0);
-            state_arrs[bx](iv, c_Pi) += scalar_field_x_arrs[bx](i, j, k, 1);
-            state_arrs[bx](iv, c_chi) += scalar_field_x_arrs[bx](i, j, k, 2);
-            state_arrs[bx](iv, c_K) += scalar_field_x_arrs[bx](i, j, k, 3);
-        }
+        const IntVect iv_ds{i, j, k};
+        const IntVect iv{i * dN, j * dN, k * dN};
 
-        // Set the entire tensor object here
-        if (m_params.tensor_init)
+        if (iv_ds.min() >= 0 && iv_ds.max() < N)
         {
-            state_arrs[bx](iv, c_h11) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][0]);
-            state_arrs[bx](iv, c_h12) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][1]);
-            state_arrs[bx](iv, c_h13) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][2]);
-            state_arrs[bx](iv, c_h22) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[1][1]);
-            state_arrs[bx](iv, c_h23) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[1][2]);
-            state_arrs[bx](iv, c_h33) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[2][2]);
+            // Add scalar perturbations to the existing background values
+            if (m_params.scalar_init)
+            {
+                state_arrs[bx](iv_ds, c_phi) += scalar_field_x_arrs[bx](i, j, k, 0);
+                state_arrs[bx](iv_ds, c_Pi) += scalar_field_x_arrs[bx](i, j, k, 1);
+                state_arrs[bx](iv_ds, c_chi) += scalar_field_x_arrs[bx](i, j, k, 2);
+                state_arrs[bx](iv_ds, c_K) += scalar_field_x_arrs[bx](i, j, k, 3);
+            }
 
-            state_arrs[bx](iv, c_A11) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[0][0]);
-            state_arrs[bx](iv, c_A12) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[0][1]);
-            state_arrs[bx](iv, c_A13) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[0][2]);
-            state_arrs[bx](iv, c_A22) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[1][1]);
-            state_arrs[bx](iv, c_A23) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[1][2]);
-            state_arrs[bx](iv, c_A33) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[2][2]);
+            // Set the entire tensor object here
+            if (m_params.tensor_init)
+            {
+                state_arrs[bx](iv_ds, c_h11) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][0]);
+                state_arrs[bx](iv_ds, c_h12) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][1]);
+                state_arrs[bx](iv_ds, c_h13) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[0][2]);
+                state_arrs[bx](iv_ds, c_h22) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[1][1]);
+                state_arrs[bx](iv_ds, c_h23) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[1][2]);
+                state_arrs[bx](iv_ds, c_h33) += hij_x_arrs[bx](i, j, k, InflationUtils::lut[2][2]);
+
+                state_arrs[bx](iv_ds, c_A11) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[0][0]);
+                state_arrs[bx](iv_ds, c_A12) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[0][1]);
+                state_arrs[bx](iv_ds, c_A13) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[0][2]);
+                state_arrs[bx](iv_ds, c_A22) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[1][1]);
+                state_arrs[bx](iv_ds, c_A23) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[1][2]);
+                state_arrs[bx](iv_ds, c_A33) += Aij_x_arrs[bx](i, j, k, InflationUtils::lut[2][2]);
+            }
         }
     });
-
     amrex::Gpu::streamSynchronize();
 }
 
