@@ -13,8 +13,9 @@ class RandomFieldInit
 {
     protected:
         amrex::Real H0;
+        amrex::Real phi0;
 
-        static amrex::Real 
+        static amrex::Real
         calc_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
         {
             return sqrt((8. * M_PI * G / 3.)*(0.5*pow(Pi, 2.) + V));
@@ -54,6 +55,7 @@ class RandomFieldInit
 
             // Compute initial Hubble parameter
             H0 = calc_H0(bkgd_params.G_Newton, bkgd_params.Pi0, V);
+            phi0 = bkgd_params.phi0;
         }
 
         void init(amrex::MultiFab &state);
@@ -64,9 +66,10 @@ class RandomFieldInit
         amrex::GpuComplex<amrex::Real> calculate_mode_function(const amrex::Real km, const int spec_indx);
         amrex::GpuComplex<amrex::Real> find_in_stoiic(const amrex::Real km, const int field_indx, 
                                         const std::string field_type);
-        amrex::GpuComplex<amrex::Real> calculate_random_field(const amrex::IntVect iv, const int field_index, 
-                                                const amrex::Real rand_amp, const amrex::Real rand_phase, 
+        amrex::GpuComplex<amrex::Real> calculate_random_field(const amrex::IntVect iv, const int field_index,
+                                                const amrex::Real rand_amp, const amrex::Real rand_phase,
                                                 std::string field_type);
+        amrex::Real find_precision_loss(amrex::MultiFab &field, const int comp, const amrex::Real bkgd);
 };
 
 #include "RandomFieldInit.impl.hpp"

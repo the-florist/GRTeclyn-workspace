@@ -11,6 +11,50 @@
 #ifndef RANDOMFIELDINIT_IMPL_HPP_
 #define RANDOMFIELDINIT_IMPL_HPP_
 
+// Estimate the loss of precision from adding a perturbation (the minimum
+// absolute value in component comp of field) onto a background value bkgd.
+// Errors if the perturbation is of the same order as, or larger than, bkgd.
+inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field, const int comp,
+                                                        const amrex::Real bkgd)
+{
+    // 1. Initialize the reduction operator for a 'Minimum' operation
+    amrex::ReduceOps<amrex::ReduceOpMin> reduce_op;
+    amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    // 2. Loop over the MultiFab (GPU and CPU safe)
+    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box &bx = mfi.fabbox();
+        auto const &arr = field.array(mfi);
+
+        reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                // Return the absolute value of the cell
+                return { std::abs(arr(i, j, k, comp)) };
+            });
+    }
+
+    // 3. Extract the local minimum on this MPI rank
+    amrex::Real min_abs_val = amrex::get<0>(reduce_data.value());
+
+    // 4. Collective MPI reduction to find the global minimum across ranks
+    amrex::ParallelDescriptor::ReduceRealMin(min_abs_val);
+
+    int p_field = std::round(std::log10(min_abs_val));
+    int p_bkgd = std::round(std::log10(std::abs(bkgd)));
+
+    if (p_bkgd + p_field > 0)
+    {
+        amrex::Print() << bkgd << ", " << min_abs_val << "\n";
+        amrex::Print() << p_bkgd << ", " << p_field << "\n";
+        amrex::Error("RandomFieldInit::find_precision_loss, field may be non-perturbative.");
+    }
+
+    return pow(10., p_bkgd + p_field);
+}
+
 // Generate unique random draws for each MFI box.
 inline void RandomFieldInit::make_random_draws(amrex::MultiFab &rand_fab, const amrex::Box &domain, 
                                                const int seed)
@@ -288,6 +332,15 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     hij_x.mult(m_params.norm());
     Aij_x.mult(m_params.norm());
     scalar_fields_x.mult(m_params.norm());
+
+    // Check the scalar perturbations remain perturbative on the background
+    if (m_params.scalar_init)
+    {
+        amrex::Print() << "RandomFieldInit::init, Precision lost in phi is ";
+        amrex::Print() << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
+        amrex::Print() << "RandomFieldInit::init, Precision lost in chi is ";
+        amrex::Print() << find_precision_loss(scalar_fields_x, 2, 1.0) << "\n";
+    }
 
     // Test that the resuling tensor perturbation field is trace-free
     TensorTests::Test_is_trace_free(hij_x);
