@@ -43,6 +43,7 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("randominit.scalar_init", inflt_params.scalar_init, 0);
         pp.load("randominit.use_rand", inflt_params.use_rand, 1);
         pp.load("randominit.use_window", inflt_params.use_window, 0);
+        pp.load("randominit.test_normalisation", inflt_params.test_normalisation, 0);
 
         // Grid parameters
         pp.load("L", inflt_params.L, 1.);
