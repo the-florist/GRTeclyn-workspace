@@ -15,18 +15,16 @@ InflationExtraction::make_subdirectory(const std::string base,
                                        const int is_m_first_step) const
 {
     std::string new_path = base+"../"+dir+"/";
-    if(is_m_first_step)
+    if(is_first_step)
     {
-        if (FilesystemTools::directory_exists(base)) 
-        { 
-            FilesystemTools::mkdir_recursive(new_path); 
+        if (!FilesystemTools::directory_exists(base))
+        {
+            Print() << "RandomField::make_subdirectory, Directory creation failed for " << new_path << "\n";
+            Error("RandomField::extract Data directory has not been created.");
         }
-        else 
-        { 
-            amrex::Print() << "Directory creation failed for " 
-            amrex::Print() << new_path << "\n";
-            amrex::Error("InflationExtraction::extract "
-                         "Data directory has not been created."); 
+        else if (!FilesystemTools::directory_exists(new_path))
+        {
+            FilesystemTools::mkdir_recursive(new_path);
         }
     }
     return new_path;
@@ -79,7 +77,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
 
     // Loop to bin the power spectrum at each point
     const auto& field_arrs = field_array.arrays();
-    amrex::ParallelFor(field_array, [=, &ps_map, &kcount]
+    amrex::ParallelFor(field_array, [=, this, &ps_map, &kcount]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             // Check to see if you're in a ghost cell
@@ -171,7 +169,7 @@ InflationExtraction::calculate_field_moment_x(const amrex::MultiFab &field,
 
     const auto& field_arrs = field.arrays();
 
-    amrex::ParallelFor(field, [=, &sum] AMREX_GPU_DEVICE
+    amrex::ParallelFor(field, [=, this, &sum] AMREX_GPU_DEVICE
                 (int bx, int i, int j, int k)
         {
             sum += std::pow(field_arrs[bx](i, j, k, component) 
@@ -378,7 +376,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     const auto& scalars_arrs = scalars_k.arrays();
     const auto& R_k_arrs = R_k.arrays();
 
-    amrex::ParallelFor(gij_k, [=, &hij_tr_max, &hSV_tr_max]
+    amrex::ParallelFor(gij_k, [=, this, &hij_tr_max, &hSV_tr_max]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             amrex::IntVect iv{i, j, k};
@@ -516,7 +514,7 @@ inline void InflationExtraction::derive(const amrex::MultiFab &source, amrex::Mu
     const auto& R_arrs = R_x.arrays();
     const auto& out_arrs = out.arrays();
 
-    amrex::ParallelFor(hs_x, [=] AMREX_GPU_DEVICE
+    amrex::ParallelFor(hs_x, [=, this,] AMREX_GPU_DEVICE
                 (int bx, int i, int j, int k)
         {
             const amrex::IntVect iv{i, j, k};
