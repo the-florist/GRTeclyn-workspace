@@ -29,35 +29,36 @@
 struct InflationConfig
 {
     /* Shared parameters */
+    amrex::Real Mp = 1.;             //!< Energy scale of the problem
+
     // Basic initialisation flags
     int read_from_stoiic = 0;   //!< Whether to read spectrum from stoiic dparams.txt input
     int tensor_init = 0;        //!< Determines whether tensor perturbations are calculated
     int scalar_init = 0;  //!< Read in perturbations from STOIIC dparams
     int use_rand = 1;           //!< Choose whether to use random initial conditions
-    int plot_int = 0;
+    int use_window = 0;         //!< Choose whether to use window function
 
     // Grid parameters
     amrex::Real L = 0;                   //!< Length of the box
-    amrex::Real A = 0;                   //!< Amplitude factor (for basic tests)
-    amrex::Real Mp = 1.;             //!< Energy scale of the problem
-    amrex::Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
     int N = 0;               //!< used to read in the private N variable
     int N_fine = 0;                 //!< Fine resolution to downsample from, 
                                 //!< used for convergence testing
+    int N_coarse = 0;           //!< Coarse resolution to use for the cutoff mode
+                                //!< Used for convergence testing.
 
-    // Initial condition options
+    // Field construction parameters
+    amrex::Real A = 0;                   //!< Amplitude factor (for basic tests)
     int random_seed = 3539263;  //!< Seed for random number generator
-    int use_window = 0;         //!< Choose whether to use window function
+    amrex::Real alpha = 0.;          //!< Internal rotation angle in the +/x decomposition basis
     amrex::Real kstar = 0;               //!< window's cut-off mode, measured in units of 2pi/L
     amrex::Real Delta = 0;               //!< window's width, measured like L/Delta
 
     // Extraction parameters
     int calc_binned_power_spectrum = 0;   //!< Choose whether to extract the binned power spectrum
-    int bin_number = 0;                       //!< How many bins to use (capped at N/2)
+    int plot_int = 0;
     int calc_higher_order_statistics = 0; //!< Choose whether to print higher-order statistics on the fields
     int num_orders = 0;                       //!< Number of moments to print (required by vector read-in)
     amrex::Vector<int> orders;                   //!< Moment orders to print for extracted fields
-    int print_mode_functions = 0;
 
     // STOIIC read-in structures
     amrex::Vector<amrex::Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided

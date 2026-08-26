@@ -36,29 +36,19 @@ class SimulationParameters : public SimulationParametersBase
         inflt_params.Mp = 1./std::sqrt(G_Newton);
         background_params.G_Newton = G_Newton;
 
-        // Potential parameters
-        pp.load("potential.type", potential_params.type, 0);
-        pp.load("potential.param_1", potential_params.param1, 0.1);
-        pp.load("potential.param_2", potential_params.param2, 0.);
-        pp.load("potential.param_3", potential_params.param3, 0.);
-        pp.load("potential.param_4", potential_params.param4, 0.);
-        pp.load("potential.param_5", potential_params.param5, 0.);
-
-        // Background parameters
-        pp.load("init.background_phi", background_params.phi0, 0.0);
-        pp.load("init.background_dphi", background_params.Pi0, 0.0);	
-
-        // Grid parameters
-        pp.load("L", inflt_params.L, 1.);
-        pp.load("N", inflt_params.N, 32);
-
-        // Random Field init parameters
+        //<! Random Field init parameters
         // Flags
         pp.load("randominit.read_from_STOIIC", inflt_params.read_from_stoiic, 0);
         pp.load("randominit.tensor_init", inflt_params.tensor_init, 0);
         pp.load("randominit.scalar_init", inflt_params.scalar_init, 0);
         pp.load("randominit.use_rand", inflt_params.use_rand, 1);
         pp.load("randominit.use_window", inflt_params.use_window, 0);
+
+        // Grid parameters
+        pp.load("L", inflt_params.L, 1.);
+        pp.load("N", inflt_params.N, 32);
+        pp.load("N_fine", inflt_params.N_fine, inflt_params.N);
+        pp.load("N_coarse", inflt_params.N_coarse, inflt_params.N);
 
         // Field construction parameters
         pp.load("randominit.A", inflt_params.A, 1.);
@@ -70,14 +60,14 @@ class SimulationParameters : public SimulationParametersBase
         // Extraction parameters
         pp.load("extraction.calc_binned_power_spectrum", 
                 inflt_params.calc_binned_power_spectrum, 0);
+        pp.load("extraction.spec_interval", inflt_params.plot_int, 100);
         pp.load("extraction.calc_higher_order_statistics", 
-                inflt_params.calc_higher_order_statistics, 0);
-        pp.load("extraction.bin_number", inflt_params.bin_number, inflt_params.N/2); 
-	    pp.load("extraction.spec_interval", inflt_params.plot_int, 100);
+                inflt_params.calc_higher_order_statistics, 0); 
         pp.load("extraction.num_moments", inflt_params.num_orders, 0);
         pp.getarr("extraction.moments_to_print", inflt_params.orders, 0, 
-                                                inflt_params.num_orders);
+                                                inflt_params.num_orders);	
 
+        //<! If reading in from STOIIC, read in initial spectrum arrays
         if(inflt_params.read_from_stoiic)
         {
             int num_modes;
@@ -112,6 +102,18 @@ class SimulationParameters : public SimulationParametersBase
                 pp.getarr("randominit.im_dh_k", inflt_params.tensor_ps[3], 0, num_modes);
             }
         }
+
+        //<! Potential parameters
+        pp.load("potential.type", potential_params.type, 0);
+        pp.load("potential.param_1", potential_params.param1, 0.1);
+        pp.load("potential.param_2", potential_params.param2, 0.);
+        pp.load("potential.param_3", potential_params.param3, 0.);
+        pp.load("potential.param_4", potential_params.param4, 0.);
+        pp.load("potential.param_5", potential_params.param5, 0.);
+
+        //<! Background parameters
+        pp.load("init.background_phi", background_params.phi0, 0.0);
+        pp.load("init.background_dphi", background_params.Pi0, 0.0);
     }
 
     void check_params()

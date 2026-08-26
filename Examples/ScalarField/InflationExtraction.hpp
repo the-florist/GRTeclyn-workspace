@@ -23,16 +23,20 @@ class InflationExtraction
 
         // Constructor used in extraction of diagnostics
         InflationExtraction(InflationConfig a_params)
-                : m_params(a_params), norm(std::pow(a_params.L, -3.))   
+        : m_params(a_params), norm(std::pow(a_params.L, -3.))   
         {}
 
         // Main routines
-        void derive(const amrex::MultiFab &source, amrex::MultiFab &out, const int dcomp);
+        void derive(const amrex::MultiFab &source, 
+                    amrex::MultiFab &out, const int dcomp);
         void extract(const amrex::MultiFab &state);
 
         // Set-up function when printing to data files
-        void set_print_params(const std::string data_path, const amrex::Real dt,  
-                     const amrex::Real cur_time, const int restart_time, const int first_step)
+        void set_print_params(const std::string data_path, 
+                              const amrex::Real dt,  
+                              const amrex::Real cur_time, 
+                              const int restart_time, 
+                              const int first_step)
         {
             m_data_path = data_path;
             m_dt = dt;
@@ -41,13 +45,15 @@ class InflationExtraction
             m_first_step = first_step;
         }
 
-        amrex::Vector<amrex::Real> print_moment(amrex::MultiFab &field, const amrex::Vector<std::string> names,  
-                                 const amrex::Vector<int> &moment_orders, SmallDataIO &file, 
-                                 const int is_first_step);
+        amrex::Vector<amrex::Real> 
+        print_moment(amrex::MultiFab &field, 
+                     const amrex::Vector<std::string> names,  
+                     const amrex::Vector<int> &moment_orders, 
+                     SmallDataIO &file, 
+                     const int is_first_step);
 
     private:
         InflationConfig m_params;
-        const int print_mode_functions = 0;
         std::string m_data_path;
         amrex::Real m_dt;
         amrex::Real m_cur_time;
