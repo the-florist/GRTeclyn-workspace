@@ -131,6 +131,14 @@ class SimulationParameters : public SimulationParametersBase
                        (!inflt_params.calc_higher_order_statistics 
                         || !inflt_params.orders.empty()),
                        "moment orders must be provided");
+
+        check_parameter("N_fine", inflt_params.N_fine, 
+                        N_fine >= N,
+                        "finest resolution must be larger than N");
+
+        warn_parameter("N_coarse", inflt_params.N_coarse, 
+                       N_coarse <= N,
+                       "coarsest resolution should be smaller than N");
     }
 
     // Initial data for matter and potential and BH

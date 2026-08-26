@@ -23,7 +23,7 @@ class InflationExtraction
 
         // Constructor used in extraction of diagnostics
         InflationExtraction(InflationConfig a_params)
-        : m_params(a_params), norm(std::pow(a_params.L, -3.))   
+        : m_params(a_params)
         {}
 
         // Main routines
@@ -59,7 +59,6 @@ class InflationExtraction
         amrex::Real m_cur_time;
         int m_restart_time;
         int m_first_step;
-        const amrex::Real norm;
 
         std::string make_subdirectory(const std::string base, const std::string dir, 
                                       const int is_first_step) const;

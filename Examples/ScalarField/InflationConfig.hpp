@@ -70,23 +70,23 @@ struct InflationConfig
     // Nyquist condition
     inline int flip_index(const int indx) 
     {
-        AMREX_ASSERT(N > 0); 
-        return std::abs(N - indx); 
+        AMREX_ASSERT(N_fine > 0); 
+        return std::abs(N_fine - indx); 
     }
 
     // Nyquist condition and calculation of kmag
     inline int invert_index(const int indx) 
     { 
-        AMREX_ASSERT(N > 0);
-        return (int)(N/2 - std::abs(N/2 - indx)); 
+        AMREX_ASSERT(N_fine > 0);
+        return (int)(N_fine/2 - std::abs(N_fine/2 - indx)); 
     }
 
     // For calculation of polarisation tensors
     inline int invert_index_with_sign(const int indx) 
     { 
-        AMREX_ASSERT(N > 0);
-        if (indx <= N/2) { return indx; }
-        else { return std::abs(N/2 - indx) - N/2; }
+        AMREX_ASSERT(N_fine > 0);
+        if (indx <= N_fine/2) { return indx; }
+        else { return std::abs(N_fine/2 - indx) - N_fine/2; }
     }
 
     // Find the magnitude of the Fourier wavevector at this point
@@ -99,11 +99,31 @@ struct InflationConfig
         return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / L;
     }
 
-    inline amrex::GpuArray<amrex::Real, 3> calculate_basis_vector(const amrex::IntVect iv, 
-                                               const int which_vector);
+    // Physical FFT normalisation, shared by the init and extraction classes.
+    // CHANGE WITH CARE
+    inline amrex::Real norm() const
+    {
+        AMREX_ASSERT(L > 0);
+        return std::pow(std::sqrt(2. * M_PI) / L, 3.);
+    }
 
-    inline Tensor<2, amrex::Real> calculate_polarisation_tensor(const amrex::IntVect iv,
-                                                         const int which_pol)
+    inline amrex::Real window_function(const amrex::Real kmag) const
+    {
+        AMREX_ASSERT(L > 0 && Delta > 0);
+        const int N_w = (N_coarse != 0) ? N_coarse : N;
+        const amrex::Real ks = std::sqrt(3.) * N_w * M_PI / L / 5. / 2.;
+        //kstar * 2. * M_PI / L;
+        const amrex::Real Dt = L / Delta;
+        return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
+    }
+
+    inline amrex::GpuArray<amrex::Real, 3> 
+    calculate_basis_vector(const amrex::IntVect iv, 
+                           const int which_vector);
+
+    inline Tensor<2, amrex::Real> 
+    calculate_polarisation_tensor(const amrex::IntVect iv,
+                                  const int which_pol)
     {
         // Find basis vectors
         amrex::GpuArray<amrex::Real, 3> mhat = calculate_basis_vector(iv, 0);
@@ -125,7 +145,7 @@ struct InflationConfig
         else 
         {
             amrex::Error("InflationConfig::calculate_polarisation_tensor, "
-                  "polarisation flag is not set correctly.");
+                         "polarisation flag is not set correctly.");
             return eplus;
         }
     }
