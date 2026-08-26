@@ -107,6 +107,16 @@ struct InflationConfig
         return std::pow(std::sqrt(2. * M_PI) / L, 3.);
     }
 
+    inline amrex::Real window_function(const amrex::Real kmag) const
+    {
+        AMREX_ASSERT(L > 0 && Delta > 0);
+        const int N_w = (N_coarse != 0) ? N_coarse : N;
+        const amrex::Real ks = std::sqrt(3.) * N_w * M_PI / L / 5. / 2.;
+        //kstar * 2. * M_PI / L;
+        const amrex::Real Dt = L / Delta;
+        return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
+    }
+
     inline amrex::GpuArray<amrex::Real, 3> 
     calculate_basis_vector(const amrex::IntVect iv, 
                            const int which_vector);

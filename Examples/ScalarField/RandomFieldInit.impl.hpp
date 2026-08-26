@@ -148,13 +148,10 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_random_field(co
     }
 
     // Apply a window function if requested
-    if (m_params.use_window == 1) 
-    { 
+    if (m_params.use_window == 1)
+    {
         BL_PROFILE("RandomFieldInit::calculate_random_field Window function is used")
-        amrex::Real ks = std::sqrt(3.) * m_params.N_coarse * M_PI / m_params.L / 5. / 2.;
-        //m_params.kstar * 2. * M_PI/m_params.L;
-        amrex::Real Dt = m_params.L/m_params.Delta;
-        value *= 0.5 * (1.0 - tanh(Dt * (kmag - ks))); 
+        value *= m_params.window_function(kmag);
     }
 
     return value;
