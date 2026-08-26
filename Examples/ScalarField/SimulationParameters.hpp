@@ -54,7 +54,6 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("randominit.A", inflt_params.A, 1.);
         pp.load("randominit.random_seed", inflt_params.random_seed, 3539263);
         pp.load("randominit.alpha", inflt_params.alpha, 0.);
-        pp.load("randominit.kstar", inflt_params.kstar, 0.);
         pp.load("randominit.Delta", inflt_params.Delta, 1.);
 
         // Extraction parameters
