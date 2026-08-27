@@ -311,8 +311,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     Copy(gij_x, state, c_h23, InflationUtils::lut[1][2], 1, 0);
     Copy(gij_x, state, c_h33, InflationUtils::lut[2][2], 1, 0);
 
-    int m_c_phi = 0;
-    int m_c_chi = 1;
+    constexpr int m_c_phi = 0;
+    constexpr int m_c_chi = 1;
     Copy(scalars_x, state, c_phi, m_c_phi, 1, 0);
     Copy(scalars_x, state, c_chi, m_c_chi, 1, 0);
 
@@ -338,7 +338,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::IntVect domain_low(0, 0, 0);
     amrex::IntVect k_domain_high(m_params.N/2, m_params.N-1, m_params.N-1);
     amrex::Box k_domain(domain_low, k_domain_high);
-    amrex::Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
     amrex::BoxArray kba = decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
     amrex::DistributionMapping kdm(kba);
 

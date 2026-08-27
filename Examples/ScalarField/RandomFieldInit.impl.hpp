@@ -196,7 +196,7 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
 
     amrex::IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     amrex::Box k_domain(domain_low, k_domain_high);
-    amrex::Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
     amrex::BoxArray kba = decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
     amrex::DistributionMapping kdm(kba);
 
