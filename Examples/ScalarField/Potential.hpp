@@ -85,6 +85,13 @@ class Potential
 				m_params.width = m_params.param4;
 				break;
 
+			case 12:
+				m_params.scalar_mass = m_params.param1;
+				m_params.amplitude = m_params.param2;   // step amplitude c
+				m_params.location = m_params.param3;    // step location phi_s
+				m_params.width = m_params.param4;       // step width d
+				break;
+
 			default:
 				amrex::Print() << m_params.type << ", ";
 				amrex::Print() << typeid(m_params.type).name() << "\n";
@@ -145,6 +152,26 @@ class Potential
 		dV = std::pow(m_params.scalar_mass, 2.) * (phi * (1.0 - feature)
 			 + (std::pow(phi, 2.0) * (phi - m_params.location) * feature 
 			   / std::pow(m_params.width, 2.0) / 2.0));
+	}
+
+	// Quadratic potential modulated by a tanh step, as used in STOIIC
+	// V = 0.5 m^2 phi^2 [1 + c tanh((phi - phi_s) / d)]
+	template <class data_t>
+	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	quadratic_step(data_t &V, data_t &dV, const data_t &phi) const
+	{
+		if (m_params.scalar_mass == 0)
+		{
+			amrex::Error("Potential::quadratic_step, Scalar mass is un-initialised.");
+		}
+
+		amrex::Real step = tanh((phi - m_params.location) / m_params.width);
+		amrex::Real d_step = (1.0 - std::pow(step, 2.)) / m_params.width;
+
+		V = std::pow(m_params.scalar_mass * phi, 2.)
+			* (1.0 + m_params.amplitude * step) / 2.;
+		dV = std::pow(m_params.scalar_mass, 2.) * (phi * (1.0 + m_params.amplitude * step)
+			 + std::pow(phi, 2.) * m_params.amplitude * d_step / 2.);
 	}
 
 	// Monodromy potential, as used in STOIIC and also in arXiv:2403.12811
@@ -254,7 +281,11 @@ class Potential
 			case 11:
 				inverted_quadratic_bump<data_t>(V_of_phi, dVdphi, vars.phi);
 				break;
-			
+
+			case 12:
+				quadratic_step<data_t>(V_of_phi, dVdphi, vars.phi);
+				break;
+
 			default:
 				amrex::Print() << m_params.type << "\n";
 				amrex::Error("Potential::compute_potential, "
