@@ -157,7 +157,10 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
     // amrex::Print the power spectrum to a new file in data/
     for(int s = 0; s <= m_params.N/2; s++)
     {
-        power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., ps_map[s]/kcount[s]});
+        if (kcount[s] > 0)
+        {
+            power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., ps_map[s]/kcount[s]});
+        }
     }
 }
 
