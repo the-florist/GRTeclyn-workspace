@@ -118,17 +118,22 @@ struct InflationConfig
         return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
     }
 
-    inline amrex::GpuArray<amrex::Real, 3> 
-    calculate_basis_vector(const amrex::IntVect iv, 
-                           const int which_vector);
+    //! An orthonormal pair of polarisation basis vectors for a Fourier mode
+    struct BasisVectors
+    {
+        amrex::GpuArray<amrex::Real, 3> mhat;
+        amrex::GpuArray<amrex::Real, 3> nhat;
+    };
+
+    //! Computes both polarisation basis vectors for this mode in one call
+    inline BasisVectors calculate_basis_vectors(const amrex::IntVect iv);
 
     inline Tensor<2, amrex::Real>
     calculate_polarisation_tensor(const amrex::IntVect iv,
                                   const int which_pol)
     {
         // Find basis vectors
-        amrex::GpuArray<amrex::Real, 3> mhat = calculate_basis_vector(iv, 0);
-        amrex::GpuArray<amrex::Real, 3> nhat = calculate_basis_vector(iv, 1);
+        const auto [mhat, nhat] = calculate_basis_vectors(iv);
 
         Tensor<2, amrex::Real> eplus, ecross;
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -160,8 +165,7 @@ struct InflationConfig
             for (int i = lo[0]; i <= hi[0]; i++)
             {
                 const amrex::IntVect iv{i, j, k};
-                amrex::GpuArray<amrex::Real, 3> mhat = calculate_basis_vector(iv, 0);
-                amrex::GpuArray<amrex::Real, 3> nhat = calculate_basis_vector(iv, 1);
+                const auto [mhat, nhat] = calculate_basis_vectors(iv);
                 TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
 
                 Tensor<2, amrex::Real> eplus  = calculate_polarisation_tensor(iv, 0);
