@@ -11,90 +11,88 @@
 #ifndef INFLATIONCONFIG_IMPL_HPP_
 #define INFLATIONCONFIG_IMPL_HPP_
 
-// Calculates basis vectors required for polarisation tensors
-inline amrex::GpuArray<amrex::Real, 3> 
-InflationConfig::calculate_basis_vector(const amrex::IntVect iv, 
-                                        const int which_vector)
+// Calculates both basis vectors required for the polarisation tensors
+inline InflationConfig::BasisVectors
+InflationConfig::calculate_basis_vectors(const amrex::IntVect iv)
 {
-    AMREX_ASSERT(norm > 0);
+    using Vec = amrex::GpuArray<amrex::Real, 3>;
 
-    // Hermitian symmetry inversion on j and k, with sign on the last two indices.
-    // (!!) The FT implemented in AMReX symmetrises across the i index.
+    // Hermitian symmetry inversion on j and k, with sign on the last two
+    // indices. (!!) The FT implemented in AMReX symmetrises across the i index,
+    // so i >= 0 always.
     const amrex::Real i = static_cast<amrex::Real>(iv[0]);
     const amrex::Real j = static_cast<amrex::Real>(invert_index_with_sign(iv[1]));
     const amrex::Real k = static_cast<amrex::Real>(invert_index_with_sign(iv[2]));
 
-    amrex::GpuArray<amrex::Real, 3> mhat;
-    amrex::GpuArray<amrex::Real, 3> nhat;
-    mhat.fill(0.);
-    nhat.fill(0.);
+    // Default is the zero mode: mhat = nhat = 0, tensors have no average
+    Vec mhat{0., 0., 0.};
+    Vec nhat{0., 0., 0.};
 
-    // Skip the 0 mode, as tensors have no average
-    if (iv == amrex::IntVect{0, 0, 0}) { ; }
+    if (iv == amrex::IntVect{0, 0, 0}) { /* zero mode: leave as zero */ }
 
-    else if (i > 0.) 
+    else if (i != 0.)
     {
-        if (k == 0. && j == 0.) 
-        { 
-            mhat = amrex::GpuArray<amrex::Real, 3>{0., 1., 0.};
-            nhat = amrex::GpuArray<amrex::Real, 3>{0., 0., 1.}; 
-        }
-
-        else 
-        { 
-            amrex::Real norm = sqrt((i*i + j*j) * (i*i + j*j + k*k));
-            mhat = amrex::GpuArray<amrex::Real, 3>{j/sqrt(i*i + j*j), -i/sqrt(i*i + j*j), 0.}; 
-            nhat = amrex::GpuArray<amrex::Real, 3>{(i*k) / norm, (j*k) / norm, -(i*i + j*j) / norm}; 
-        }
-    }
-
-    else if (std::abs(j) > 0) 
-    { 
-        if(k == 0.)
+        if (j == 0. && k == 0.)
         {
-            mhat = amrex::GpuArray<amrex::Real, 3>{0., 0., 1.};
-            nhat = amrex::GpuArray<amrex::Real, 3>{1., 0., 0.};
+            mhat = Vec{0., 1., 0.};
+            nhat = Vec{0., 0., 1.};
         }
-
         else
         {
-            mhat = amrex::GpuArray<amrex::Real, 3>{-1., 0., 0.};
-            nhat = amrex::GpuArray<amrex::Real, 3>{0., -k / sqrt(j*j + k*k), j / sqrt(j*j + k*k)};
+            const amrex::Real i2j2 = i*i + j*j;
+            const amrex::Real ij   = std::sqrt(i2j2);
+            const amrex::Real n    = std::sqrt(i2j2 * (i2j2 + k*k));
+            mhat = Vec{j / ij, -i / ij, 0.};
+            nhat = Vec{(i*k) / n, (j*k) / n, -i2j2 / n};
         }
     }
 
-    else if (std::abs(k) > 0) 
-    { 
-        mhat = amrex::GpuArray<amrex::Real, 3>{1., 0., 0.};
-        nhat = amrex::GpuArray<amrex::Real, 3>{0., 1., 0.};
-    }
-
-    else 
+    else if (j != 0.)   // i == 0
     {
-        amrex::Error("RandomField::calculate_polarisation_tensors Part of Fourier grid not covered.");
-    }
-
-    if (alpha != 0)
-    {
-        amrex::Real a = alpha * (M_PI) / 180.;
-        amrex::GpuArray<amrex::Real, 3> mp, np;
-        for(int l=0; l<3; l++)
+        if (k == 0.)
         {
-            mp[l] = cos(a) * mhat[l] + sin(a) * nhat[l];
-            np[l] = -sin(a) * mhat[l] + cos(a) * nhat[l];
+            mhat = Vec{0., 0., 1.};
+            nhat = Vec{1., 0., 0.};
         }
+        else
+        {
+            const amrex::Real jk = std::sqrt(j*j + k*k);
+            mhat = Vec{-1., 0., 0.};
+            nhat = Vec{0., -k / jk, j / jk};
+        }
+    }
 
+    else if (k != 0.)   // i == 0, j == 0
+    {
+        mhat = Vec{1., 0., 0.};
+        nhat = Vec{0., 1., 0.};
+    }
+
+    else
+    {
+        // Unreachable: (i, j, k) == (0, 0, 0) only when iv == {0,0,0}, which is
+        // handled by the zero-mode branch above.
+        AMREX_ASSERT_WITH_MESSAGE(false, "InflationConfig::calculate_basis_vectors, "
+                                         "Fourier grid point not covered.");
+    }
+
+    // Apply the internal rotation in the +/x decomposition basis, if requested
+    if (alpha != 0.)
+    {
+        const amrex::Real a  = alpha * M_PI / 180.;
+        const amrex::Real ca = std::cos(a);
+        const amrex::Real sa = std::sin(a);
+        Vec mp, np;
+        for (int l = 0; l < 3; l++)
+        {
+            mp[l] =  ca * mhat[l] + sa * nhat[l];
+            np[l] = -sa * mhat[l] + ca * nhat[l];
+        }
         mhat = mp;
         nhat = np;
     }
 
-    if(which_vector == 0) { return mhat; }
-    else if(which_vector == 1) { return nhat; }
-    else 
-    { 
-        amrex::Error("RandomField::calculate_basis_vector Incompatable vector type."); 
-        return amrex::GpuArray<amrex::Real, 3>{0,0,0}; 
-    }
+    return {mhat, nhat};
 }
 
 // Applies above Nyquist conditions to a given MF

@@ -7,7 +7,11 @@
 #define RANDOMFIELDINIT_HPP_
 
 #include "InflationConfig.hpp"
+#include "InitialBackgroundData.hpp"
+#include "Potential.hpp"
 #include "TensorTests.hpp"
+
+#include <AMReX_FFT.H>
 
 class RandomFieldInit
 {
@@ -61,14 +65,41 @@ class RandomFieldInit
         void init(amrex::MultiFab &state);
 
     private:
+        enum class FieldType   { Scalar, Tensor };
+        enum class ScalarField { Phi = 0, Pi = 1, Chi = 2, K = 3 };
+        enum class TensorField { Amplitude = 0, Velocity = 1 };
+
         InflationConfig m_params;
-        amrex::GpuComplex<amrex::Real> calculate_mode_function(const amrex::Real km, const int spec_indx);
-        amrex::GpuComplex<amrex::Real> find_in_stoiic(const amrex::Real km, const int field_indx, 
-                                        const std::string field_type);
-        amrex::GpuComplex<amrex::Real> calculate_random_field(const amrex::IntVect iv, const int field_index,
-                                                const amrex::Real rand_amp, const amrex::Real rand_phase,
-                                                std::string field_type);
-        amrex::Real find_precision_loss(amrex::MultiFab &field, const int comp, const amrex::Real bkgd);
+        amrex::GpuComplex<amrex::Real> 
+        calculate_mode_function(const amrex::Real km,
+                                const TensorField field_selector);
+
+        amrex::GpuComplex<amrex::Real> 
+        find_in_stoiic(const amrex::Real km,
+                       const FieldType field_type,
+                       const auto field_selector);
+
+        amrex::GpuComplex<amrex::Real> 
+        calculate_random_field(const amrex::IntVect iv, 
+                               const amrex::Real rand_amp, 
+                               const amrex::Real rand_phase,
+                               const FieldType field_type,
+                               const auto field_selector);
+
+        amrex::Real
+        find_precision_loss(amrex::MultiFab &field,
+                            const int comp,
+                            const amrex::Real bkgd);
+
+        void generate_fourier_realisation(amrex::cMultiFab &hij_k,
+                                          amrex::cMultiFab &Aij_k,
+                                          amrex::cMultiFab &scalar_fields_k);
+
+        void add_perturbations_to_state(amrex::MultiFab &state,
+                                        amrex::MultiFab &hij_x,
+                                        amrex::MultiFab &Aij_x,
+                                        amrex::MultiFab &scalar_fields_x,
+                                        const int dN);
 };
 
 #include "RandomFieldInit.impl.hpp"

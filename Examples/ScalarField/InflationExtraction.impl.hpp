@@ -41,11 +41,11 @@ InflationExtraction::assign_statistics_data(amrex::Vector<std::string> &header_s
                                             const int component, const int num_comps,
                                             const amrex::Vector<int>::const_iterator itr, 
                                             const amrex::Vector<int>::const_iterator start, 
-                                            const int is_m_first_step)
+                                            const int is_first_step)
 {
     int loc = component + num_comps*(itr - start);
-    if(is_m_first_step) 
-    { 
+    if(is_first_step)
+    {
         header_storage[loc] =  name; 
     }
     data_storage[loc] = data[component];
@@ -123,7 +123,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                     
                     int comp = (kmag == kiso[m_params.N/2]) ? m_params.N/2 : s - 1;
 
-                    int count = 0;
+                    int count = 1;
                     if (i != 0 && i != m_params.N/2) { power *= 2.; count = 2; }
 
                     amrex::Gpu::Atomic::Add(&kcount[comp], count);
@@ -154,13 +154,10 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
     amrex::ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), 
                                   amrex::ParallelContext::CommunicatorSub());
 
-    // amrex::Print the power spectrum to a new file in data/
-    for(int s = 0; s <= m_params.N/2; s++)
+    for(int s = 0; s < m_params.N/2; s++)
     {
-        if (kcount[s] > 0)
-        {
-            power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., ps_map[s]/kcount[s]});
-        }
+        const amrex::Real avg_power = (kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.;
+        power_spec_file.write_data_line({(kiso[s] + kiso[s+1]) / 2., avg_power});
     }
 }
 
@@ -170,18 +167,25 @@ InflationExtraction::calculate_field_moment_x(const amrex::MultiFab &field,
                                               const amrex::Vector<amrex::Real> mean, 
                                               const int moment, const int component)
 {
-    amrex::Real sum = 0.;
     const amrex::Real vol = std::pow(m_params.N, 3.);
+    const amrex::Real mean_comp = mean[component];
 
-    const auto& field_arrs = field.arrays();
+    amrex::ReduceOps<amrex::ReduceOpSum> reduce_op;
+    amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
-    amrex::ParallelFor(field, [=, this, &sum] AMREX_GPU_DEVICE
-                (int bx, int i, int j, int k)
-        {
-            sum += std::pow(field_arrs[bx](i, j, k, component) 
-                            - mean[component], moment);
-        });
-    amrex::Gpu::streamSynchronize();
+    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box &bx = mfi.validbox();
+        auto const &arr = field.const_array(mfi);
+        reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return { std::pow(arr(i, j, k, component) - mean_comp, moment) };
+            });
+    }
+
+    amrex::Real sum = amrex::get<0>(reduce_data.value());
     amrex::ParallelAllReduce::Sum(sum, amrex::ParallelContext::CommunicatorSub());
 
     // Normalise and return moment x
@@ -314,8 +318,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     Copy(gij_x, state, c_h23, InflationUtils::lut[1][2], 1, 0);
     Copy(gij_x, state, c_h33, InflationUtils::lut[2][2], 1, 0);
 
-    int m_c_phi = 0;
-    int m_c_chi = 1;
+    constexpr int m_c_phi = 0;
+    constexpr int m_c_chi = 1;
     Copy(scalars_x, state, c_phi, m_c_phi, 1, 0);
     Copy(scalars_x, state, c_chi, m_c_chi, 1, 0);
 
@@ -341,7 +345,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::IntVect domain_low(0, 0, 0);
     amrex::IntVect k_domain_high(m_params.N/2, m_params.N-1, m_params.N-1);
     amrex::Box k_domain(domain_low, k_domain_high);
-    amrex::Array< bool, AMREX_SPACEDIM > const &slicing{true, false, false};
+    constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
     amrex::BoxArray kba = decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
     amrex::DistributionMapping kdm(kba);
 
@@ -575,15 +579,18 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
     }
     
     // Calculate and print tensor to scalar ratio (integrated PS)
-    SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time, 
-                        m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
+    if (std::find(m_params.orders.begin(), m_params.orders.end(), 2) != m_params.orders.end())
+    {
+        SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time,
+                            m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
 
-    if(m_first_step) 
-    { 
-        ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); 
+        if(m_first_step)
+        {
+            ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"});
+        }
+
+        ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]});
     }
-    
-    ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]}); 
 }
 
 #endif /* INFLATIONEXTRACTION_IMPL_HPP_ */
