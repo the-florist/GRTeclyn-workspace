@@ -15,7 +15,7 @@ namespace InflationUtils
 {
     // Look-up table
     // Used to construct polarisation basis tensors
-    const Tensor<2, int> lut{0, 1, 2, 1, 3, 4, 2, 4, 5};
+    inline constexpr int lut[3][3]{{0, 1, 2}, {1, 3, 4}, {2, 4, 5}};
     constexpr amrex::Real tolerance = 1.e-12;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
