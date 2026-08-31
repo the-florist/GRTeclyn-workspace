@@ -12,7 +12,7 @@
 #define INFLATIONCONFIG_IMPL_HPP_
 
 // Calculates both basis vectors required for the polarisation tensors
-inline InflationConfig::BasisVectors
+AMREX_GPU_HOST_DEVICE inline InflationConfig::BasisVectors
 InflationConfig::calculate_basis_vectors(const amrex::IntVect iv)
 {
     using Vec = amrex::GpuArray<amrex::Real, 3>;

@@ -67,21 +67,21 @@ struct InflationConfig
     /* Shared functions */
 
     // Nyquist condition
-    inline int flip_index(const int indx) const
+    AMREX_GPU_HOST_DEVICE inline int flip_index(const int indx) const
     {
         AMREX_ASSERT(N_fine > 0);
         return std::abs(N_fine - indx);
     }
 
     // Nyquist condition and calculation of kmag
-    inline int invert_index(const int indx) const
+    AMREX_GPU_HOST_DEVICE inline int invert_index(const int indx) const
     {
         AMREX_ASSERT(N_fine > 0);
         return (int)(N_fine/2 - std::abs(N_fine/2 - indx));
     }
 
     // For calculation of polarisation tensors
-    inline int invert_index_with_sign(const int indx) const
+    AMREX_GPU_HOST_DEVICE inline int invert_index_with_sign(const int indx) const
     {
         AMREX_ASSERT(N_fine > 0);
         if (indx <= N_fine/2) { return indx; }
@@ -89,7 +89,7 @@ struct InflationConfig
     }
 
     // Find the magnitude of the Fourier wavevector at this point
-    inline amrex::Real get_kmag(amrex::IntVect iv) const
+    AMREX_GPU_HOST_DEVICE inline amrex::Real get_kmag(amrex::IntVect iv) const
     {
         AMREX_ASSERT(L > 0);
         const int i = iv[0];
@@ -106,7 +106,8 @@ struct InflationConfig
         return std::pow(std::sqrt(2. * M_PI) / L, 3.);
     }
 
-    inline amrex::Real window_function(const amrex::Real kmag) const
+    AMREX_GPU_HOST_DEVICE inline amrex::Real
+    window_function(const amrex::Real kmag) const
     {
         AMREX_ASSERT(L > 0 && Delta > 0);
         const int N_w = (N_coarse != 0) ? N_coarse : N;
@@ -123,7 +124,8 @@ struct InflationConfig
     };
 
     //! Computes both polarisation basis vectors for this mode in one call
-    inline BasisVectors calculate_basis_vectors(const amrex::IntVect iv);
+    AMREX_GPU_HOST_DEVICE inline BasisVectors
+    calculate_basis_vectors(const amrex::IntVect iv);
 
     //! The plus and cross polarisation tensors for a Fourier mode
     struct PolarisationTensors
@@ -133,7 +135,8 @@ struct InflationConfig
     };
 
     //! Computes both polarisation tensors for this mode in one call
-    inline PolarisationTensors calculate_polarisation_tensors(const amrex::IntVect iv)
+    AMREX_GPU_HOST_DEVICE inline PolarisationTensors
+    calculate_polarisation_tensors(const amrex::IntVect iv)
     {
         // Find basis vectors
         const auto [mhat, nhat] = calculate_basis_vectors(iv);

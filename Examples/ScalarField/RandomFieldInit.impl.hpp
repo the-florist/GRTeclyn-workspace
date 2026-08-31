@@ -57,7 +57,7 @@ inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field,
     return pow(10., p_bkgd + p_field);
 }
 
-inline amrex::GpuComplex<amrex::Real> 
+AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
 RandomFieldInit::find_in_stoiic(const amrex::Real km,
                                 const FieldType field_type,
                                 const auto field_selector)
@@ -101,8 +101,8 @@ RandomFieldInit::find_in_stoiic(const amrex::Real km,
 }
 
 // Returns analytic power spectrum in modulus/argument form
-inline amrex::GpuComplex<amrex::Real> 
-RandomFieldInit::calculate_mode_function(const amrex::Real km, 
+AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
+RandomFieldInit::calculate_mode_function(const amrex::Real km,
                                          const TensorField field_selector)
 {
     // Deals with k=0 case, which is undefined if m=0
@@ -133,8 +133,8 @@ RandomFieldInit::calculate_mode_function(const amrex::Real km,
 }
 
 // Turns analytic PS into GRF and applies window function if requested
-inline amrex::GpuComplex<amrex::Real> 
-RandomFieldInit::calculate_random_field(const amrex::IntVect iv, 
+AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
+RandomFieldInit::calculate_random_field(const amrex::IntVect iv,
                                         const amrex::Real rand_amp, 
                                         const amrex::Real rand_phase,
                                         const FieldType field_type,

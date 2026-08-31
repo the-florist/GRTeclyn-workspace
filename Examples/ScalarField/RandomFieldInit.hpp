@@ -76,17 +76,17 @@ class RandomFieldInit
         enum class TensorField { Amplitude = 0, Velocity = 1 };
 
         InflationConfig m_params;
-        amrex::GpuComplex<amrex::Real> 
+        AMREX_GPU_HOST_DEVICE amrex::GpuComplex<amrex::Real>
         calculate_mode_function(const amrex::Real km,
                                 const TensorField field_selector);
 
-        amrex::GpuComplex<amrex::Real> 
+        AMREX_GPU_HOST_DEVICE amrex::GpuComplex<amrex::Real>
         find_in_stoiic(const amrex::Real km,
                        const FieldType field_type,
                        const auto field_selector);
 
-        amrex::GpuComplex<amrex::Real> 
-        calculate_random_field(const amrex::IntVect iv, 
+        AMREX_GPU_HOST_DEVICE amrex::GpuComplex<amrex::Real>
+        calculate_random_field(const amrex::IntVect iv,
                                const amrex::Real rand_amp, 
                                const amrex::Real rand_phase,
                                const FieldType field_type,
