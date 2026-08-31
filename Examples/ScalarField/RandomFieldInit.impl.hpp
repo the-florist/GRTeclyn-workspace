@@ -285,6 +285,10 @@ inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
                                                         amrex::MultiFab &scalar_fields_x,
                                                         const int dN)
 {
+    static_assert(c_h33 == c_h11 + 5 && c_A33 == c_A11 + 5,
+                  "add_perturbations_to_state assumes c_h11..c_h33 and "
+                  "c_A11..c_A33 are consecutive metric/A_ij components");
+
     // Apply normalisation into physical units
     hij_x.mult(m_params.norm());
     Aij_x.mult(m_params.norm());
@@ -319,31 +323,28 @@ inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
 
         if (iv_ds.min() >= 0 && iv_ds.max() < m_params.N)
         {
+            const auto state_cell = state_arrs[bx];
+
             // Add scalar perturbations to the existing background values
             if (m_params.scalar_init)
             {
-                state_arrs[bx](iv_ds, c_phi) += scalar_field_x_arrs[bx](iv, 0);
-                state_arrs[bx](iv_ds, c_Pi) += scalar_field_x_arrs[bx](iv, 1);
-                state_arrs[bx](iv_ds, c_chi) += scalar_field_x_arrs[bx](iv, 2);
-                state_arrs[bx](iv_ds, c_K) += scalar_field_x_arrs[bx](iv, 3);
+                const auto scalar_x = scalar_field_x_arrs[bx];
+                state_cell(iv_ds, c_phi) += scalar_x(iv, 0);
+                state_cell(iv_ds, c_Pi)  += scalar_x(iv, 1);
+                state_cell(iv_ds, c_chi) += scalar_x(iv, 2);
+                state_cell(iv_ds, c_K)   += scalar_x(iv, 3);
             }
 
             // Add tensor perturbations to the existing background values
             if (m_params.tensor_init)
             {
-                state_arrs[bx](iv_ds, c_h11) += hij_x_arrs[bx](iv, InflationUtils::lut[0][0]);
-                state_arrs[bx](iv_ds, c_h12) += hij_x_arrs[bx](iv, InflationUtils::lut[0][1]);
-                state_arrs[bx](iv_ds, c_h13) += hij_x_arrs[bx](iv, InflationUtils::lut[0][2]);
-                state_arrs[bx](iv_ds, c_h22) += hij_x_arrs[bx](iv, InflationUtils::lut[1][1]);
-                state_arrs[bx](iv_ds, c_h23) += hij_x_arrs[bx](iv, InflationUtils::lut[1][2]);
-                state_arrs[bx](iv_ds, c_h33) += hij_x_arrs[bx](iv, InflationUtils::lut[2][2]);
-
-                state_arrs[bx](iv_ds, c_A11) += Aij_x_arrs[bx](iv, InflationUtils::lut[0][0]);
-                state_arrs[bx](iv_ds, c_A12) += Aij_x_arrs[bx](iv, InflationUtils::lut[0][1]);
-                state_arrs[bx](iv_ds, c_A13) += Aij_x_arrs[bx](iv, InflationUtils::lut[0][2]);
-                state_arrs[bx](iv_ds, c_A22) += Aij_x_arrs[bx](iv, InflationUtils::lut[1][1]);
-                state_arrs[bx](iv_ds, c_A23) += Aij_x_arrs[bx](iv, InflationUtils::lut[1][2]);
-                state_arrs[bx](iv_ds, c_A33) += Aij_x_arrs[bx](iv, InflationUtils::lut[2][2]);
+                const auto h_x = hij_x_arrs[bx];
+                const auto A_x = Aij_x_arrs[bx];
+                for (int comp = 0; comp < 6; comp++)
+                {
+                    state_cell(iv_ds, c_h11 + comp) += h_x(iv, comp);
+                    state_cell(iv_ds, c_A11 + comp) += A_x(iv, comp);
+                }
             }
         }
     });
