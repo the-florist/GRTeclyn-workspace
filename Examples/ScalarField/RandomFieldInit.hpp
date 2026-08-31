@@ -52,6 +52,12 @@ class RandomFieldInit
                 case 10:
                     potential.punctuated(V, dV, bkgd_params.phi0);
                     break;
+                case 11:
+                    potential.inverted_quadratic_bump(V, dV, bkgd_params.phi0);
+                    break;
+                case 12:
+                    potential.quadratic_step(V, dV, bkgd_params.phi0);
+                    break;
                 default:
                     amrex::Error("RandomFieldInit::RandomFieldInit,"
                                  "potential type not provided");
