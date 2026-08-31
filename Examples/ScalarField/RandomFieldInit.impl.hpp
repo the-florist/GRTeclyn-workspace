@@ -62,19 +62,21 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amre
     if (km == 0) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
 
     // Find the index where this k appears
-    int spec_index;
+    int spec_index = -1;
     for(int idx = 0; idx < m_params.init_k.size(); idx++)
     {
-        if (std::abs(km - m_params.init_k[idx]) < InflationUtils::tolerance) 
-        { 
-            spec_index = idx; 
-            break; 
+        if (std::abs(km - m_params.init_k[idx]) < InflationUtils::tolerance)
+        {
+            spec_index = idx;
+            break;
         }
-        else if (idx == m_params.init_k.size() - 1) 
-        { 
-            amrex::Print() << km << "\n"; 
-            amrex::Error("The above k was not found in the STOIIC file."); 
-        }
+    }
+
+    if (spec_index == -1)
+    {
+        amrex::Print() << km << "\n";
+        amrex::Error("RandomFieldInit::find_in_stoiic, "
+                     "the above k was not found in the STOIIC file.");
     }
 
     // Return the field at this k
