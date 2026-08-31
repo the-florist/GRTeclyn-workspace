@@ -54,6 +54,13 @@ struct InflationParams
     int num_orders{0};                   //!< Number of moments to print
                                          //!< (required by vector read-in)
 
+    // STOIIC spectra uploaded to the device, flattened row-major as
+    // [row][mode]. Set by RandomFieldInit; null when STOIIC is unused.
+    int n_modes{0};                             //!< Number of k modes read in
+    const amrex::Real *init_k_ptr{nullptr};     //!< k values, length n_modes
+    const amrex::Real *scalar_ps_ptr{nullptr};  //!< 8 x n_modes scalar spectra
+    const amrex::Real *tensor_ps_ptr{nullptr};  //!< 4 x n_modes tensor spectra
+
     /* Shared device-callable functions */
 
     // Nyquist condition
@@ -143,9 +150,6 @@ struct InflationParams
     }
 };
 
-// Full host-side configuration. Adds the variable-length STOIIC read-in data
-// and the host-only routines that launch kernels. NOT trivially copyable, so
-// slice to the InflationParams base before capturing into a device kernel.
 struct InflationConfig : public InflationParams
 {
     amrex::Vector<int> orders;           //!< Moment orders to print for
