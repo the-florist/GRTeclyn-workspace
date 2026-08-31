@@ -55,8 +55,10 @@ inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field, 
     return pow(10., p_bkgd + p_field);
 }
 
-inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amrex::Real km, const int field_indx,
-                                                    const FieldType field_type)
+inline amrex::GpuComplex<amrex::Real> 
+RandomFieldInit::find_in_stoiic(const amrex::Real km,
+                                const FieldType field_type,
+                                const auto field_selector)
 {
     // Assume no average
     if (km == 0) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
@@ -79,42 +81,49 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::find_in_stoiic(const amre
                      "the above k was not found in the STOIIC file.");
     }
 
-    // Return the field at this k
+    // Return the field (real and imaginary parts) at this k
     if (field_type == FieldType::Tensor)
     {
-        return (amrex::GpuComplex<amrex::Real>{m_params.tensor_ps[2*field_indx][spec_index],
-                                 m_params.tensor_ps[2*field_indx+1][spec_index]});
+        return (amrex::GpuComplex<amrex::Real>{
+                m_params.tensor_ps[2*static_cast<int>(field_selector)][spec_index],  // Real
+                m_params.tensor_ps[2*static_cast<int>(field_selector)+1][spec_index] // Imag
+            });
     }
     else
     {
-        return (amrex::GpuComplex<amrex::Real>{m_params.scalar_ps[2*field_indx][spec_index],
-                                 m_params.scalar_ps[2*field_indx+1][spec_index]});
+        return (amrex::GpuComplex<amrex::Real>{
+                m_params.scalar_ps[2*static_cast<int>(field_selector)][spec_index],  // Real
+                m_params.scalar_ps[2*static_cast<int>(field_selector)+1][spec_index] // Imag
+            });
     }
 }
 
 // Returns analytic power spectrum in modulus/argument form
-inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_mode_function(const amrex::Real km, 
-                                                             const int spec_indx)
+inline amrex::GpuComplex<amrex::Real> 
+RandomFieldInit::calculate_mode_function(const amrex::Real km, 
+                                         const TensorField field_selector)
 {
     // Deals with k=0 case, which is undefined if m=0
-    if (km < InflationUtils::tolerance) { return amrex::GpuComplex<amrex::Real>{0., 0.}; }
+    if (km < InflationUtils::tolerance) 
+    { 
+        return amrex::GpuComplex<amrex::Real>{0., 0.}; 
+    }
     
     // Stores modulus and argument 
     amrex::Real ms_mag = 0.;
     amrex::Real ms_arg = 0.;
 
     amrex::Real kpr = km/H0;
-    if (spec_indx == 0) // Position mode funcion
+    if (field_selector == TensorField::Amplitude) // Position mode funcion
     {
         ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2./pow(m_params.Mp, 2.));
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
-    else if (spec_indx == 1) // Velocity mode funcion
+    else // Velocity mode funcion
     {
         ms_mag = sqrt(km/2./pow(m_params.Mp, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
-    else { amrex::Error("RandomFieldInit::calculate_mode_function Value of spec_type not allowed."); }
 
     // Construct the mode function and return it
     amrex::GpuComplex<amrex::Real> ps(ms_mag * cos(ms_arg), ms_mag * sin(ms_arg));
@@ -122,9 +131,12 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_mode_function(c
 }
 
 // Turns analytic PS into GRF and applies window function if requested
-inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_random_field(const amrex::IntVect iv, const int field_index,
-                                                            const amrex::Real rand_amp, const amrex::Real rand_phase,
-                                                            const FieldType field_type)
+inline amrex::GpuComplex<amrex::Real> 
+RandomFieldInit::calculate_random_field(const amrex::IntVect iv, 
+                                        const amrex::Real rand_amp, 
+                                        const amrex::Real rand_phase,
+                                        const FieldType field_type,
+                                        const auto field_selector)
 {
     amrex::GpuComplex<amrex::Real> value(0., 0.);
 
@@ -134,9 +146,17 @@ inline amrex::GpuComplex<amrex::Real> RandomFieldInit::calculate_random_field(co
     // Find the analytic power spectrum
     if (m_params.read_from_stoiic) 
     { 
-        value = find_in_stoiic(kmag, field_index, field_type); 
+        value = find_in_stoiic(kmag, field_type, field_selector); 
     }
-    else { value = calculate_mode_function(kmag, field_index); }
+    else 
+    {
+        if constexpr (std::is_same_v<std::decay_t<decltype(field_selector)>, ScalarField>)
+        {
+            amrex::Error("RandomFieldInit::calculate_random_field, "
+                         "scalar de-Sitter ICs are not yet implemented");
+        }
+        else { value = calculate_mode_function(kmag, field_selector); }
+    }
 
     // Add stochastic perturbations
     if (m_params.use_rand == 1)
@@ -227,8 +247,12 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     // Construct the Fourier transform
     amrex::IntVect x_domain_high(Ni-1, Ni-1, Ni-1);
     amrex::Box x_domain(domain_low, x_domain_high);
-    amrex::FFT::R2C<amrex::Real> tensor_fft(x_domain, amrex::FFT::Info().setBatchSize(hij_k.nComp()));
-    amrex::FFT::R2C<amrex::Real> scalar_fft(x_domain, amrex::FFT::Info().setBatchSize(scalar_fields_k.nComp()));
+
+    amrex::FFT::R2C<amrex::Real> tensor_fft(x_domain, 
+        amrex::FFT::Info().setBatchSize(hij_k.nComp()));
+
+    amrex::FFT::R2C<amrex::Real> scalar_fft(x_domain, 
+        amrex::FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
     const auto &hs_arrs = hs_k.arrays();
     const auto &hij_k_arrs = hij_k.arrays();
@@ -251,11 +275,18 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
 
         if (m_params.scalar_init)
         {
-            amrex::Real draw1 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + 0ULL));
-            amrex::Real draw2 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + 1ULL));
-            for(int f=0; f<4; f++)
+            amrex::Real draw1 = InflationUtils::to_unit_open(
+                                InflationUtils::splitmix64(cell_key + 0ULL));
+            amrex::Real draw2 = InflationUtils::to_unit_open(
+                                InflationUtils::splitmix64(cell_key + 1ULL));
+
+            
+            constexpr amrex::GpuArray<ScalarField, 4> all_scalar_fields{
+                ScalarField::Phi, ScalarField::Pi, ScalarField::Chi, ScalarField::K};
+            for (ScalarField fs : all_scalar_fields)
             {
-                scalar_field_arrs[bx](i, j, k, f) = calculate_random_field(iv, f, draw1, draw2, FieldType::Scalar);
+                scalar_field_arrs[bx](i, j, k, static_cast<int>(fs)) =
+                    calculate_random_field(iv, draw1, draw2, FieldType::Scalar, fs);
             }
         }
 
@@ -264,11 +295,18 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
             // Find the mode function realisation
             for(int p=0; p<2; p++)
             {
-                amrex::Real draw1 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + uint64_t(2 + 2*p)));
-                amrex::Real draw2 = InflationUtils::to_unit_open(InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
+                amrex::Real draw1 = InflationUtils::to_unit_open(
+                                    InflationUtils::splitmix64(cell_key + uint64_t(2 + 2*p)));
+                amrex::Real draw2 = InflationUtils::to_unit_open(
+                                    InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
 
-                hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, 0, draw1, draw2, FieldType::Tensor);
-                As_arrs[bx](i, j, k, p) = calculate_random_field(iv, 1, draw1, draw2, FieldType::Tensor);
+                hs_arrs[bx](i, j, k, p) = calculate_random_field(iv, draw1, draw2, 
+                                                                FieldType::Tensor, 
+                                                                TensorField::Amplitude);
+
+                As_arrs[bx](i, j, k, p) = calculate_random_field(iv, draw1, draw2, 
+                                                                FieldType::Tensor, 
+                                                                TensorField::Velocity);
             }
             
             // Construct polarisation tensors from basis vectors
