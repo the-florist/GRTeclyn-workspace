@@ -23,7 +23,8 @@ class RandomFieldInit
         static amrex::Real
         calc_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
         {
-            return sqrt((8. * M_PI * G / 3.)*(0.5*pow(Pi, 2.) + V));
+            return sqrt((8. * amrex::Math::pi<amrex::Real>() * G / 3.)
+                        * (0.5 * pow(Pi, 2.) + V));
         }
 
     public:

@@ -54,8 +54,9 @@ inline void InflationExtraction::print_power_spectrum(
     const int component)
 { 
     // Set up the isotropic k axis bounds
-    amrex::Real kiso_max = std::sqrt(3.) * m_params.N * M_PI / m_params.L;
-    amrex::Real dkiso = sqrt(3.) * 2. * M_PI / m_params.L;
+    amrex::Real kiso_max =
+        std::sqrt(3.) * m_params.N * amrex::Math::pi<amrex::Real>() / m_params.L;
+    amrex::Real dkiso = sqrt(3.) * 2. * amrex::Math::pi<amrex::Real>() / m_params.L;
 
     // check the stepping along the diagonal is consistent
     if (kiso_max/dkiso - m_params.N/2 > InflationUtils::tolerance)
@@ -461,7 +462,10 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     iv_k[1] = cfg.invert_index_with_sign(iv_k[1]);
                     iv_k[2] = cfg.invert_index_with_sign(iv_k[2]);
 
-                    for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / cfg.L; }
+                    for(auto& k_comp : iv_k)
+                    {
+                        k_comp *= 2. * amrex::Math::pi<amrex::Real>() / cfg.L;
+                    }
                     amrex::GpuComplex<amrex::Real> Phi = 0;
 
                     // converstion from chi and gamma_ij -> Phi

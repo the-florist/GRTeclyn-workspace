@@ -219,7 +219,7 @@ RandomFieldInit::calculate_random_field(const InflationParams &cfg,
 
         // Make one random draw for the amplitude and phase individually
         amrex::Real rand_mod = sqrt(-2. * log(rand_amp));
-        amrex::Real rand_arg = 2. * M_PI * rand_phase;
+        amrex::Real rand_arg = 2. * amrex::Math::pi<amrex::Real>() * rand_phase;
 
         // Multiply amplitude by Rayleigh draw
         value *= rand_mod;

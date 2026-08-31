@@ -79,7 +79,7 @@ InflationParams::calculate_basis_vectors(const amrex::IntVect iv)
     // Apply the internal rotation in the +/x decomposition basis, if requested
     if (alpha != 0.)
     {
-        const amrex::Real a  = alpha * M_PI / 180.;
+        const amrex::Real a  = alpha * amrex::Math::pi<amrex::Real>() / 180.;
         const amrex::Real ca = std::cos(a);
         const amrex::Real sa = std::sin(a);
         Vec mp, np;

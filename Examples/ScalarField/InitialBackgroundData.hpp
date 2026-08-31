@@ -16,6 +16,8 @@
 #include "simd.hpp"
 #include "Potential.hpp"
 
+#include <AMReX_Math.H>
+
 // template <class potential_t>
 class InitialBackgroundData
 {
@@ -55,7 +57,9 @@ class InitialBackgroundData
 			amrex::Real V, dV;
 			m_potential.compute_potential(V, dV, vars);
 			
-			amrex::Real H0 = sqrt((8. * M_PI * m_params.G_Newton/3.)*(0.5*pow(m_params.Pi0, 2.) + V));
+			amrex::Real H0 =
+				sqrt((8. * amrex::Math::pi<amrex::Real>() * m_params.G_Newton / 3.)
+				     * (0.5 * pow(m_params.Pi0, 2.) + V));
 			vars.K = -3.*H0;
 
 			store_vars(cell.cellData(i, j, k), vars);

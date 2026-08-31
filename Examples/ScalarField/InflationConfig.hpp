@@ -12,6 +12,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
+#include <AMReX_Math.H>
 
 #include "InflationUtils.hpp"
 #include "TensorTests.hpp"
@@ -92,7 +93,7 @@ struct InflationParams
         const int i = iv[0];
         const int j = invert_index(iv[1]);
         const int k = invert_index(iv[2]);
-        return std::sqrt(i*i + j*j + k*k) * 2. * M_PI / L;
+        return std::sqrt(i*i + j*j + k*k) * 2. * amrex::Math::pi<amrex::Real>() / L;
     }
 
     // Physical FFT normalisation, shared by the init and extraction classes.
@@ -100,7 +101,7 @@ struct InflationParams
     inline amrex::Real norm() const
     {
         AMREX_ASSERT(L > 0);
-        return std::pow(std::sqrt(2. * M_PI) / L, 3.);
+        return std::pow(std::sqrt(2. * amrex::Math::pi<amrex::Real>()) / L, 3.);
     }
 
     AMREX_GPU_HOST_DEVICE inline amrex::Real
@@ -108,7 +109,8 @@ struct InflationParams
     {
         AMREX_ASSERT(L > 0 && Delta > 0);
         const int N_w = (N_coarse != 0) ? N_coarse : N;
-        const amrex::Real ks = std::sqrt(3.) * N_w * M_PI / L / 5. / 2.;
+        const amrex::Real ks =
+            std::sqrt(3.) * N_w * amrex::Math::pi<amrex::Real>() / L / 5. / 2.;
         const amrex::Real Dt = L / Delta;
         return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
     }
