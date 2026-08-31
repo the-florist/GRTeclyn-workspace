@@ -16,14 +16,14 @@
 #include "InflationUtils.hpp"
 #include "TensorTests.hpp"
 
-struct InflationConfig
+struct InflationParams
 {
     /* Shared parameters */
     amrex::Real Mp{1.};             //!< Energy scale of the problem
 
     // Basic initialisation flags
-    int read_from_stoiic{0};   //!< Whether to read spectrum from stoiic dparams.txt input
-    int tensor_init{0};        //!< Determines whether tensor perturbations are calculated
+    int read_from_stoiic{0};   //!< Whether to read spectrum from stoiic input
+    int tensor_init{0};        //!< Determines whether tensor perturbations run
     int scalar_init{0};        //!< Read in perturbations from STOIIC dparams
     int use_rand{1};           //!< Choose whether to use random initial conditions
     int use_window{0};         //!< Choose whether to use window function
@@ -33,7 +33,7 @@ struct InflationConfig
     // Grid parameters
     amrex::Real L{0};       //!< Length of the box
     int N{0};               //!< Grid resolution (number of points per dimension)
-    int N_fine{0};          //!< Fine resolution to downsample from, 
+    int N_fine{0};          //!< Fine resolution to downsample from,
                             //!< used for convergence testing
     int N_coarse{0};        //!< Coarse resolution to use for the cutoff mode
                             //!< Used for convergence testing.
@@ -53,18 +53,8 @@ struct InflationConfig
                                          //!< statistics on the fields
     int num_orders{0};                   //!< Number of moments to print
                                          //!< (required by vector read-in)
-    amrex::Vector<int> orders;           //!< Moment orders to print for
-                                         //!< extracted fields
 
-    // STOIIC read-in structures
-    //!< ks printed by STOIIC, at which Fourier-space fields are provided
-    amrex::Vector<amrex::Real> init_k;
-    //!< Structure: four fields * two components, power spec values
-    amrex::Vector<amrex::Vector<amrex::Real>> scalar_ps;
-    //!< Structure: two fields * two components, power spec values
-    amrex::Vector<amrex::Vector<amrex::Real>> tensor_ps;
-
-    /* Shared functions */
+    /* Shared device-callable functions */
 
     // Nyquist condition
     AMREX_GPU_HOST_DEVICE inline int flip_index(const int indx) const
@@ -151,7 +141,24 @@ struct InflationConfig
 
         return pol;
     }
-    
+};
+
+// Full host-side configuration. Adds the variable-length STOIIC read-in data
+// and the host-only routines that launch kernels. NOT trivially copyable, so
+// slice to the InflationParams base before capturing into a device kernel.
+struct InflationConfig : public InflationParams
+{
+    amrex::Vector<int> orders;           //!< Moment orders to print for
+                                         //!< extracted fields
+
+    // STOIIC read-in structures
+    //!< ks printed by STOIIC, at which Fourier-space fields are provided
+    amrex::Vector<amrex::Real> init_k;
+    //!< Structure: four fields * two components, power spec values
+    amrex::Vector<amrex::Vector<amrex::Real>> scalar_ps;
+    //!< Structure: two fields * two components, power spec values
+    amrex::Vector<amrex::Vector<amrex::Real>> tensor_ps;
+
     inline void test_polarisation_normalisation(const amrex::cMultiFab &kfield)
     {
         for (amrex::MFIter mfi(kfield); mfi.isValid(); ++mfi)

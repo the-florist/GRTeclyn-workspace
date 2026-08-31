@@ -71,28 +71,31 @@ inline void InflationExtraction::print_power_spectrum(
     for (int s=0; s<=m_params.N/2; s++) { kiso[s] = s*dkiso; }
 
     // Needed to pass the map to the amrex::ParallelFor loop
-    amrex::MFIter::allowMultipleMFIters(true); 
+    amrex::MFIter::allowMultipleMFIters(true);
+
+    // Slice to the POD base so the kernel captures config by value
+    const InflationParams cfg = m_params;
 
     // Loop to bin the power spectrum at each point
     const auto& field_arrs = field_array.arrays();
-    amrex::ParallelFor(field_array, [=, this, &ps_map, &kcount]
+    amrex::ParallelFor(field_array, [=, &ps_map, &kcount]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             // Check to see if you're in a ghost cell
             amrex::IntVect iv{i, j, k};
-            amrex::Real kmag = m_params.get_kmag(iv);
+            amrex::Real kmag = cfg.get_kmag(iv);
 
             // make sure you're still in the domain
-            if(kmag - kiso_max > InflationUtils::tolerance) 
-            { 
+            if(kmag - kiso_max > InflationUtils::tolerance)
+            {
                 amrex::Print() << iv << "\n";
                 amrex::Print() << kmag << "," << kiso_max << "\n";
                 amrex::Error("InflationExtraction::print_power_spectrum "
-                      "Found magnitude larger than (N/2,N/2,N/2)."); 
+                      "Found magnitude larger than (N/2,N/2,N/2).");
             }
 
             // Loop over the isotropic axis
-            for (int s=1; s<=m_params.N/2; s++) 
+            for (int s=1; s<=cfg.N/2; s++)
             {
                 // If smaller than the smallest bin
                 if(kmag < kiso[0])
@@ -103,7 +106,7 @@ inline void InflationExtraction::print_power_spectrum(
                 }
 
                 // If you're larger than the largest bin
-                else if(kmag - kiso[m_params.N/2] > InflationUtils::tolerance)
+                else if(kmag - kiso[cfg.N/2] > InflationUtils::tolerance)
                 {
                     amrex::Print() << iv << "\n";
                     amrex::Error("InflationExtraction::print_power_spectrum "
@@ -111,17 +114,17 @@ inline void InflationExtraction::print_power_spectrum(
                 }
 
                 // If you're somewhere in the middle
-                else if ((kmag < kiso[s] && kmag >= kiso[(s-1)]) 
-                        || kmag == kiso[m_params.N/2]) 
+                else if ((kmag < kiso[s] && kmag >= kiso[(s-1)])
+                        || kmag == kiso[cfg.N/2])
                 {
                     amrex::Real power =
                         (std::pow(field_arrs[bx](i, j, k, component).real(), 2.0)
                          + std::pow(field_arrs[bx](i, j, k, component).imag(), 2.0));
-                    
-                    int comp = (kmag == kiso[m_params.N/2]) ? m_params.N/2 : s - 1;
+
+                    int comp = (kmag == kiso[cfg.N/2]) ? cfg.N/2 : s - 1;
 
                     int count = 1;
-                    if (i != 0 && i != m_params.N/2) { power *= 2.; count = 2; }
+                    if (i != 0 && i != cfg.N/2) { power *= 2.; count = 2; }
 
                     amrex::Gpu::Atomic::Add(&kcount[comp], count);
                     amrex::Gpu::Atomic::Add(&ps_map[comp], power);
@@ -130,7 +133,7 @@ inline void InflationExtraction::print_power_spectrum(
                 }
 
                 // If you've reached the largest bin but not been captured
-                else if(s > m_params.N/2)
+                else if(s > cfg.N/2)
                 { 
                     amrex::Print() << iv << "\n";
                     amrex::Print() << kmag << "\n";
@@ -396,15 +399,18 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     const auto& scalars_arrs = scalars_k.arrays();
     const auto& R_k_arrs = R_k.arrays();
 
-    amrex::ParallelFor(gij_k, [=, this, &hij_tr_max, &hSV_tr_max]
+    // Slice to the POD base so the kernel captures config by value
+    const InflationParams cfg = m_params;
+
+    amrex::ParallelFor(gij_k, [=, &hij_tr_max, &hSV_tr_max]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             amrex::IntVect iv{i, j, k};
-            amrex::Real kmag = m_params.get_kmag(iv);
+            amrex::Real kmag = cfg.get_kmag(iv);
 
             if (iv != amrex::IntVect{0, 0, 0})
             {
-                const auto [eplus, ecross] = m_params.calculate_polarisation_tensors(iv);
+                const auto [eplus, ecross] = cfg.calculate_polarisation_tensors(iv);
 
                 // Find basis tensors and do the Fourier trick
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -448,14 +454,14 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 // Extract R according to the scheme detailed in 
                 // Appendix B (Eq. B1) of arxiv:2502.06783, using hSV as the 
                 // spatial metric instead of \tilde{gamma}_ij
-                if(m_params.scalar_init)
+                if(cfg.scalar_init)
                 {
                     // Find the unitful k vector
                     amrex::Vector<amrex::Real> iv_k(iv.begin(), iv.end());
-                    iv_k[1] = m_params.invert_index_with_sign(iv_k[1]);
-                    iv_k[2] = m_params.invert_index_with_sign(iv_k[2]);
-                
-                    for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / m_params.L; }
+                    iv_k[1] = cfg.invert_index_with_sign(iv_k[1]);
+                    iv_k[2] = cfg.invert_index_with_sign(iv_k[2]);
+
+                    for(auto& k_comp : iv_k) { k_comp *= 2. * M_PI / cfg.L; }
                     amrex::GpuComplex<amrex::Real> Phi = 0;
 
                     // converstion from chi and gamma_ij -> Phi

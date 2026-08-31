@@ -12,8 +12,8 @@
 #define INFLATIONCONFIG_IMPL_HPP_
 
 // Calculates both basis vectors required for the polarisation tensors
-AMREX_GPU_HOST_DEVICE inline InflationConfig::BasisVectors
-InflationConfig::calculate_basis_vectors(const amrex::IntVect iv)
+AMREX_GPU_HOST_DEVICE inline InflationParams::BasisVectors
+InflationParams::calculate_basis_vectors(const amrex::IntVect iv)
 {
     using Vec = amrex::GpuArray<amrex::Real, 3>;
 
@@ -99,20 +99,24 @@ InflationConfig::calculate_basis_vectors(const amrex::IntVect iv)
 inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
 {
     AMREX_ASSERT(N_fine > 0);
-    
+
+    // Slice to the POD base so the kernel captures config by value, not via
+    // the (host) this pointer
+    const InflationParams cfg = *this;
+
     int nc = field.nComp();
-    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi) 
+    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
     {
         // The geometry for this MPI rank
         const amrex::Box& bx = mfi.fabbox();
         amrex::Array4<amrex::GpuComplex<amrex::Real>> const& field_ptr = field.array(mfi);
 
-        amrex::ParallelFor(bx, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             amrex::IntVect iv = {i, j, k};
 
-            if ((i == 0 || i == N_fine/2) && (j == 0 || j == N_fine/2)
-                && (k == 0 || k == N_fine/2))
+            if ((i == 0 || i == cfg.N_fine/2) && (j == 0 || j == cfg.N_fine/2)
+                && (k == 0 || k == cfg.N_fine/2))
             {
                 for(int comp = 0; comp < nc; comp++)
                 {
@@ -122,27 +126,32 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                 }
             }
 
-            else if (i==0 || i==N_fine/2) 
+            else if (i==0 || i==cfg.N_fine/2)
             {
-                if((k > N_fine/2 && j == N_fine/2) || (k == 0 && j > N_fine/2) ||
-                    (k > N_fine/2 && j == 0) || (k == N_fine/2 && j > N_fine/2))
+                const int nh = cfg.N_fine/2;
+                if((k > nh && j == nh) || (k == 0 && j > nh)
+                    || (k > nh && j == 0) || (k == nh && j > nh))
                 {
-                    for(int comp = 0; comp < nc; comp++) 
+                    for(int comp = 0; comp < nc; comp++)
                     {
                         amrex::GpuComplex<amrex::Real> temp(
-                            field_ptr(i, invert_index(j), invert_index(k), comp).real(),
-                            -field_ptr(i, invert_index(j), invert_index(k), comp).imag());
+                            field_ptr(i, cfg.invert_index(j), cfg.invert_index(k), comp)
+                                .real(),
+                            -field_ptr(i, cfg.invert_index(j), cfg.invert_index(k), comp)
+                                .imag());
                         field_ptr(i, j, k, comp) = temp;
                     }
                 }
-                
-                else if(j > N_fine/2)
+
+                else if(j > nh)
                 {
-                    for(int comp = 0; comp < nc; comp++) 
+                    for(int comp = 0; comp < nc; comp++)
                     {
                         amrex::GpuComplex<amrex::Real> temp(
-                            field_ptr(i, invert_index(j), flip_index(k), comp).real(),
-                            -field_ptr(i, invert_index(j), flip_index(k), comp).imag());
+                            field_ptr(i, cfg.invert_index(j), cfg.flip_index(k), comp)
+                                .real(),
+                            -field_ptr(i, cfg.invert_index(j), cfg.flip_index(k), comp)
+                                .imag());
                         field_ptr(i, j, k, comp) = temp;
                     }
                 }

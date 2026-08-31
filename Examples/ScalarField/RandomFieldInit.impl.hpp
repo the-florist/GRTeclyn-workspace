@@ -319,18 +319,21 @@ inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
     const auto &Aij_x_arrs = Aij_x.const_arrays();
     const auto &scalar_field_x_arrs = scalar_fields_x.const_arrays();
 
+    // Slice to the POD base so the kernel captures config by value
+    const InflationParams cfg = m_params;
+
     amrex::ParallelFor(state,
-        [=, this] AMREX_GPU_DEVICE (int bx, int i, int j, int k) noexcept
+        [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) noexcept
     {
         const amrex::IntVect iv_ds{i, j, k}; // coarse (state) index
         const amrex::IntVect iv{i * dN, j * dN, k * dN}; // fine (field) index
 
-        if (iv_ds.min() >= 0 && iv_ds.max() < m_params.N)
+        if (iv_ds.min() >= 0 && iv_ds.max() < cfg.N)
         {
             const auto state_cell = state_arrs[bx];
 
             // Add scalar perturbations to the existing background values
-            if (m_params.scalar_init)
+            if (cfg.scalar_init)
             {
                 const auto scalar_x = scalar_field_x_arrs[bx];
                 state_cell(iv_ds, c_phi) += scalar_x(iv, 0);
@@ -340,7 +343,7 @@ inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
             }
 
             // Add tensor perturbations to the existing background values
-            if (m_params.tensor_init)
+            if (cfg.tensor_init)
             {
                 const auto h_x = hij_x_arrs[bx];
                 const auto A_x = Aij_x_arrs[bx];
