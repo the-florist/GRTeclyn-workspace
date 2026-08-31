@@ -69,29 +69,29 @@ struct InflationConfig
     /* Shared functions */
 
     // Nyquist condition
-    inline int flip_index(const int indx) 
+    inline int flip_index(const int indx) const
     {
-        AMREX_ASSERT(N_fine > 0); 
-        return std::abs(N_fine - indx); 
+        AMREX_ASSERT(N_fine > 0);
+        return std::abs(N_fine - indx);
     }
 
     // Nyquist condition and calculation of kmag
-    inline int invert_index(const int indx) 
-    { 
+    inline int invert_index(const int indx) const
+    {
         AMREX_ASSERT(N_fine > 0);
-        return (int)(N_fine/2 - std::abs(N_fine/2 - indx)); 
+        return (int)(N_fine/2 - std::abs(N_fine/2 - indx));
     }
 
     // For calculation of polarisation tensors
-    inline int invert_index_with_sign(const int indx) 
-    { 
+    inline int invert_index_with_sign(const int indx) const
+    {
         AMREX_ASSERT(N_fine > 0);
         if (indx <= N_fine/2) { return indx; }
         else { return std::abs(N_fine/2 - indx) - N_fine/2; }
     }
 
     // Find the magnitude of the Fourier wavevector at this point
-    inline amrex::Real get_kmag(amrex::IntVect iv)
+    inline amrex::Real get_kmag(amrex::IntVect iv) const
     {
         AMREX_ASSERT(L > 0);
         const int i = iv[0];
