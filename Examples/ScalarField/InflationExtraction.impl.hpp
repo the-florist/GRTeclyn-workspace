@@ -41,11 +41,11 @@ InflationExtraction::assign_statistics_data(amrex::Vector<std::string> &header_s
                                             const int component, const int num_comps,
                                             const amrex::Vector<int>::const_iterator itr, 
                                             const amrex::Vector<int>::const_iterator start, 
-                                            const int is_m_first_step)
+                                            const int is_first_step)
 {
     int loc = component + num_comps*(itr - start);
-    if(is_m_first_step) 
-    { 
+    if(is_first_step)
+    {
         header_storage[loc] =  name; 
     }
     data_storage[loc] = data[component];

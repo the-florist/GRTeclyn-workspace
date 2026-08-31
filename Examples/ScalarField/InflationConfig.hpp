@@ -12,13 +12,10 @@
 #include "FilesystemTools.hpp"
 #include "Potential.hpp"
 #include "Tensor.hpp"
-#include <fstream>
-#include <random>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FFT.H>
-#include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
@@ -41,7 +38,7 @@ struct InflationConfig
 
     // Grid parameters
     amrex::Real L{0};                   //!< Length of the box
-    int N{0};               //!< used to read in the private N variable
+    int N{0};               //!< Grid resolution (number of points per dimension)
     int N_fine{0};                 //!< Fine resolution to downsample from, 
                                 //!< used for convergence testing
     int N_coarse{0};           //!< Coarse resolution to use for the cutoff mode
