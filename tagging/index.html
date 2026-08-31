@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Tagging criteria - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Tagging criteria";
+        var mkdocs_page_input_path = "tagging.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../img/grteclyn-logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Running and modifying examples</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Tagging criteria</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#chitagger">ChiTagger</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#puncturetagger">PunctureTagger</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#extractiontagger">ExtractionTagger</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fixedgridstagger">FixedGridsTagger</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developing code</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../gauge_classes/">Gauge Classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../diagnostics/">Diagnostics</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../updating_docs/">Updating the docs</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Other features and tools</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../extraction/">Extraction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Misc resources</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Running and modifying examples</li>
+      <li class="breadcrumb-item active">Tagging criteria</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tagging-criteria">Tagging criteria</h1>
+<p>During regridding, each tagging criterion marks cells that should be covered by the next refinement level. If several taggers are used, a cell is refined when any one of them tags it. AMReX then groups the tagged cells into grid boxes, subject to its blocking and proper-nesting requirements.</p>
+<h2 id="chitagger"><code>ChiTagger</code></h2>
+<p><code>ChiTagger</code> refines regions where the conformal factor <span class="arithmatex">\(\chi\)</span> is varying rapidly. Its criterion is based on the magnitude of the second spatial derivatives of <span class="arithmatex">\(\chi\)</span>, scaled by the grid spacing.</p>
+<p>This tagger is used by the <code>BinaryBH</code> example.</p>
+<ul>
+<li><code>tagging.threshold</code> sets the same tagging threshold on every level. Smaller values generally tag more cells.</li>
+<li><code>tagging.thresholds</code> optionally supplies a separate threshold for each AMR level and takes precedence over <code>tagging.threshold</code>.</li>
+</ul>
+<h2 id="puncturetagger"><code>PunctureTagger</code></h2>
+<p><code>PunctureTagger</code> maintains refinement around each tracked puncture. The tagged radius is proportional to the puncture mass. Around the finest level it is approximately</p>
+<div class="arithmatex">\[
+r_{\mathrm{tag}} =
+\texttt{finest\_level\_factor}\,M.
+\]</div>
+<p>On the next coarser tagging level, this radius is multiplied by <code>level_separation</code>. This helps keep the finest refinement boundaries away from the puncture.</p>
+<p>This tagger is used by the <code>BinaryBH</code> example when puncture tracking is enabled.</p>
+<ul>
+<li><code>puncture_tagging.finest_level_factor</code> controls the size of the finest tagged region relative to the puncture mass.</li>
+<li><code>puncture_tagging.level_separation</code> controls how quickly the tagged region around each puncture grows between successive refinement levels.</li>
+</ul>
+<p>Larger values increase the refined volume around the punctures.</p>
+<h2 id="extractiontagger"><code>ExtractionTagger</code></h2>
+<p><code>ExtractionTagger</code> ensures that each spherical extraction surface is covered by its requested refinement level. It tags a sphere slightly larger than the extraction radius, providing a buffer between the extraction surface and the refinement boundary. On successively coarser levels, the tagged radius is increased by powers of <code>level_separation</code> to maintain nested refinement regions.</p>
+<p>This tagger is used by the <code>BinaryBH</code> example when Weyl extraction is enabled.</p>
+<ul>
+<li><code>extraction_tagging.level_separation</code> controls how quickly the tagged region grows between successive refinement levels.</li>
+</ul>
+<p>Larger values place coarser refinement boundaries farther from the extraction surface.</p>
+<h2 id="fixedgridstagger"><code>FixedGridsTagger</code></h2>
+<p><code>FixedGridsTagger</code> creates a fixed hierarchy of nested boxes centred on <code>geometry.center</code>. The linear size of the tagged region is halved on each successive level and does not depend on the evolved fields.</p>
+<p>This tagger is used by the <code>KleinGordon</code> and <code>ScalarField</code> examples. It has no tagger-specific parameters; its placement and extent are determined by <code>geometry.center</code> and <code>geometry.prob_extent</code>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../convergence_testing/" class="btn btn-neutral float-left" title="Convergence testing"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../moving_from_grchombo/" class="btn btn-neutral float-right" title="Moving from GRChombo">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../convergence_testing/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../moving_from_grchombo/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

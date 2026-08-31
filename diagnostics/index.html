@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Diagnostics - GRTeclyn</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" rel="stylesheet" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Diagnostics";
+        var mkdocs_page_input_path = "diagnostics.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../img/grteclyn-logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../capabilities/">Capabilities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../license_and_citation/">License and citation</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisites/">Prerequisites</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_cpus/">Building and running on CPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../building_gpus/">Building and running on GPUs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_configs/">Example configs for specific HPC systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Running and modifying examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../bbh_example/">Running the binary black hole example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sf_example/">Running the scalar field example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../visualising_outputs/">Visualising outputs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../kg_example/">Testing with the Klein Gordon example</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../parameters/">Parameters guide</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../performance_optimisation/">Performance optimisation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../convergence_testing/">Convergence testing</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../tagging/">Tagging criteria</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developing code</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../moving_from_grchombo/">Moving from GRChombo</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../code_structure/">Code structure</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../matter_classes/">Matter classes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../gauge_classes/">Gauge Classes</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Diagnostics</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#using-existing-diagnostics">Using existing diagnostics</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#adding-a-diagnostic">Adding a diagnostic</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coding_conventions/">Coding conventions</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pull_requests/">Pull requests</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../updating_docs/">Updating the docs</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Other features and tools</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../initial_data/">Initial data</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../two_punctures/">TwoPunctures</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../particle_interpolator/">Particle interpolator</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../extraction/">Extraction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ah_finder/">Apparent horizon finder</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Misc resources</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../useful_resources/">Useful resources</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../contact_us/">Contact us</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">GRTeclyn</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Developing code</li>
+      <li class="breadcrumb-item active">Diagnostics</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="diagnostics">Diagnostics</h1>
+<p>Diagnostics are quantities calculated from the current state, rather than variables which need to be evolved. Examples include the Hamiltonian constraint, the energy density and the Weyl scalar <span class="arithmatex">\(\Psi_4\)</span>. AMReX calls these <em>derived variables</em>.</p>
+<p>GRTeclyn does not keep a separate diagnostic state on the grid. A diagnostic is registered during setup and calculated from the evolution state only when something requests it. For example, a diagnostic selected with <code>amr.derive_plot_vars</code> is calculated when a plot file is written. A derived variable may also be requested directly by an extraction routine. This avoids storing and updating values which may be needed only occasionally.</p>
+<h2 id="using-existing-diagnostics">Using existing diagnostics</h2>
+<p>Reusable diagnostics provide a <code>set_up()</code> function. Call this from the example level's <code>variableSetUp()</code> after <code>stateVariableSetUp()</code>. For example, the Scalar Field example registers the constraints and energy density with</p>
+<pre class="highlight"><code class="language-cpp">ScalarFieldConstraints::set_up(state_index);
+ScalarFieldEnergyDensity::set_up(state_index);</code></pre>
+<p>The names registered by these classes can then be added to <code>amr.derive_plot_vars</code> in the parameter file. Setting</p>
+<pre class="highlight"><code class="language-text">amr.derive_plot_vars = ALL</code></pre>
+<p>outputs every registered diagnostic, although selecting only the variables needed will save calculation and output time.</p>
+<h2 id="adding-a-diagnostic">Adding a diagnostic</h2>
+<p>The <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KleinGordon/DerivedVariables.hpp">Klein Gordon derived variables</a> provide a compact example, while <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Source/CCZ4/Constraints.hpp"><code>Constraints</code></a> shows how a reusable diagnostic can be packaged as a class.</p>
+<p>To add your own diagnostic:</p>
+<ol>
+<li>
+<p>Define the function which calculates it, for example <code>calc_energy_density</code>. Take a look at how this is done in <code>DerivedVariables.hpp</code> and <code>DerivedVariables.impl.hpp</code> in the Klein Gordon example. The function is given the current state and fills the new diagnostic variable.</p>
+</li>
+<li>
+<p>Add the diagnostic to AMReX's list of derived variables, <code>derive_lst</code>. This happens in the example level's <code>variableSetUp()</code> function. Give the diagnostic a name and pass in the calculation function from step 1. You must also tell AMReX which state variables the calculation needs; the existing examples show the usual setup.</p>
+</li>
+<li>
+<p>Select the diagnostic in <code>amr.derive_plot_vars</code>. When <code>writePlotFile()</code> is called, AMReX checks this list, calculates the selected diagnostics and writes them to the plot file. Diagnostics which have not been selected are not calculated.</p>
+</li>
+</ol>
+<p>For a diagnostic that will be reused, follow the pattern used by <code>Constraints</code>, where the calculation and setup are grouped together in a class. Example-specific diagnostics can instead be registered directly in the example level, as in <a href="https://github.com/GRTLCollaboration/GRTeclyn/blob/main/Examples/KleinGordon/KleinGordonLevel.cpp"><code>KleinGordonLevel::variableSetUp()</code></a>.</p>
+<p>No call needs to be added to the RHS calculation or every time step. Plot-file output requests the selected diagnostics automatically. The particle interpolator can also request a registered diagnostic for an extraction; see <a href="../extraction/">Extraction</a> for an example. In both cases it is calculated from the state at the time it is needed.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../gauge_classes/" class="btn btn-neutral float-left" title="Gauge Classes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../coding_conventions/" class="btn btn-neutral float-right" title="Coding conventions">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../gauge_classes/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../coding_conventions/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+      <script src="../javascripts/katex-render.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
