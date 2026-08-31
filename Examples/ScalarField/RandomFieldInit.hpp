@@ -82,10 +82,20 @@ class RandomFieldInit
                                const FieldType field_type,
                                const auto field_selector);
 
-        amrex::Real 
-        find_precision_loss(amrex::MultiFab &field, 
-                            const int comp, 
+        amrex::Real
+        find_precision_loss(amrex::MultiFab &field,
+                            const int comp,
                             const amrex::Real bkgd);
+
+        void generate_fourier_realisation(amrex::cMultiFab &hij_k,
+                                          amrex::cMultiFab &Aij_k,
+                                          amrex::cMultiFab &scalar_fields_k);
+
+        void add_perturbations_to_state(amrex::MultiFab &state,
+                                        amrex::MultiFab &hij_x,
+                                        amrex::MultiFab &Aij_x,
+                                        amrex::MultiFab &scalar_fields_x,
+                                        const int dN);
 };
 
 #include "RandomFieldInit.impl.hpp"
