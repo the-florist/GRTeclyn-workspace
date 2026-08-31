@@ -101,7 +101,7 @@ void ScalarFieldLevel::specificAdvance()
                            TraceARemoval()(cell);
                            PositiveChiAndAlpha(simParams().min_chi, simParams().min_lapse)(cell);
                        });
-    Gpu::StreamSynchronize();
+    amrex::Gpu::streamSynchronize();
 
     // Check for nan's
     if (simParams().nan_check)
@@ -179,7 +179,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            TraceARemoval()(cell);
                            PositiveChiAndAlpha(simParams().min_chi, simParams().min_lapse)(cell);
                        });
-    Gpu::StreamSynchronize();
+    amrex::Gpu::streamSynchronize();
 
     // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
     Potential potential(simParams().potential_params);
@@ -247,7 +247,7 @@ void ScalarFieldLevel::specificUpdateODE(amrex::MultiFab &a_soln)
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
                        });
-    Gpu::StreamSynchronize();
+    amrex::Gpu::streamSynchronize();
 }
 
 void ScalarFieldLevel::preTagCells()
