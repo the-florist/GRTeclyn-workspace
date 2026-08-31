@@ -14,7 +14,8 @@
 // Estimate the loss of precision from adding a perturbation (the minimum
 // absolute value in component comp of field) onto a background value bkgd.
 // Errors if the perturbation is of the same order as, or larger than, bkgd.
-inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field, const int comp,
+inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field,
+                                                        const int comp,
                                                         const amrex::Real bkgd)
 {
     // 1. Initialize the reduction operator for a 'Minimum' operation
@@ -49,7 +50,8 @@ inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field, 
     {
         amrex::Print() << bkgd << ", " << min_abs_val << "\n";
         amrex::Print() << p_bkgd << ", " << p_field << "\n";
-        amrex::Error("RandomFieldInit::find_precision_loss, field may be non-perturbative.");
+        amrex::Error("RandomFieldInit::find_precision_loss, "
+                     "field may be non-perturbative.");
     }
 
     return pow(10., p_bkgd + p_field);
@@ -85,15 +87,15 @@ RandomFieldInit::find_in_stoiic(const amrex::Real km,
     if (field_type == FieldType::Tensor)
     {
         return (amrex::GpuComplex<amrex::Real>{
-                m_params.tensor_ps[2*static_cast<int>(field_selector)][spec_index],  // Real
-                m_params.tensor_ps[2*static_cast<int>(field_selector)+1][spec_index] // Imag
+                m_params.tensor_ps[2*static_cast<int>(field_selector)][spec_index],
+                m_params.tensor_ps[2*static_cast<int>(field_selector)+1][spec_index]
             });
     }
     else
     {
         return (amrex::GpuComplex<amrex::Real>{
-                m_params.scalar_ps[2*static_cast<int>(field_selector)][spec_index],  // Real
-                m_params.scalar_ps[2*static_cast<int>(field_selector)+1][spec_index] // Imag
+                m_params.scalar_ps[2*static_cast<int>(field_selector)][spec_index],
+                m_params.scalar_ps[2*static_cast<int>(field_selector)+1][spec_index]
             });
     }
 }
@@ -161,18 +163,21 @@ RandomFieldInit::calculate_random_field(const amrex::IntVect iv,
     // Add stochastic perturbations
     if (m_params.use_rand == 1)
     {
-        BL_PROFILE("RandomFieldInit::calculate_random_field Random initialisation is used");
+        BL_PROFILE("RandomFieldInit::calculate_random_field "
+                   "Random initialisation is used");
 
         // Make one random draw for the amplitude and phase individually
-        amrex::Real rand_mod = sqrt(-2. * log(rand_amp)); // Rayleigh distribution about |h|
-        amrex::Real rand_arg = 2. * M_PI * rand_phase;      // Uniform random phase
+        amrex::Real rand_mod = sqrt(-2. * log(rand_amp));
+        amrex::Real rand_arg = 2. * M_PI * rand_phase;
 
         // Multiply amplitude by Rayleigh draw
         value *= rand_mod;
 
         // Apply the random phase (assuming MS phase is accounted for)
-        amrex::Real new_real = value.real() * cos(rand_arg) - value.imag() * sin(rand_arg);
-        amrex::Real new_imag = value.real() * sin(rand_arg) + value.imag() * cos(rand_arg);
+        amrex::Real new_real = value.real() * cos(rand_arg)
+                             - value.imag() * sin(rand_arg);
+        amrex::Real new_imag = value.real() * sin(rand_arg)
+                             + value.imag() * cos(rand_arg);
         amrex::GpuComplex<amrex::Real> new_value(new_real, new_imag);
 	
         value = new_value;
@@ -188,9 +193,8 @@ RandomFieldInit::calculate_random_field(const amrex::IntVect iv,
     return value;
 }
 
-inline void RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
-                                                          amrex::cMultiFab &Aij_k,
-                                                          amrex::cMultiFab &scalar_fields_k)
+inline void RandomFieldInit::generate_fourier_realisation(
+    amrex::cMultiFab &hij_k, amrex::cMultiFab &Aij_k, amrex::cMultiFab &scalar_fields_k)
 {
     // Test polarisation tensor orthonormality conditions
     if (m_params.tensor_init && m_params.test_normalisation)
@@ -244,9 +248,9 @@ inline void RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_
             {
                 // One draw per polarisation field
                 amrex::Real draw1 = InflationUtils::to_unit_open(
-                                    InflationUtils::splitmix64(cell_key + uint64_t(2 + 2*p)));
+                    InflationUtils::splitmix64(cell_key + uint64_t(2 + 2*p)));
                 amrex::Real draw2 = InflationUtils::to_unit_open(
-                                    InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
+                    InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
 
                 hs[p] = calculate_random_field(iv, draw1, draw2,
                                                 FieldType::Tensor,
@@ -263,10 +267,10 @@ inline void RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_
             // Construct Fourier space tensors
             for (int l=0; l<3; l++) for (int p=0; p<3; p++)
             {
-                hij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) = (hs[0] * eplus[l][p]
-                                                                    + hs[1] * ecross[l][p]);
-                Aij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) = (As[0] * eplus[l][p]
-                                                                    + As[1] * ecross[l][p]);
+                hij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) =
+                    (hs[0] * eplus[l][p] + hs[1] * ecross[l][p]);
+                Aij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) =
+                    (As[0] * eplus[l][p] + As[1] * ecross[l][p]);
             }
         }
     });
@@ -377,7 +381,8 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
     amrex::IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     amrex::Box k_domain(domain_low, k_domain_high);
     constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
-    amrex::BoxArray kba = decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
+    amrex::BoxArray kba =
+        decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
     amrex::DistributionMapping kdm(kba);
 
     // Set up the MFs to store the in/out data sets

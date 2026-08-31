@@ -111,11 +111,13 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
         {
             amrex::IntVect iv = {i, j, k};
 
-            if ((i == 0 || i == N_fine/2) && (j == 0 || j == N_fine/2) && (k == 0 || k == N_fine/2))
+            if ((i == 0 || i == N_fine/2) && (j == 0 || j == N_fine/2)
+                && (k == 0 || k == N_fine/2))
             {
                 for(int comp = 0; comp < nc; comp++)
                 {
-                    amrex::GpuComplex<amrex::Real> temp(field_ptr(i, j, k, comp).real(), 0.);
+                    amrex::GpuComplex<amrex::Real> temp(
+                        field_ptr(i, j, k, comp).real(), 0.);
                     field_ptr(i, j, k, comp) = temp;
                 }
             }
@@ -127,8 +129,9 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                 {
                     for(int comp = 0; comp < nc; comp++) 
                     {
-                        amrex::GpuComplex<amrex::Real> temp(field_ptr(i, invert_index(j), invert_index(k), comp).real(), 
-                                                -field_ptr(i, invert_index(j), invert_index(k), comp).imag());
+                        amrex::GpuComplex<amrex::Real> temp(
+                            field_ptr(i, invert_index(j), invert_index(k), comp).real(),
+                            -field_ptr(i, invert_index(j), invert_index(k), comp).imag());
                         field_ptr(i, j, k, comp) = temp;
                     }
                 }
@@ -137,8 +140,9 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                 {
                     for(int comp = 0; comp < nc; comp++) 
                     {
-                        amrex::GpuComplex<amrex::Real> temp(field_ptr(i, invert_index(j), flip_index(k), comp).real(), 
-                                                -field_ptr(i, invert_index(j), flip_index(k), comp).imag());
+                        amrex::GpuComplex<amrex::Real> temp(
+                            field_ptr(i, invert_index(j), flip_index(k), comp).real(),
+                            -field_ptr(i, invert_index(j), flip_index(k), comp).imag());
                         field_ptr(i, j, k, comp) = temp;
                     }
                 }

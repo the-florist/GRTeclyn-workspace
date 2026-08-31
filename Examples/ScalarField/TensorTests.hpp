@@ -20,7 +20,8 @@ namespace TensorTests
     {
         if (field.nComp() != 6)
         {
-            amrex::Error("RandomField::Test_is_trace_free, input field is not a tensor field");
+            amrex::Error("RandomField::Test_is_trace_free, "
+                         "input field is not a tensor field");
         }
 
         const auto &arrs = field.arrays();
@@ -38,7 +39,8 @@ namespace TensorTests
                 if(std::abs(sum) > InflationUtils::tolerance)
                 {
                     amrex::Print() << iv << ": " << sum << "\n";
-                    amrex::Error("RandomField::Test_is_trace_free Trace-free test failed here.");
+                    amrex::Error("RandomField::Test_is_trace_free "
+                                 "Trace-free test failed here.");
                 }
             }
         );
@@ -47,8 +49,9 @@ namespace TensorTests
     }
 
     // Test that the input vectors are orthonormal (local)
-    inline void Test_vector_orthonorm(const amrex::IntVect iv, const amrex::GpuArray<amrex::Real, 3> mhat, 
-                                            const amrex::GpuArray<amrex::Real, 3> nhat)
+    inline void Test_vector_orthonorm(const amrex::IntVect iv,
+                                      const amrex::GpuArray<amrex::Real, 3> mhat,
+                                      const amrex::GpuArray<amrex::Real, 3> nhat)
     {
         // Confirm basis vectors are orthonormal
         if (iv != amrex::IntVect{0, 0, 0})
@@ -75,14 +78,16 @@ namespace TensorTests
                 {
                     amrex::Print() << l << ", " << mhat[l] << ", " << nhat[l] << "\n";
                 }
-                amrex::Error("RandomField::Test_vector_orthonorm: Basis vectors are not orthonormal here");
+                amrex::Error("RandomField::Test_vector_orthonorm: "
+                             "Basis vectors are not orthonormal here");
             }
         }
     }
 
     // Test that the input basis tensors, and their rotated counterparts, are orthonormal
-    inline void Test_polarisation_tensor_orthonorm(const amrex::IntVect iv, const Tensor<2, amrex::Real> eplus,
-                                                                    const Tensor<2, amrex::Real> ecross)
+    inline void Test_polarisation_tensor_orthonorm(const amrex::IntVect iv,
+                                                   const Tensor<2, amrex::Real> eplus,
+                                                   const Tensor<2, amrex::Real> ecross)
     {
         amrex::GpuArray<amrex::Real, 3> conds;
         conds.fill(0.);
@@ -101,16 +106,18 @@ namespace TensorTests
             bool ppc = (std::abs(conds[1]) > InflationUtils::tolerance);
             if (plc || ppc)
             {
-                amrex::Print() << "---------\nLocation: " << iv << "\n";
-                amrex::Print() << "Dot products: " << conds[0] / 2. << ", " << conds[2] / 2. << "\n";
-                amrex::Print() << "Cross product: " << conds[1] << "\n";
-                amrex::Print() << "Base tensor components: \n";
+                amrex::Print() << "---------\nLocation: " << iv << "\n"
+                               << "Dot products: " << conds[0] / 2. << ", "
+                               << conds[2] / 2. << "\n"
+                               << "Cross product: " << conds[1] << "\n"
+                               << "Base tensor components: \n";
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
-                    amrex::Print() << l << ", " << p << ": ";
-                    amrex::Print() << eplus[l][p] << ", " << ecross[l][p] << "\n";
+                    amrex::Print() << l << ", " << p << ": "
+                                   << eplus[l][p] << ", " << ecross[l][p] << "\n";
                 }
-                amrex::Error("RandomField::Test_polarisation_tensor_orthonorm: polarisation tensors are not orthonormal here");
+                amrex::Error("RandomField::Test_polarisation_tensor_orthonorm: "
+                             "polarisation tensors are not orthonormal here");
             }
         }
     }
@@ -159,7 +166,8 @@ namespace TensorTests
 
     // Confirm Parseval's theorem holds between a config-space field hx and its
     // Fourier-space counterpart hk (checked before physical normalisation)
-    inline void Test_Parsevals_thm(const amrex::MultiFab &hx, const amrex::cMultiFab &hk, const int N)
+    inline void Test_Parsevals_thm(const amrex::MultiFab &hx,
+                                   const amrex::cMultiFab &hk, const int N)
     {
         amrex::Real xsum = std::pow(hx.norm2(), 2.);
         xsum /= std::pow(N, 3.);
@@ -177,7 +185,8 @@ namespace TensorTests
             amrex::Print() << "Integrated power (k): " << ksum << "\n";
             amrex::Print() << "Ratio: " << ksum / xsum << "\n";
             amrex::Print() << "Difference: " << std::abs(ksum - xsum) << "\n";
-            amrex::Error("TensorTests::Test_Parsevals_thm, Parseval's theorem fails here.");
+            amrex::Error("TensorTests::Test_Parsevals_thm, "
+                         "Parseval's theorem fails here.");
         }
     }
 }

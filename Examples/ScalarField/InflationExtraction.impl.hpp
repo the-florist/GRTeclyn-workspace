@@ -32,15 +32,13 @@ InflationExtraction::make_subdirectory(const std::string base,
 }
 
 // Creates a custom data file layout 
-inline void 
-InflationExtraction::assign_statistics_data(amrex::Vector<std::string> &header_storage, 
-                                            const std::string name, 
-                                            amrex::Vector<amrex::Real> &data_storage, 
-                                            const amrex::Vector<amrex::Real> data, 
-                                            const int component, const int num_comps,
-                                            const amrex::Vector<int>::const_iterator itr, 
-                                            const amrex::Vector<int>::const_iterator start, 
-                                            const int is_first_step)
+inline void
+InflationExtraction::assign_statistics_data(
+    amrex::Vector<std::string> &header_storage, const std::string name,
+    amrex::Vector<amrex::Real> &data_storage, const amrex::Vector<amrex::Real> data,
+    const int component, const int num_comps,
+    const amrex::Vector<int>::const_iterator itr,
+    const amrex::Vector<int>::const_iterator start, const int is_first_step)
 {
     int loc = component + num_comps*(itr - start);
     if(is_first_step)
@@ -51,9 +49,9 @@ InflationExtraction::assign_statistics_data(amrex::Vector<std::string> &header_s
 }
 
 // Calculates and prints the power spectrum
-inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &field_array, 
-                                                      SmallDataIO &power_spec_file, 
-                                                      const int component)
+inline void InflationExtraction::print_power_spectrum(
+    const amrex::cMultiFab &field_array, SmallDataIO &power_spec_file,
+    const int component)
 { 
     // Set up the isotropic k axis bounds
     amrex::Real kiso_max = std::sqrt(3.) * m_params.N * M_PI / m_params.L;
@@ -116,8 +114,9 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                 else if ((kmag < kiso[s] && kmag >= kiso[(s-1)]) 
                         || kmag == kiso[m_params.N/2]) 
                 {
-                    amrex::Real power = (std::pow(field_arrs[bx](i, j, k, component).real(), 2.0) 
-                                        + std::pow(field_arrs[bx](i, j, k, component).imag(), 2.0));
+                    amrex::Real power =
+                        (std::pow(field_arrs[bx](i, j, k, component).real(), 2.0)
+                         + std::pow(field_arrs[bx](i, j, k, component).imag(), 2.0));
                     
                     int comp = (kmag == kiso[m_params.N/2]) ? m_params.N/2 : s - 1;
 
@@ -238,8 +237,8 @@ InflationExtraction::print_moment(amrex::MultiFab &field,
         means[comp] = field.sum(comp)/vol;
         if(mean_itr != moment_orders.end())
         {
-            assign_statistics_data(headers, names[comp]+"-mean", data_to_print, means, comp, nc,
-                                    mean_itr, start, is_first_step);
+            assign_statistics_data(headers, names[comp]+"-mean", data_to_print,
+                                    means, comp, nc, mean_itr, start, is_first_step);
         }
 
         if(moment_orders.back() != 1)
@@ -247,8 +246,8 @@ InflationExtraction::print_moment(amrex::MultiFab &field,
             stdev[comp] = calculate_field_moment_x(field, means, 2, comp);
             if(stdev_itr != moment_orders.end())
             {
-                assign_statistics_data(headers, names[comp]+"-stdev", data_to_print, stdev, comp, nc, 
-                                        stdev_itr, start, is_first_step);
+                assign_statistics_data(headers, names[comp]+"-stdev", data_to_print,
+                                        stdev, comp, nc, stdev_itr, start, is_first_step);
             }
 
             if(moment_orders.back() != 2)
@@ -258,8 +257,9 @@ InflationExtraction::print_moment(amrex::MultiFab &field,
 
                 if(skew_itr != moment_orders.end())
                 {
-                    assign_statistics_data(headers, names[comp]+"-skew", data_to_print, skew, comp, nc,
-                                            skew_itr, start, is_first_step);
+                    assign_statistics_data(headers, names[comp]+"-skew",
+                                           data_to_print, skew, comp, nc,
+                                           skew_itr, start, is_first_step);
                 }
 
                 if(moment_orders.back() != 3)
@@ -267,8 +267,9 @@ InflationExtraction::print_moment(amrex::MultiFab &field,
                     kurt[comp] = calculate_field_moment_x(field, means, 4, comp);
                     kurt[comp] /= std::pow(stdev[comp], 4.);
 
-                    assign_statistics_data(headers, names[comp]+"-kurt", data_to_print, kurt, comp, nc,
-                                            kurt_itr, start, is_first_step);
+                    assign_statistics_data(headers, names[comp]+"-kurt",
+                                           data_to_print, kurt, comp, nc,
+                                           kurt_itr, start, is_first_step);
                 }
             }
         }
@@ -344,7 +345,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::IntVect k_domain_high(m_params.N/2, m_params.N-1, m_params.N-1);
     amrex::Box k_domain(domain_low, k_domain_high);
     constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
-    amrex::BoxArray kba = decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
+    amrex::BoxArray kba =
+        decompose(k_domain, amrex::ParallelContext::NProcsAll(), slicing);
     amrex::DistributionMapping kdm(kba);
 
     // Set up the arrays to store the Fourier data sets
@@ -361,18 +363,28 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // Set up the FFT
     amrex::IntVect x_domain_high(m_params.N-1, m_params.N-1, m_params.N-1);
     amrex::Box x_domain(domain_low, x_domain_high);
-    amrex::FFT::R2C<amrex::Real> tensor_fft(x_domain, amrex::FFT::Info().setBatchSize(gij_k.nComp()));
-    amrex::FFT::R2C<amrex::Real> scalar_fft(x_domain, amrex::FFT::Info().setBatchSize(scalars_k.nComp()));
-    amrex::FFT::R2C<amrex::Real> mode_fn_fft(x_domain, amrex::FFT::Info().setBatchSize(hs_k.nComp()));
-    amrex::FFT::R2C<amrex::Real> R_fft(x_domain, amrex::FFT::Info().setBatchSize(R_k.nComp()));
+    amrex::FFT::R2C<amrex::Real> tensor_fft(
+        x_domain, amrex::FFT::Info().setBatchSize(gij_k.nComp()));
+    amrex::FFT::R2C<amrex::Real> scalar_fft(
+        x_domain, amrex::FFT::Info().setBatchSize(scalars_k.nComp()));
+    amrex::FFT::R2C<amrex::Real> mode_fn_fft(
+        x_domain, amrex::FFT::Info().setBatchSize(hs_k.nComp()));
+    amrex::FFT::R2C<amrex::Real> R_fft(
+        x_domain, amrex::FFT::Info().setBatchSize(R_k.nComp()));
 
     // Perform the fft
     tensor_fft.forward(gij_x, gij_k);
     scalar_fft.forward(scalars_x, scalars_k);
 
     // Normalise the fft (fftw style)
-    for(int comp = 0; comp < 6; comp++) { gij_k.mult(std::pow(m_params.N, -3.), comp, 1); }
-    for(int comp = 0; comp < 2; comp++) { scalars_k.mult(std::pow(m_params.N, -3.), comp, 1); }
+    for(int comp = 0; comp < 6; comp++)
+    {
+        gij_k.mult(std::pow(m_params.N, -3.), comp, 1);
+    }
+    for(int comp = 0; comp < 2; comp++)
+    {
+        scalars_k.mult(std::pow(m_params.N, -3.), comp, 1);
+    }
 
     // Set variables to store the maximum trace 
     // of the scalar and tensor components
@@ -397,10 +409,12 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 // Find basis tensors and do the Fourier trick
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
-                    hs_arrs[bx](i, j, k, 0) += (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
-                                                 * eplus[l][p])/2.;
-                    hs_arrs[bx](i, j, k, 1) += (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
-                                                 * ecross[l][p])/2.;
+                    hs_arrs[bx](i, j, k, 0) +=
+                        (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
+                         * eplus[l][p])/2.;
+                    hs_arrs[bx](i, j, k, 1) +=
+                        (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
+                         * ecross[l][p])/2.;
                 }
 
                 // Calculate the TT and scalar-(vector) components of the 
@@ -412,16 +426,17 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 {
                     hij[l][p] = (hs_arrs[bx](i, j, k, 0) * eplus[l][p] 
                                 + hs_arrs[bx](i, j, k, 1) * ecross[l][p]);
-                    hSV[l][p] = gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) - hij[l][p];
+                    hSV[l][p] =
+                        gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) - hij[l][p];
 
                     // Find the traces of these components, as a diagnostic
                     if(l==p) { hij_tr += hij[l][p]; hSV_tr += hSV[l][p]; }
                 }
 
-                hij_tr_max = std::max(sqrt(pow(hij_tr.real(), 2.) + pow(hij_tr.imag(), 2.)),
-                                 hij_tr_max);
-                hSV_tr_max = std::max(sqrt(pow(hSV_tr.real(), 2.) + pow(hSV_tr.imag(), 2.)),
-                                 hSV_tr_max);
+                hij_tr_max = std::max(
+                    sqrt(pow(hij_tr.real(), 2.) + pow(hij_tr.imag(), 2.)), hij_tr_max);
+                hSV_tr_max = std::max(
+                    sqrt(pow(hSV_tr.real(), 2.) + pow(hSV_tr.imag(), 2.)), hSV_tr_max);
 
                 // Confirm hij is trace-free in Fourier space
                 if (std::abs(hij_tr_max) > InflationUtils::tolerance)
@@ -452,8 +467,9 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     Phi += 0.5 * (scalars_arrs[bx](i, j, k, m_c_chi));
 
                     // Combine the above to find R(k)
-                    R_k_arrs[bx](i, j, k, 0) = Phi - ((K_bar/3.) * scalars_arrs[bx](i, j, k, m_c_phi) 
-                                                        / alpha_bar / Pi_bar);
+                    R_k_arrs[bx](i, j, k, 0) =
+                        Phi - ((K_bar/3.) * scalars_arrs[bx](i, j, k, m_c_phi)
+                               / alpha_bar / Pi_bar);
                 }
             }
         });
@@ -469,21 +485,23 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                          % m_params.plot_int == 0))
     {
         // Output the max traces of the tensor components as a diagnostic
-        SmallDataIO trace_file(m_data_path+"tensor-traces", m_dt, m_cur_time, 
-                                    m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
+        SmallDataIO trace_file(m_data_path+"tensor-traces", m_dt, m_cur_time,
+                               m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
         if(m_first_step) 
         { 
             trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
         }
         trace_file.write_time_data_line({hij_tr_max, hSV_tr_max}); 
 
-	    amrex::Print() << "Time step at print: " << static_cast<int>(std::round(m_cur_time/m_dt)) << "\n";
+        amrex::Print() << "Time step at print: "
+                       << static_cast<int>(std::round(m_cur_time/m_dt)) << "\n";
         std::string spec_path = make_subdirectory(m_data_path, "spectra", m_first_step);
 
         for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
-            SmallDataIO spectrum_file(spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-", m_dt, 
-                                      m_cur_time, m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
+            SmallDataIO spectrum_file(
+                spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-",
+                m_dt, m_cur_time, m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
 
@@ -510,7 +528,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 }
 
 // Put R and hs into plotfiles
-inline void InflationExtraction::derive(const amrex::MultiFab &source, amrex::MultiFab &out, const int dcomp)
+inline void InflationExtraction::derive(const amrex::MultiFab &source,
+                                        amrex::MultiFab &out, const int dcomp)
 {
     BL_PROFILE("InflationExtraction::derive");
 
@@ -571,11 +590,13 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
 
     if (!m_params.orders.empty())
     {
-        stdevs = print_moment(out_MF, var_names, m_params.orders, stats_file, m_first_step);
+        stdevs = print_moment(out_MF, var_names, m_params.orders,
+                              stats_file, m_first_step);
     }
     
     // Calculate and print tensor to scalar ratio (integrated PS)
-    if (std::find(m_params.orders.begin(), m_params.orders.end(), 2) != m_params.orders.end())
+    if (std::find(m_params.orders.begin(), m_params.orders.end(), 2)
+        != m_params.orders.end())
     {
         SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time,
                             m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
