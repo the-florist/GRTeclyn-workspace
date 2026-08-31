@@ -19,10 +19,9 @@ InflationExtraction::make_subdirectory(const std::string base,
     {
         if (!FilesystemTools::directory_exists(base))
         {
-            amrex::Print() << "RandomField::make_subdirectory, "
+            amrex::Print() << "InflationExtraction::make_subdirectory, "
                               "Directory creation failed for "; 
             amrex::Print() << new_path << "\n";
-            amrex::Error("RandomField::extract Data directory has not been created.");
         }
         else if (!FilesystemTools::directory_exists(new_path))
         {
@@ -63,12 +62,11 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
     // check the stepping along the diagonal is consistent
     if (kiso_max/dkiso - m_params.N/2 > InflationUtils::tolerance)
     {
-        amrex::Error("RandomField::print_power_spectrum "
+        amrex::Error("InflationExtraction::print_power_spectrum "
                      "Isotropic k axis is too large.");
     }
 
     // Set up isotropic k axis and PS map
-    amrex::Real kmag = 0.;
     amrex::Vector<amrex::Real> kiso(m_params.N / 2 + 1, 0.);
     amrex::Vector<amrex::Real> ps_map(m_params.N/2 + 1, 0.);
     amrex::Vector<int> kcount(m_params.N/2 + 1, 0);
@@ -91,7 +89,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
             { 
                 amrex::Print() << iv << "\n";
                 amrex::Print() << kmag << "," << kiso_max << "\n";
-                amrex::Error("RandomField::print_power_spectrum "
+                amrex::Error("InflationExtraction::print_power_spectrum "
                       "Found magnitude larger than (N/2,N/2,N/2)."); 
             }
 
@@ -102,7 +100,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                 if(kmag < kiso[0])
                 {
                     amrex::Print() << iv << "\n";
-                    amrex::Error("RandomField::print_power_spectrum "
+                    amrex::Error("InflationExtraction::print_power_spectrum "
                                  "kmag below the kiso domain.");
                 }
 
@@ -110,7 +108,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                 else if(kmag - kiso[m_params.N/2] > InflationUtils::tolerance)
                 {
                     amrex::Print() << iv << "\n";
-                    amrex::Error("RandomField::print_power_spectrum "
+                    amrex::Error("InflationExtraction::print_power_spectrum "
                                  "kmag above the kiso domain.");
                 }
 
@@ -138,7 +136,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                     amrex::Print() << iv << "\n";
                     amrex::Print() << kmag << "\n";
                     amrex::Print() << kiso[s] << "," << kiso[s-1] << "\n";
-                    amrex::Error("RandomField::print_power_spectrum "
+                    amrex::Error("InflationExtraction::print_power_spectrum "
                                  "Part of the spectrum isn't captured.");
                 }
 
@@ -394,8 +392,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 
             if (iv != amrex::IntVect{0, 0, 0})
             {
-                Tensor<2, amrex::Real> eplus = m_params.calculate_polarisation_tensor(iv, 0);
-                Tensor<2, amrex::Real> ecross = m_params.calculate_polarisation_tensor(iv, 1);
+                const auto [eplus, ecross] = m_params.calculate_polarisation_tensors(iv);
 
                 // Find basis tensors and do the Fourier trick
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
@@ -574,8 +571,7 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
 
     if (!m_params.orders.empty())
     {
-        amrex::Vector<std::string> names{"R", "hplus", "hcross"};
-        stdevs = print_moment(out_MF, names, m_params.orders, stats_file, m_first_step);
+        stdevs = print_moment(out_MF, var_names, m_params.orders, stats_file, m_first_step);
     }
     
     // Calculate and print tensor to scalar ratio (integrated PS)

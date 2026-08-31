@@ -41,7 +41,6 @@ struct InflationConfig
     amrex::Real A{1.};                   //!< Amplitude factor (for basic tests)
     int random_seed{3539263};  //!< Seed for random number generator
     amrex::Real alpha{0.};          //!< Internal rotation angle in the +/x decomposition basis
-    amrex::Real kstar{0.};               //!< window's cut-off mode, measured in units of 2pi/L
     amrex::Real Delta{1.};               //!< window's width, measured like L/Delta
 
     // Extraction parameters
@@ -103,7 +102,6 @@ struct InflationConfig
         AMREX_ASSERT(L > 0 && Delta > 0);
         const int N_w = (N_coarse != 0) ? N_coarse : N;
         const amrex::Real ks = std::sqrt(3.) * N_w * M_PI / L / 5. / 2.;
-        //kstar * 2. * M_PI / L;
         const amrex::Real Dt = L / Delta;
         return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
     }
@@ -118,29 +116,28 @@ struct InflationConfig
     //! Computes both polarisation basis vectors for this mode in one call
     inline BasisVectors calculate_basis_vectors(const amrex::IntVect iv);
 
-    inline Tensor<2, amrex::Real>
-    calculate_polarisation_tensor(const amrex::IntVect iv,
-                                  const int which_pol)
+    //! The plus and cross polarisation tensors for a Fourier mode
+    struct PolarisationTensors
+    {
+        Tensor<2, amrex::Real> eplus;
+        Tensor<2, amrex::Real> ecross;
+    };
+
+    //! Computes both polarisation tensors for this mode in one call
+    inline PolarisationTensors calculate_polarisation_tensors(const amrex::IntVect iv)
     {
         // Find basis vectors
         const auto [mhat, nhat] = calculate_basis_vectors(iv);
 
-        Tensor<2, amrex::Real> eplus, ecross;
+        PolarisationTensors pol;
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
         {
             // Assemble the polarisation tensors
-            eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-            ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+            pol.eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+            pol.ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
         }
 
-        if (which_pol == 0) { return eplus; }
-        else if (which_pol == 1) { return ecross; }
-        else
-        {
-            amrex::Error("InflationConfig::calculate_polarisation_tensor, "
-                         "polarisation flag is not set correctly.");
-            return eplus;
-        }
+        return pol;
     }
     
     inline void test_polarisation_normalisation(const amrex::cMultiFab &kfield)
@@ -158,8 +155,7 @@ struct InflationConfig
                 const auto [mhat, nhat] = calculate_basis_vectors(iv);
                 TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
 
-                Tensor<2, amrex::Real> eplus  = calculate_polarisation_tensor(iv, 0);
-                Tensor<2, amrex::Real> ecross = calculate_polarisation_tensor(iv, 1);
+                const auto [eplus, ecross] = calculate_polarisation_tensors(iv);
                 TensorTests::Test_polarisation_tensor_orthonorm(iv, eplus, ecross);
             }
         }

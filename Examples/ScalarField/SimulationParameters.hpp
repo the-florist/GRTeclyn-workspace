@@ -118,10 +118,6 @@ class SimulationParameters : public SimulationParametersBase
 
     void check_params()
     {
-        warn_parameter("kstar", inflt_params.kstar,
-                       inflt_params.kstar >= 0,
-                       "cut-off frequency index must be positive");
-
         check_parameter("Delta", inflt_params.Delta,
                        (!inflt_params.calc_binned_power_spectrum
                         || inflt_params.Delta > 0),
