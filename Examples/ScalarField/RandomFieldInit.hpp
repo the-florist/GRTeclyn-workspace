@@ -61,13 +61,15 @@ class RandomFieldInit
         void init(amrex::MultiFab &state);
 
     private:
+        enum class FieldType { Scalar, Tensor };
+
         InflationConfig m_params;
         amrex::GpuComplex<amrex::Real> calculate_mode_function(const amrex::Real km, const int spec_indx);
-        amrex::GpuComplex<amrex::Real> find_in_stoiic(const amrex::Real km, const int field_indx, 
-                                        const std::string field_type);
+        amrex::GpuComplex<amrex::Real> find_in_stoiic(const amrex::Real km, const int field_indx,
+                                        const FieldType field_type);
         amrex::GpuComplex<amrex::Real> calculate_random_field(const amrex::IntVect iv, const int field_index,
                                                 const amrex::Real rand_amp, const amrex::Real rand_phase,
-                                                std::string field_type);
+                                                const FieldType field_type);
         amrex::Real find_precision_loss(amrex::MultiFab &field, const int comp, const amrex::Real bkgd);
 };
 
