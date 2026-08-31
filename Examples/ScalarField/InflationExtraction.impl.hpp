@@ -572,15 +572,18 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
     }
     
     // Calculate and print tensor to scalar ratio (integrated PS)
-    SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time, 
-                        m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
+    if (std::find(m_params.orders.begin(), m_params.orders.end(), 2) != m_params.orders.end())
+    {
+        SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time,
+                            m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
 
-    if(m_first_step) 
-    { 
-        ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"}); 
+        if(m_first_step)
+        {
+            ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"});
+        }
+
+        ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]});
     }
-    
-    ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]}); 
 }
 
 #endif /* INFLATIONEXTRACTION_IMPL_HPP_ */
