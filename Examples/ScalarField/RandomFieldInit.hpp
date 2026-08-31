@@ -7,7 +7,11 @@
 #define RANDOMFIELDINIT_HPP_
 
 #include "InflationConfig.hpp"
+#include "InitialBackgroundData.hpp"
+#include "Potential.hpp"
 #include "TensorTests.hpp"
+
+#include <AMReX_FFT.H>
 
 class RandomFieldInit
 {

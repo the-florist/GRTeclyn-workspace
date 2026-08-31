@@ -6,16 +6,9 @@
 #ifndef INFLATIONCONFIG_HPP_
 #define INFLATIONCONFIG_HPP_
 
-#include "Cell.hpp"
-#include "InitialScalarData.hpp"
-#include "VarsTools.hpp"
-#include "FilesystemTools.hpp"
-#include "Potential.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_MultiFab.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_FFT.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
