@@ -154,10 +154,10 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
     amrex::ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), 
                                   amrex::ParallelContext::CommunicatorSub());
 
-    // amrex::Print the power spectrum to a new file in data/
-    for(int s = 0; s <= m_params.N/2; s++)
+    for(int s = 0; s < m_params.N/2; s++)
     {
-        power_spec_file.write_data_line({(kiso[s]+kiso[s+1])/2., ps_map[s]/kcount[s]});
+        const amrex::Real avg_power = (kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.;
+        power_spec_file.write_data_line({(kiso[s] + kiso[s+1]) / 2., avg_power});
     }
 }
 
