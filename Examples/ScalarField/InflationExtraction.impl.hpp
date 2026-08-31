@@ -123,7 +123,7 @@ inline void InflationExtraction::print_power_spectrum(const amrex::cMultiFab &fi
                     
                     int comp = (kmag == kiso[m_params.N/2]) ? m_params.N/2 : s - 1;
 
-                    int count = 0;
+                    int count = 1;
                     if (i != 0 && i != m_params.N/2) { power *= 2.; count = 2; }
 
                     amrex::Gpu::Atomic::Add(&kcount[comp], count);
