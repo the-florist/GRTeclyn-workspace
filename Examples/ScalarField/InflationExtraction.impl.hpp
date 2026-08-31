@@ -167,18 +167,25 @@ InflationExtraction::calculate_field_moment_x(const amrex::MultiFab &field,
                                               const amrex::Vector<amrex::Real> mean, 
                                               const int moment, const int component)
 {
-    amrex::Real sum = 0.;
     const amrex::Real vol = std::pow(m_params.N, 3.);
+    const amrex::Real mean_comp = mean[component];
 
-    const auto& field_arrs = field.arrays();
+    amrex::ReduceOps<amrex::ReduceOpSum> reduce_op;
+    amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
-    amrex::ParallelFor(field, [=, this, &sum] AMREX_GPU_DEVICE
-                (int bx, int i, int j, int k)
-        {
-            sum += std::pow(field_arrs[bx](i, j, k, component) 
-                            - mean[component], moment);
-        });
-    amrex::Gpu::streamSynchronize();
+    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box &bx = mfi.validbox();
+        auto const &arr = field.const_array(mfi);
+        reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return { std::pow(arr(i, j, k, component) - mean_comp, moment) };
+            });
+    }
+
+    amrex::Real sum = amrex::get<0>(reduce_data.value());
     amrex::ParallelAllReduce::Sum(sum, amrex::ParallelContext::CommunicatorSub());
 
     // Normalise and return moment x
