@@ -23,27 +23,34 @@ class InflationExtraction
         static inline const amrex::Vector<std::string> var_names{"R", "hplus", "hcross"};
 
         // Constructor used in extraction of diagnostics
-        InflationExtraction(InflationConfig a_params)
-        : m_params(a_params)
-        {}
+        InflationExtraction()
+        {
+            inflt_methods.fill_params();
+        }
+
+        static void set_up(int a_state_index);
+
+        // Derive callback (amrex::DeriveFuncMF) that fills plotfile output
+        static void compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
+                               const amrex::MultiFab &src_mf,
+                               const amrex::Geometry &geomdata,
+                               amrex::Real time, const int *bcrec, int level);
 
         // Main routines
-        void derive(const amrex::MultiFab &source, 
+        void derive(const amrex::MultiFab &source,
                     amrex::MultiFab &out, const int dcomp);
         void extract(const amrex::MultiFab &state);
 
         // Set-up function when printing to data files
-        void set_print_params(const std::string data_path, 
-                              const amrex::Real dt,  
-                              const amrex::Real cur_time, 
-                              const int restart_time, 
-                              const int first_step)
+        void set_print_params(const std::string data_path,
+                              const amrex::Real a_time, const amrex::Real a_dt,
+                              const amrex::Real a_restart_time)
         {
-            m_data_path = data_path;
-            m_dt = dt;
-            m_cur_time = cur_time;
-            m_restart_time = restart_time;
-            m_first_step = first_step;
+            m_data_path  = data_path;
+            time         = a_time;
+            dt           = a_dt;
+            restart_time = a_restart_time;
+            first_step   = (time <= dt);
         }
 
         amrex::Vector<amrex::Real> 
@@ -54,12 +61,12 @@ class InflationExtraction
                      const int is_first_step);
 
     private:
-        InflationConfig m_params;
+        InflationConfig inflt_methods;
         std::string m_data_path;
-        amrex::Real m_dt;
-        amrex::Real m_cur_time;
-        int m_restart_time;
-        int m_first_step;
+        amrex::Real time;
+        amrex::Real dt;
+        amrex::Real restart_time;
+        bool first_step;
 
         std::string make_subdirectory(const std::string base, const std::string dir, 
                                       const int is_first_step) const;
