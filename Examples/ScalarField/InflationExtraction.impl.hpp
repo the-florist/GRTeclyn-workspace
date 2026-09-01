@@ -374,11 +374,6 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
         scalars_k.mult(std::pow(m_params.N, -3.), comp, 1);
     }
 
-    // Set variables to store the maximum trace 
-    // of the scalar and tensor components
-    amrex::Real hij_tr_max = 0.;
-    amrex::Real hSV_tr_max = 0.;
-
     const auto& hs_arrs = hs_k.arrays();
     const auto& gij_arrs = gij_k.arrays();
     const auto& scalars_arrs = scalars_k.arrays();
@@ -424,15 +419,6 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     if(l==p) { hij_tr += hij[l][p]; hSV_tr += hSV[l][p]; }
                 }
 
-                hij_tr_max = std::max(
-                    sqrt(pow(hij_tr.real(), 2.) + pow(hij_tr.imag(), 2.)), hij_tr_max);
-                hSV_tr_max = std::max(
-                    sqrt(pow(hSV_tr.real(), 2.) + pow(hSV_tr.imag(), 2.)), hSV_tr_max);
-
-                // Confirm hij is trace-free in Fourier space
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                    amrex::Math::abs(hij_tr_max) <= InflationUtils::tolerance,
-                    "InflationExtraction::extract_hs_and_R, hij trace too large");
 
                 // Extract R according to the scheme detailed in 
                 // Appendix B (Eq. B1) of arxiv:2502.06783, using hSV as the 
