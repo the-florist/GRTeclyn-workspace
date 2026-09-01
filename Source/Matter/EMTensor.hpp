@@ -19,7 +19,7 @@ template <class matter_t> class EMTensor
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
+    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
 
     //! Constructor
     EMTensor(const matter_t &a_matter, const double dx, const int a_c_rho = -1,

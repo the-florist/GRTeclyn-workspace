@@ -19,7 +19,7 @@ template <class matter_t> class MatterWeyl4 : public Weyl4
 {
   public:
     template <class data_t>
-    using Vars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
+    using Vars = typename MatterCCZ4RHS<matter_t>::template Vars<data_t>;
 
     //! Constructor
     MatterWeyl4(matter_t a_matter,

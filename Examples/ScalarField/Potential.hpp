@@ -102,7 +102,7 @@ class Potential
 
 	// Classic quadratic potenital
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	quadratic(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
@@ -114,7 +114,7 @@ class Potential
 
 	// Classic quadratic potenital
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	quadratic_bump(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
@@ -132,7 +132,7 @@ class Potential
 
 	// Monodromy potential, as used in STOIIC and also in arXiv:2403.12811
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	monodromy(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
@@ -160,7 +160,7 @@ class Potential
 
 	// Prokopec USR model, from arXiv:2507.04114
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	USR(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.v != 0,
@@ -183,7 +183,7 @@ class Potential
 
 	// Prokopec USR model, from arxiv:0809.3915v2
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	punctuated(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -203,7 +203,7 @@ class Potential
 
 	// Classic quadratic potenital
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	inverted_quadratic_bump(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
@@ -222,7 +222,7 @@ class Potential
 	// Quadratic potential modulated by a tanh step, as used in STOIIC
 	// V = 0.5 m^2 phi^2 [1 + c tanh((phi - phi_s) / d)]
 	template <class data_t>
-	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 	quadratic_step(data_t &V, data_t &dV, const data_t &phi) const
 	{
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
@@ -239,7 +239,7 @@ class Potential
 
     //! Set the potential function for the scalar field here
     template <class data_t, template <typename> class vars_t>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     compute_potential(data_t &V_of_phi, data_t &dVdphi,
                       const vars_t<data_t> &vars) const
     {
