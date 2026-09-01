@@ -105,10 +105,8 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	quadratic(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.scalar_mass == 0)
-		{
-			amrex::Error("Potential::quadratic, Scalar mass is un-initialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
+			"Potential::quadratic, scalar mass is un-initialised");
 
 		V = std::pow(m_params.scalar_mass * phi, 2.) / 2.;
 		dV = std::pow(m_params.scalar_mass, 2.) * phi;
@@ -119,10 +117,8 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	quadratic_bump(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.scalar_mass == 0)
-		{
-			amrex::Error("Potential::quadratic, Scalar mass is un-initialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
+			"Potential::quadratic, scalar mass is un-initialised");
 
 		amrex::Real feature = m_params.amplitude * std::exp(
 							-std::pow((phi - m_params.location) / m_params.width, 2.) 
@@ -139,10 +135,8 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	monodromy(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.scalar_mass == 0)
-		{
-			amrex::Error("Potential::monodromy, Scalar mass is un-initialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
+			"Potential::monodromy, scalar mass is un-initialised");
 
 		// Calculate V
 		amrex::Real argument = (phi - m_params.location)/m_params.period;
@@ -169,10 +163,8 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	USR(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.v == 0)
-		{
-			amrex::Error("Potential::USR, USR parameter v is un-initialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.v != 0,
+			"Potential::USR, USR parameter v is un-initialised");
 
 		// Calculate V
 		amrex::Real fraction = (3. * pow(phi, 2.) 
@@ -194,10 +186,9 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	punctuated(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.scalar_mass == 0 && m_params.lambda == 0)
-		{
-			amrex::Error("Potential::punctuated, punctuated inflation parameters uninitialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+			m_params.scalar_mass != 0 || m_params.lambda != 0,
+			"Potential::punctuated, punctuated inflation parameters uninitialised");
 
 		// Calculate V
 		V = pow(m_params.scalar_mass * phi, 2.) / 2.;
@@ -215,10 +206,8 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	inverted_quadratic_bump(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.scalar_mass == 0)
-		{
-			amrex::Error("Potential::quadratic, Scalar mass is un-initialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
+			"Potential::quadratic, scalar mass is un-initialised");
 
 		amrex::Real feature = m_params.amplitude * std::exp(
 							-std::pow((phi - m_params.location) / m_params.width, 2.) 
@@ -236,10 +225,8 @@ class Potential
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 	quadratic_step(data_t &V, data_t &dV, const data_t &phi) const
 	{
-		if (m_params.scalar_mass == 0)
-		{
-			amrex::Error("Potential::quadratic_step, Scalar mass is un-initialised.");
-		}
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_params.scalar_mass != 0,
+			"Potential::quadratic_step, scalar mass is un-initialised");
 
 		amrex::Real step = tanh((phi - m_params.location) / m_params.width);
 		amrex::Real d_step = (1.0 - std::pow(step, 2.)) / m_params.width;
@@ -287,9 +274,9 @@ class Potential
 				break;
 			
 			default:
-				amrex::Print() << m_params.type << "\n";
-				amrex::Error("Potential::compute_potential, "
-							"requested potential type is not supported.");
+				AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
+					"Potential::compute_potential, "
+					"requested potential type is not supported");
 		}
     
 		/* amrex::Print().SetPrecision(15) << "V: " << V_of_phi << "\n";
