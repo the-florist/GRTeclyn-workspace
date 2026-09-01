@@ -24,18 +24,25 @@ enum
 
 namespace StateVariables
 {
-static const std::array<std::string, NUM_VARS - NUM_CCZ4_VARS>
-    additional_names = {"phi", "Pi"};
+static const amrex::Vector<std::string> scalar_field_names = {"phi", "Pi"};
 
-static const std::array<std::string, NUM_VARS> names =
-    ArrayTools::concatenate(CCZ4Variables::names, additional_names);
+static const amrex::Vector<std::string> names =
+    ArrayTools::concatenate(CCZ4StateVariables::names, scalar_field_names);
 
-static const std::array<BCParity, NUM_VARS - NUM_CCZ4_VARS>
-    additional_parities = {BCParity::even, BCParity::even};
+static constexpr int NUM_MATTER_VARS = NUM_VARS - NUM_CCZ4_VARS;
 
-static const std::array<BCParity, NUM_VARS> parities =
-    ArrayTools::concatenate(CCZ4Variables::parities, additional_parities);
+static const std::array<BCParity, NUM_MATTER_VARS> scalar_field_parities = {
+    BCParity::even, BCParity::even};
 
+static const std::array<BCParity, NUM_VARS> parities = ArrayTools::concatenate(
+    CCZ4StateVariables::parities, scalar_field_parities);
+
+static const std::array<amrex::Real, NUM_MATTER_VARS>
+    scalar_field_asymptotic_values = {0.0, 0.0};
+
+static const std::array<amrex::Real, NUM_VARS> asymptotic_values =
+    ArrayTools::concatenate(CCZ4StateVariables::asymptotic_values,
+                            scalar_field_asymptotic_values);
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */
