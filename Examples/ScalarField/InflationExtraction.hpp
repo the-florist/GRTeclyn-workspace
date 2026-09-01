@@ -14,6 +14,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 #include <AMReX_FFT.H>
+#include <AMReX_GpuContainers.H>
 
 class InflationExtraction
 {

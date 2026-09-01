@@ -71,6 +71,21 @@ inline void InflationExtraction::print_power_spectrum(
     amrex::Vector<int> kcount(m_params.N/2 + 1, 0);
     for (int s=0; s<=m_params.N/2; s++) { kiso[s] = s*dkiso; }
 
+    // Device copies of the bins, which the kernel reads and atomically writes
+    amrex::Gpu::DeviceVector<amrex::Real> kiso_d(m_params.N/2 + 1);
+    amrex::Gpu::DeviceVector<amrex::Real> ps_map_d(m_params.N/2 + 1);
+    amrex::Gpu::DeviceVector<int> kcount_d(m_params.N/2 + 1);
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, kiso.begin(), kiso.end(),
+                          kiso_d.begin());
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, ps_map.begin(), ps_map.end(),
+                          ps_map_d.begin());
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, kcount.begin(), kcount.end(),
+                          kcount_d.begin());
+    amrex::Gpu::streamSynchronize();
+    const amrex::Real* kiso_ptr = kiso_d.data();
+    amrex::Real* ps_map_ptr = ps_map_d.data();
+    int* kcount_ptr = kcount_d.data();
+
     // Needed to pass the map to the amrex::ParallelFor loop
     amrex::MFIter::allowMultipleMFIters(true);
 
@@ -79,7 +94,7 @@ inline void InflationExtraction::print_power_spectrum(
 
     // Loop to bin the power spectrum at each point
     const auto& field_arrs = field_array.arrays();
-    amrex::ParallelFor(field_array, [=, &ps_map, &kcount]
+    amrex::ParallelFor(field_array, [=]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             // Check to see if you're in a ghost cell
@@ -96,31 +111,31 @@ inline void InflationExtraction::print_power_spectrum(
             for (int s=1; s<=cfg.N/2; s++)
             {
                 // If smaller than the smallest bin
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(kmag >= kiso[0],
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(kmag >= kiso_ptr[0],
                         "InflationExtraction::print_power_spectrum, "
                         "kmag below the kiso domain");
 
                 // If you're larger than the largest bin
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                    kmag - kiso[cfg.N/2] <= InflationUtils::tolerance,
+                    kmag - kiso_ptr[cfg.N/2] <= InflationUtils::tolerance,
                         "InflationExtraction::print_power_spectrum, "
                         "kmag above the kiso domain");
 
                 // If you're somewhere in the middle, bin the power here
-                if ((kmag < kiso[s] && kmag >= kiso[(s-1)])
-                        || kmag == kiso[cfg.N/2])
+                if ((kmag < kiso_ptr[s] && kmag >= kiso_ptr[(s-1)])
+                        || kmag == kiso_ptr[cfg.N/2])
                 {
                     amrex::Real power =
                         (std::pow(field_arrs[bx](i, j, k, component).real(), 2.0)
                          + std::pow(field_arrs[bx](i, j, k, component).imag(), 2.0));
 
-                    int comp = (kmag == kiso[cfg.N/2]) ? cfg.N/2 : s - 1;
+                    int comp = (kmag == kiso_ptr[cfg.N/2]) ? cfg.N/2 : s - 1;
 
                     int count = 1;
                     if (i != 0 && i != cfg.N/2) { power *= 2.; count = 2; }
 
-                    amrex::Gpu::Atomic::Add(&kcount[comp], count);
-                    amrex::Gpu::Atomic::Add(&ps_map[comp], power);
+                    amrex::Gpu::Atomic::Add(&kcount_ptr[comp], count);
+                    amrex::Gpu::Atomic::Add(&ps_map_ptr[comp], power);
 
                     break;
                 }
@@ -134,7 +149,14 @@ inline void InflationExtraction::print_power_spectrum(
 
     amrex::Gpu::streamSynchronize();
 
-    amrex::ParallelAllReduce::Sum(kcount.data(), static_cast<int>(kcount.size()), 
+    // Bring the accumulated bins back to the host
+    amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, ps_map_d.begin(),
+                          ps_map_d.end(), ps_map.begin());
+    amrex::Gpu::copyAsync(amrex::Gpu::deviceToHost, kcount_d.begin(),
+                          kcount_d.end(), kcount.begin());
+    amrex::Gpu::streamSynchronize();
+
+    amrex::ParallelAllReduce::Sum(kcount.data(), static_cast<int>(kcount.size()),
                                   amrex::ParallelContext::CommunicatorSub());
     amrex::ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), 
                                   amrex::ParallelContext::CommunicatorSub());
@@ -382,7 +404,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // Slice to the POD base so the kernel captures config by value
     const InflationParams cfg = m_params;
 
-    amrex::ParallelFor(gij_k, [=, &hij_tr_max, &hSV_tr_max]
+    amrex::ParallelFor(gij_k, [=]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
         {
             amrex::IntVect iv{i, j, k};
@@ -406,21 +428,15 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 // Calculate the TT and scalar-(vector) components of the 
                 // metric, by reconstructing hij and subtracting it from \tilde{gamma}_ij
                 Tensor<2, amrex::GpuComplex<amrex::Real>> hij, hSV;
-                amrex::GpuComplex<amrex::Real> hij_tr = 0.;
-                amrex::GpuComplex<amrex::Real> hSV_tr = 0.;
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
-                    hij[l][p] = (hs_arrs[bx](i, j, k, 0) * eplus[l][p] 
+                    hij[l][p] = (hs_arrs[bx](i, j, k, 0) * eplus[l][p]
                                 + hs_arrs[bx](i, j, k, 1) * ecross[l][p]);
                     hSV[l][p] =
                         gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) - hij[l][p];
-
-                    // Find the traces of these components, as a diagnostic
-                    if(l==p) { hij_tr += hij[l][p]; hSV_tr += hSV[l][p]; }
                 }
 
-
-                // Extract R according to the scheme detailed in 
+                // Extract R according to the scheme detailed in
                 // Appendix B (Eq. B1) of arxiv:2502.06783, using hSV as the 
                 // spatial metric instead of \tilde{gamma}_ij
                 if(cfg.scalar_init)
@@ -465,15 +481,6 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     if ((print_spec) && (static_cast<int>(m_cur_time/m_dt) 
                          % m_params.plot_int == 0))
     {
-        // Output the max traces of the tensor components as a diagnostic
-        SmallDataIO trace_file(m_data_path+"tensor-traces", m_dt, m_cur_time,
-                               m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
-        if(m_first_step) 
-        { 
-            trace_file.write_header_line({"hij trace max", "hSV trace max"}); 
-        }
-        trace_file.write_time_data_line({hij_tr_max, hSV_tr_max}); 
-
         amrex::Print() << "Time step at print: "
                        << static_cast<int>(std::round(m_cur_time/m_dt)) << "\n";
         std::string spec_path = make_subdirectory(m_data_path, "spectra", m_first_step);
