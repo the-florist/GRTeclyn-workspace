@@ -12,6 +12,7 @@
 #include <AMReX_Reduce.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_Math.H>
 
 namespace TensorTests
 {
@@ -36,7 +37,7 @@ namespace TensorTests
                     sum += arrs[bx](i, j, k, InflationUtils::lut[l][l]);
                 }
 
-                if(std::abs(sum) > InflationUtils::tolerance)
+                if(amrex::Math::abs(sum) > InflationUtils::tolerance)
                 {
                     amrex::Print() << iv << ": " << sum << "\n";
                     amrex::Error("RandomField::Test_is_trace_free "

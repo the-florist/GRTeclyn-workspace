@@ -68,14 +68,14 @@ struct InflationParams
     AMREX_GPU_HOST_DEVICE inline int flip_index(const int indx) const
     {
         AMREX_ASSERT(N_fine > 0);
-        return std::abs(N_fine - indx);
+        return amrex::Math::abs(N_fine - indx);
     }
 
     // Nyquist condition and calculation of kmag
     AMREX_GPU_HOST_DEVICE inline int invert_index(const int indx) const
     {
         AMREX_ASSERT(N_fine > 0);
-        return (int)(N_fine/2 - std::abs(N_fine/2 - indx));
+        return (int)(N_fine/2 - amrex::Math::abs(N_fine/2 - indx));
     }
 
     // For calculation of polarisation tensors
@@ -83,7 +83,7 @@ struct InflationParams
     {
         AMREX_ASSERT(N_fine > 0);
         if (indx <= N_fine/2) { return indx; }
-        else { return std::abs(N_fine/2 - indx) - N_fine/2; }
+        else { return amrex::Math::abs(N_fine/2 - indx) - N_fine/2; }
     }
 
     // Find the magnitude of the Fourier wavevector at this point

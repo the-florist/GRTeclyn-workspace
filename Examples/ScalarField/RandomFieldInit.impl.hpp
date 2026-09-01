@@ -79,7 +79,7 @@ inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 // Return the absolute value of the cell
-                return { std::abs(arr(i, j, k, comp)) };
+                return { amrex::Math::abs(arr(i, j, k, comp)) };
             });
     }
 
@@ -115,7 +115,7 @@ RandomFieldInit::find_in_stoiic(const InflationParams &cfg, const amrex::Real km
     int spec_index = -1;
     for(int idx = 0; idx < cfg.n_modes; idx++)
     {
-        if (std::abs(km - cfg.init_k_ptr[idx]) < InflationUtils::tolerance)
+        if (amrex::Math::abs(km - cfg.init_k_ptr[idx]) < InflationUtils::tolerance)
         {
             spec_index = idx;
             break;

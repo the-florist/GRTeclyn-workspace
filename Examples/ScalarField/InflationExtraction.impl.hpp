@@ -446,7 +446,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     sqrt(pow(hSV_tr.real(), 2.) + pow(hSV_tr.imag(), 2.)), hSV_tr_max);
 
                 // Confirm hij is trace-free in Fourier space
-                if (std::abs(hij_tr_max) > InflationUtils::tolerance)
+                if (amrex::Math::abs(hij_tr_max) > InflationUtils::tolerance)
                 {
                     amrex::Print() << iv << ": " << hij_tr_max << "\n";
                     amrex::Error("hij trace magnitude too large in extraction");
