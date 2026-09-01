@@ -3,67 +3,55 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-// AMReX includes
-#include <AMReX.H> //Gives us amrex::Print()
-#include <AMReX_ParmParse.H>
-
-// Our general includes
-#include "DefaultLevelFactory.hpp"
-#include "GRAMR.hpp"
+#include "DefaultLevelBld.hpp"
+#include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 #include "SimulationParameters.hpp"
 
-// Problem specific includes:
+#include "ScalarFieldAmr.hpp"
 #include "ScalarFieldLevel.hpp"
 
-// Chombo namespace
-using namespace amrex;
-
-int runGRTeclyn(int argc, char *argv[])
+int runGRTeclyn()
 {
-    // Load the parameter file and construct the SimulationParameter class
-    // To add more parameters edit the SimulationParameters file.
+    BL_PROFILE("runGRTeclyn()");
 
-    GRParmParse pp;
-    SimulationParameters sim_params(pp);
+    GRParmParse pp; // NOLINT(readability-identifier-length)
 
-    if (sim_params.just_check_params)
+    if (just_check_params())
     {
         return 0;
     }
 
-    // The line below selects the problem that is simulated
-    // (To simulate a different problem, define a new child of AMRLevel
-    // and an associated LevelFactory)
+    DefaultLevelBld<ScalarFieldLevel> scalar_field_level_bld;
+    ScalarFieldAmr gr_amr(&scalar_field_level_bld);
 
-    GRAMR::set_simulation_parameters(sim_params);
+    amrex::Real stop_time{};
+    pp.get("evolution.stop_time", stop_time);
+    int max_steps{};
+    pp.get("evolution.max_steps", max_steps);
 
-    DefaultLevelFactory<ScalarFieldLevel> scalar_field_level_bld;
+    gr_amr.init(0.0, stop_time);
 
-    GRAMR gr_amr(&scalar_field_level_bld); // check that this isn't meant to be
-                                           // a special class for scalar fields
-    gr_amr.init(0., sim_params.stop_time);
-
-    while (
-        (gr_amr.okToContinue() != 0) &&
-        (gr_amr.levelSteps(0) < sim_params.max_steps ||
-         sim_params.max_steps < 0) &&
-
-        (gr_amr.cumTime() < sim_params.stop_time || sim_params.stop_time < 0.0))
+    // Engage! Run the evolution
+    while ((gr_amr.okToContinue() != 0) &&
+           (gr_amr.levelSteps(0) < max_steps || max_steps < 0) &&
+           (gr_amr.cumTime() < stop_time || stop_time < 0.0))
     {
-        gr_amr.coarseTimeStep(sim_params.stop_time);
+        gr_amr.coarseTimeStep(stop_time);
     }
 
-    // Write final checkpoint and plotfile
-    if (gr_amr.stepOfLastCheckPoint() < gr_amr.levelSteps(0) &&
-        sim_params.checkpoint_interval >= 0)
+    int check_int{};
+    pp.get("amr.check_int", check_int);
+    int plot_int{};
+    pp.get("amr.plot_int", plot_int);
+
+    if (gr_amr.stepOfLastCheckPoint() < gr_amr.levelSteps(0) && check_int >= 0)
     {
         gr_amr.checkPoint();
     }
 
-    if (gr_amr.stepOfLastPlotFile() < gr_amr.levelSteps(0) &&
-        sim_params.plot_interval >= 0)
+    if (gr_amr.stepOfLastPlotFile() < gr_amr.levelSteps(0) && plot_int >= 0)
     {
         gr_amr.writePlotFile();
     }
@@ -75,13 +63,16 @@ int main(int argc, char *argv[])
 {
     mainSetup(argc, argv);
 
-    int status = runGRTeclyn(argc, argv);
+    const int status = runGRTeclyn();
 
     if (status == 0)
-        amrex::Print() << "GRTeclyn finished." << std::endl;
+    {
+        amrex::Print() << "GRTeclyn finished.\n";
+    }
     else
-        amrex::Print() << "GRTeclyn failed with return code " << status
-                       << std::endl;
+    {
+        amrex::Print() << "GRTeclyn failed with return code " << status << "\n";
+    }
 
     mainFinalize();
     return status;
