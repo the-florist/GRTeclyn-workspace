@@ -6,6 +6,7 @@
 #ifndef INFLATIONCONFIG_HPP_
 #define INFLATIONCONFIG_HPP_
 
+#include "GRParmParse.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_MultiFab.H>
@@ -17,52 +18,63 @@
 #include "InflationUtils.hpp"
 #include "TensorTests.hpp"
 
-struct InflationParams
+// Trivially-copyable configuration and methods for the stochastic inflaton
+// initialisation. The parameters are read once on the host by fill_params()
+// and the whole struct is then captured by value into the device kernels, so
+// it must stay POD (no amrex::Vector members).
+struct InflationMethods
 {
-    /* Shared parameters */
-    amrex::Real Mp{1.};             //!< Energy scale of the problem
-
-    // Basic initialisation flags
-    int read_from_stoiic{0};   //!< Whether to read spectrum from stoiic input
-    int tensor_init{0};        //!< Determines whether tensor perturbations run
-    int scalar_init{0};        //!< Read in perturbations from STOIIC dparams
-    int use_rand{1};           //!< Choose whether to use random initial conditions
-    int use_window{0};         //!< Choose whether to use window function
-    int test_normalisation{0}; //!< Run the one-time polarisation-basis
-                               //!< orthonormality check
-
-    // Grid parameters
-    amrex::Real L{0};       //!< Length of the box
-    int N{0};               //!< Grid resolution (number of points per dimension)
-    int N_fine{0};          //!< Fine resolution to downsample from,
-                            //!< used for convergence testing
-    int N_coarse{0};        //!< Coarse resolution to use for the cutoff mode
-                            //!< Used for convergence testing.
-
-    // Field construction parameters
-    amrex::Real A{1.};         //!< Amplitude factor (for basic tests)
-    int random_seed{3539263};  //!< Seed for random number generator
-    amrex::Real alpha{0.};     //!< Internal rotation angle in the +/x
-                               //!< decomposition basis
-    amrex::Real Delta{1.};     //!< window's width, measured like L/Delta
-
-    // Extraction parameters
-    int calc_binned_power_spectrum{0};   //!< Choose whether to extract the
-                                         //!< binned power spectrum
-    int plot_int{0};
-    int calc_higher_order_statistics{0}; //!< Choose whether to print higher-order
-                                         //!< statistics on the fields
-    int num_orders{0};                   //!< Number of moments to print
-                                         //!< (required by vector read-in)
+    // Parameters, populated once on the host by fill_params()
+    amrex::Real Mp{1.};
+    amrex::Real L{0.};
+    amrex::Real Delta{1.};
+    amrex::Real alpha{0.};
+    int N{0};
+    int N_fine{0};
+    int N_coarse{0};
+    int read_from_stoiic{0};
+    int scalar_init{0};
+    int tensor_init{0};
+    int use_rand{1};
+    int use_window{0};
+    int test_normalisation{0};
+    int random_seed{3539263};
 
     // STOIIC spectra uploaded to the device, flattened row-major as
     // [row][mode]. Set by RandomFieldInit; null when STOIIC is unused.
-    int n_modes{0};                             //!< Number of k modes read in
-    const amrex::Real *init_k_ptr{nullptr};     //!< k values, length n_modes
-    const amrex::Real *scalar_ps_ptr{nullptr};  //!< 8 x n_modes scalar spectra
-    const amrex::Real *tensor_ps_ptr{nullptr};  //!< 4 x n_modes tensor spectra
+    int n_modes{0};
+    const amrex::Real *init_k_ptr{nullptr};
+    const amrex::Real *scalar_ps_ptr{nullptr};
+    const amrex::Real *tensor_ps_ptr{nullptr};
 
-    /* Shared device-callable functions */
+    // Read the scalar parameters once from the global GRParmParse table
+    void fill_params()
+    {
+        GRParmParse pp;
+        pp.get("N", N);
+        N_fine = N;
+        pp.query("N_fine", N_fine);
+        N_coarse = N;
+        pp.query("N_coarse", N_coarse);
+        pp.get("L", L);
+
+        amrex::Real G_Newton = 1.;
+        pp.query("G_Newton", G_Newton);
+        Mp = 1. / std::sqrt(G_Newton);
+
+        GRParmParse randominit_pp("randominit");
+        randominit_pp.query("read_from_STOIIC", read_from_stoiic);
+        randominit_pp.query("scalar_init", scalar_init);
+        randominit_pp.query("tensor_init", tensor_init);
+        randominit_pp.query("use_rand", use_rand);
+        randominit_pp.query("use_window", use_window);
+        randominit_pp.query("test_normalisation", test_normalisation);
+        randominit_pp.query("alpha", alpha);
+        randominit_pp.query("Delta", Delta);
+        randominit_pp.query("random_seed", random_seed);
+    }
+
+    /* Device-callable functions */
 
     // Nyquist condition
     AMREX_GPU_HOST_DEVICE inline int flip_index(const int indx) const
@@ -150,20 +162,8 @@ struct InflationParams
 
         return pol;
     }
-};
 
-struct InflationConfig : public InflationParams
-{
-    amrex::Vector<int> orders;           //!< Moment orders to print for
-                                         //!< extracted fields
-
-    // STOIIC read-in structures
-    //!< ks printed by STOIIC, at which Fourier-space fields are provided
-    amrex::Vector<amrex::Real> init_k;
-    //!< Structure: four fields * two components, power spec values
-    amrex::Vector<amrex::Vector<amrex::Real>> scalar_ps;
-    //!< Structure: two fields * two components, power spec values
-    amrex::Vector<amrex::Vector<amrex::Real>> tensor_ps;
+    /* Host-only functions */
 
     inline void test_polarisation_normalisation(const amrex::cMultiFab &kfield)
     {
@@ -188,7 +188,6 @@ struct InflationConfig : public InflationParams
 
     // Applies above Nyquist conditions to a given MF
     inline void apply_nyquist_conditions(amrex::cMultiFab &field);
-
 };
 
 #include "InflationConfig.impl.hpp"

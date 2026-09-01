@@ -12,8 +12,8 @@
 #define INFLATIONCONFIG_IMPL_HPP_
 
 // Calculates both basis vectors required for the polarisation tensors
-AMREX_GPU_HOST_DEVICE inline InflationParams::BasisVectors
-InflationParams::calculate_basis_vectors(const amrex::IntVect iv) const
+AMREX_GPU_HOST_DEVICE inline InflationMethods::BasisVectors
+InflationMethods::calculate_basis_vectors(const amrex::IntVect iv) const
 {
     using Vec = amrex::GpuArray<amrex::Real, 3>;
 
@@ -72,7 +72,7 @@ InflationParams::calculate_basis_vectors(const amrex::IntVect iv) const
     {
         // Unreachable: (i, j, k) == (0, 0, 0) only when iv == {0,0,0}, which is
         // handled by the zero-mode branch above.
-        AMREX_ASSERT_WITH_MESSAGE(false, "InflationConfig::calculate_basis_vectors, "
+        AMREX_ASSERT_WITH_MESSAGE(false, "InflationMethods::calculate_basis_vectors, "
                                          "Fourier grid point not covered.");
     }
 
@@ -96,13 +96,13 @@ InflationParams::calculate_basis_vectors(const amrex::IntVect iv) const
 }
 
 // Applies above Nyquist conditions to a given MF
-inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
+inline void InflationMethods::apply_nyquist_conditions(amrex::cMultiFab &field)
 {
     AMREX_ASSERT(N_fine > 0);
 
     // Slice to the POD base so the kernel captures config by value, not via
     // the (host) this pointer
-    const InflationParams cfg = *this;
+    const InflationMethods cfg = *this;
 
     int nc = field.nComp();
     for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
