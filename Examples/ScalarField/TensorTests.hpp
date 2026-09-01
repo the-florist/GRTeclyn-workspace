@@ -29,7 +29,6 @@ namespace TensorTests
         amrex::ParallelFor(field,
             [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
             {
-                amrex::IntVect iv{i, j, k};
                 amrex::Real sum = 0.;
 
                 for(int l=0; l<3; l++)
@@ -37,12 +36,9 @@ namespace TensorTests
                     sum += arrs[bx](i, j, k, InflationUtils::lut[l][l]);
                 }
 
-                if(amrex::Math::abs(sum) > InflationUtils::tolerance)
-                {
-                    amrex::Print() << iv << ": " << sum << "\n";
-                    amrex::Error("RandomField::Test_is_trace_free "
-                                 "Trace-free test failed here.");
-                }
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    amrex::Math::abs(sum) <= InflationUtils::tolerance,
+                    "TensorTests::Test_is_trace_free, trace-free test failed");
             }
         );
 

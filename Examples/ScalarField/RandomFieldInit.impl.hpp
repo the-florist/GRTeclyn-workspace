@@ -122,12 +122,8 @@ RandomFieldInit::find_in_stoiic(const InflationParams &cfg, const amrex::Real km
         }
     }
 
-    if (spec_index == -1)
-    {
-        amrex::Print() << km << "\n";
-        amrex::Error("RandomFieldInit::find_in_stoiic, "
-                     "the above k was not found in the STOIIC file.");
-    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(spec_index != -1,
+        "RandomFieldInit::find_in_stoiic, k not found in the STOIIC file");
 
     // Return the field (real and imaginary parts) at this k, from the
     // flattened row-major [row][mode] device arrays
@@ -205,8 +201,9 @@ RandomFieldInit::calculate_random_field(const InflationParams &cfg,
     {
         if constexpr (std::is_same_v<std::decay_t<decltype(field_selector)>, ScalarField>)
         {
-            amrex::Error("RandomFieldInit::calculate_random_field, "
-                         "scalar de-Sitter ICs are not yet implemented");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cfg.read_from_stoiic,
+                "RandomFieldInit::calculate_random_field, scalar de-Sitter "
+                "ICs are not yet implemented");
         }
         else { value = calculate_mode_function(cfg, H0, kmag, field_selector); }
     }

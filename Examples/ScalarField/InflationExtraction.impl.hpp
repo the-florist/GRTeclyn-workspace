@@ -87,35 +87,27 @@ inline void InflationExtraction::print_power_spectrum(
             amrex::Real kmag = cfg.get_kmag(iv);
 
             // make sure you're still in the domain
-            if(kmag - kiso_max > InflationUtils::tolerance)
-            {
-                amrex::Print() << iv << "\n";
-                amrex::Print() << kmag << "," << kiso_max << "\n";
-                amrex::Error("InflationExtraction::print_power_spectrum "
-                      "Found magnitude larger than (N/2,N/2,N/2).");
-            }
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                kmag - kiso_max <= InflationUtils::tolerance,
+                "InflationExtraction::print_power_spectrum, magnitude "
+                "larger than (N/2,N/2,N/2)");
 
             // Loop over the isotropic axis
             for (int s=1; s<=cfg.N/2; s++)
             {
                 // If smaller than the smallest bin
-                if(kmag < kiso[0])
-                {
-                    amrex::Print() << iv << "\n";
-                    amrex::Error("InflationExtraction::print_power_spectrum "
-                                 "kmag below the kiso domain.");
-                }
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(kmag >= kiso[0],
+                        "InflationExtraction::print_power_spectrum, "
+                        "kmag below the kiso domain");
 
                 // If you're larger than the largest bin
-                else if(kmag - kiso[cfg.N/2] > InflationUtils::tolerance)
-                {
-                    amrex::Print() << iv << "\n";
-                    amrex::Error("InflationExtraction::print_power_spectrum "
-                                 "kmag above the kiso domain.");
-                }
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    kmag - kiso[cfg.N/2] <= InflationUtils::tolerance,
+                        "InflationExtraction::print_power_spectrum, "
+                        "kmag above the kiso domain");
 
-                // If you're somewhere in the middle
-                else if ((kmag < kiso[s] && kmag >= kiso[(s-1)])
+                // If you're somewhere in the middle, bin the power here
+                if ((kmag < kiso[s] && kmag >= kiso[(s-1)])
                         || kmag == kiso[cfg.N/2])
                 {
                     amrex::Real power =
@@ -134,17 +126,9 @@ inline void InflationExtraction::print_power_spectrum(
                 }
 
                 // If you've reached the largest bin but not been captured
-                else if(s > cfg.N/2)
-                { 
-                    amrex::Print() << iv << "\n";
-                    amrex::Print() << kmag << "\n";
-                    amrex::Print() << kiso[s] << "," << kiso[s-1] << "\n";
-                    amrex::Error("InflationExtraction::print_power_spectrum "
-                                 "Part of the spectrum isn't captured.");
-                }
-
-                // If you haven't found the right bin yet
-                else { continue; }
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s <= cfg.N/2,
+                        "InflationExtraction::print_power_spectrum, "
+                        "part of the spectrum isn't captured");
             }
         });
 
@@ -446,11 +430,9 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     sqrt(pow(hSV_tr.real(), 2.) + pow(hSV_tr.imag(), 2.)), hSV_tr_max);
 
                 // Confirm hij is trace-free in Fourier space
-                if (amrex::Math::abs(hij_tr_max) > InflationUtils::tolerance)
-                {
-                    amrex::Print() << iv << ": " << hij_tr_max << "\n";
-                    amrex::Error("hij trace magnitude too large in extraction");
-                }
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    amrex::Math::abs(hij_tr_max) <= InflationUtils::tolerance,
+                    "InflationExtraction::extract_hs_and_R, hij trace too large");
 
                 // Extract R according to the scheme detailed in 
                 // Appendix B (Eq. B1) of arxiv:2502.06783, using hSV as the 
