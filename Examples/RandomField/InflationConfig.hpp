@@ -22,7 +22,7 @@
 // initialisation. The parameters are read once on the host by fill_params()
 // and the whole struct is then captured by value into the device kernels, so
 // it must stay POD (no amrex::Vector members).
-struct InflationMethods
+struct InflationConfig
 {
     // Parameters, populated once on the host by fill_params()
     amrex::Real Mp{1.};
