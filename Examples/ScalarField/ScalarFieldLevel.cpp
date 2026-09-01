@@ -92,6 +92,10 @@ void ScalarFieldLevel::specificAdvance()
     amrex::MultiFab &S_new = get_new_data(State_Type);
     const auto &arrs       = S_new.arrays();
 
+    // Hoist host params to locals so the device kernel captures them by value
+    const amrex::Real min_chi   = simParams().min_chi;
+    const amrex::Real min_lapse = simParams().min_lapse;
+
     // Enforce the trace free A_ij condition and positive chi and alpha
     amrex::ParallelFor(S_new,
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -99,7 +103,7 @@ void ScalarFieldLevel::specificAdvance()
                            amrex::CellData<amrex::Real> cell =
                                arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
-                           PositiveChiAndAlpha(simParams().min_chi, simParams().min_lapse)(cell);
+                           PositiveChiAndAlpha(min_chi, min_lapse)(cell);
                        });
     amrex::Gpu::streamSynchronize();
 
@@ -170,6 +174,10 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
     const auto &soln_c_arrs = a_soln.const_arrays();
     const auto &rhs_arrs    = a_rhs.arrays();
 
+    // Hoist host params to locals so the device kernel captures them by value
+    const amrex::Real min_chi   = simParams().min_chi;
+    const amrex::Real min_lapse = simParams().min_lapse;
+
     // Enforce positive chi and alpha and trace free A
     amrex::ParallelFor(a_soln, a_soln.nGrowVect(),
                        [=] AMREX_GPU_DEVICE(int box_no, int i, int j, int k)
@@ -177,7 +185,7 @@ void ScalarFieldLevel::specificEvalRHS(amrex::MultiFab &a_soln,
                            amrex::CellData<amrex::Real> cell =
                                soln_arrs[box_no].cellData(i, j, k);
                            TraceARemoval()(cell);
-                           PositiveChiAndAlpha(simParams().min_chi, simParams().min_lapse)(cell);
+                           PositiveChiAndAlpha(min_chi, min_lapse)(cell);
                        });
     amrex::Gpu::streamSynchronize();
 
