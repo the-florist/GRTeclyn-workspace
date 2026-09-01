@@ -214,9 +214,6 @@ RandomFieldInit::calculate_random_field(const InflationParams &cfg,
     // Add stochastic perturbations
     if (cfg.use_rand == 1)
     {
-        BL_PROFILE("RandomFieldInit::calculate_random_field "
-                   "Random initialisation is used");
-
         // Make one random draw for the amplitude and phase individually
         amrex::Real rand_mod = sqrt(-2. * log(rand_amp));
         amrex::Real rand_arg = 2. * amrex::Math::pi<amrex::Real>() * rand_phase;
@@ -237,7 +234,6 @@ RandomFieldInit::calculate_random_field(const InflationParams &cfg,
     // Apply a window function if requested
     if (cfg.use_window == 1)
     {
-        BL_PROFILE("RandomFieldInit::calculate_random_field Window function is used")
         value *= cfg.window_function(kmag);
     }
 
