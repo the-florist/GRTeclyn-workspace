@@ -6,6 +6,26 @@
 #ifndef INFLATIONEXTRACTION_IMPL_HPP_
 #define INFLATIONEXTRACTION_IMPL_HPP_
 
+void InflationExtraction::set_up(int a_state_index)
+{
+    int num_ghosts = 0;
+
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
+
+    const auto &field_names = InflationExtraction::var_names;
+
+    // Add Constraints to the derive list
+    derive_lst.add(
+        "InflationFields", amrex::IndexType::TheCellType(),
+        static_cast<int>(field_names.size()), field_names,
+        InflationExtraction::compute_mf, [=](const amrex::Box &box)
+        { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
+
+    derive_lst.addComponent("InflationFields", desc_lst, a_state_index, 0,
+                            NUM_VARS);
+}
+
 /* Helper functions */
 
 // Makes subdirectories in data/
@@ -54,27 +74,27 @@ inline void InflationExtraction::print_power_spectrum(
     const int component)
 { 
     // Set up the isotropic k axis bounds
-    amrex::Real kiso_max =
-        std::sqrt(3.) * m_params.N * amrex::Math::pi<amrex::Real>() / m_params.L;
-    amrex::Real dkiso = sqrt(3.) * 2. * amrex::Math::pi<amrex::Real>() / m_params.L;
+    amrex::Real kiso_max = std::sqrt(3.) * inflt_methods.N *
+                           amrex::Math::pi<amrex::Real>() / inflt_methods.L;
+    amrex::Real dkiso = sqrt(3.) * 2. * amrex::Math::pi<amrex::Real>() / inflt_methods.L;
 
     // check the stepping along the diagonal is consistent
-    if (kiso_max/dkiso - m_params.N/2 > InflationUtils::tolerance)
+    if (kiso_max/dkiso - inflt_methods.N/2 > InflationUtils::tolerance)
     {
         amrex::Error("InflationExtraction::print_power_spectrum "
                      "Isotropic k axis is too large.");
     }
 
     // Set up isotropic k axis and PS map
-    amrex::Vector<amrex::Real> kiso(m_params.N / 2 + 1, 0.);
-    amrex::Vector<amrex::Real> ps_map(m_params.N/2 + 1, 0.);
-    amrex::Vector<int> kcount(m_params.N/2 + 1, 0);
-    for (int s=0; s<=m_params.N/2; s++) { kiso[s] = s*dkiso; }
+    amrex::Vector<amrex::Real> kiso(inflt_methods.N / 2 + 1, 0.);
+    amrex::Vector<amrex::Real> ps_map(inflt_methods.N/2 + 1, 0.);
+    amrex::Vector<int> kcount(inflt_methods.N/2 + 1, 0);
+    for (int s=0; s<=inflt_methods.N/2; s++) { kiso[s] = s*dkiso; }
 
     // Device copies of the bins, which the kernel reads and atomically writes
-    amrex::Gpu::DeviceVector<amrex::Real> kiso_d(m_params.N/2 + 1);
-    amrex::Gpu::DeviceVector<amrex::Real> ps_map_d(m_params.N/2 + 1);
-    amrex::Gpu::DeviceVector<int> kcount_d(m_params.N/2 + 1);
+    amrex::Gpu::DeviceVector<amrex::Real> kiso_d(inflt_methods.N/2 + 1);
+    amrex::Gpu::DeviceVector<amrex::Real> ps_map_d(inflt_methods.N/2 + 1);
+    amrex::Gpu::DeviceVector<int> kcount_d(inflt_methods.N/2 + 1);
     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, kiso.begin(), kiso.end(),
                           kiso_d.begin());
     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, ps_map.begin(), ps_map.end(),
@@ -90,7 +110,7 @@ inline void InflationExtraction::print_power_spectrum(
     amrex::MFIter::allowMultipleMFIters(true);
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationParams cfg = m_params;
+    const InflationConfig cfg = inflt_methods;
 
     // Loop to bin the power spectrum at each point
     const auto& field_arrs = field_array.arrays();
@@ -161,7 +181,7 @@ inline void InflationExtraction::print_power_spectrum(
     amrex::ParallelAllReduce::Sum(ps_map.data(), static_cast<int>(ps_map.size()), 
                                   amrex::ParallelContext::CommunicatorSub());
 
-    for(int s = 0; s < m_params.N/2; s++)
+    for(int s = 0; s < inflt_methods.N/2; s++)
     {
         const amrex::Real avg_power = (kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.;
         power_spec_file.write_data_line({(kiso[s] + kiso[s+1]) / 2., avg_power});
@@ -174,7 +194,7 @@ InflationExtraction::calculate_field_moment_x(const amrex::MultiFab &field,
                                               const amrex::Vector<amrex::Real> mean, 
                                               const int moment, const int component)
 {
-    const amrex::Real vol = std::pow(m_params.N, 3.);
+    const amrex::Real vol = std::pow(inflt_methods.N, 3.);
     const amrex::Real mean_comp = mean[component];
 
     amrex::ReduceOps<amrex::ReduceOpSum> reduce_op;
@@ -221,7 +241,7 @@ InflationExtraction::print_moment(amrex::MultiFab &field,
 
     // Allocate arrays to store each moment
     const int nc = field.nComp();
-    const amrex::Real vol = std::pow(m_params.N, 3.);
+    const amrex::Real vol = std::pow(inflt_methods.N, 3.);
     amrex::Vector<amrex::Real> means(nc, 0.);
     amrex::Vector<amrex::Real> stdev(nc, 0.);
     amrex::Vector<amrex::Real> skew(nc, 0.);
@@ -333,7 +353,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     Copy(scalars_x, state, c_chi, m_c_chi, 1, 0);
 
     // Find background quantities needed to extract \cal R
-    const int vol = std::pow(m_params.N, 3);
+    const int vol = std::pow(inflt_methods.N, 3);
     const amrex::Real K_bar = state.sum(c_K)/vol;
     const amrex::Real alpha_bar = state.sum(c_lapse)/vol;
     const amrex::Real Pi_bar = state.sum(c_Pi)/vol;
@@ -343,16 +363,16 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
     scalars_x.plus(-chi_bar, m_c_chi, 1);
-    scalars_x.mult(1./m_params.norm());
+    scalars_x.mult(1./inflt_methods.norm());
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { gij_x.plus(-1., InflationUtils::lut[l][l], 1); }
-    gij_x.mult(1./m_params.norm());
+    gij_x.mult(1./inflt_methods.norm());
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    amrex::IntVect k_domain_high(m_params.N/2, m_params.N-1, m_params.N-1);
+    amrex::IntVect k_domain_high(inflt_methods.N/2, inflt_methods.N-1, inflt_methods.N-1);
     amrex::Box k_domain(domain_low, k_domain_high);
     constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
     amrex::BoxArray kba =
@@ -371,7 +391,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     R_k.setVal(0.0);
 
     // Set up the FFT
-    amrex::IntVect x_domain_high(m_params.N-1, m_params.N-1, m_params.N-1);
+    amrex::IntVect x_domain_high(inflt_methods.N-1, inflt_methods.N-1, inflt_methods.N-1);
     amrex::Box x_domain(domain_low, x_domain_high);
     amrex::FFT::R2C<amrex::Real> tensor_fft(
         x_domain, amrex::FFT::Info().setBatchSize(gij_k.nComp()));
@@ -389,11 +409,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // Normalise the fft (fftw style)
     for(int comp = 0; comp < 6; comp++)
     {
-        gij_k.mult(std::pow(m_params.N, -3.), comp, 1);
+        gij_k.mult(std::pow(inflt_methods.N, -3.), comp, 1);
     }
     for(int comp = 0; comp < 2; comp++)
     {
-        scalars_k.mult(std::pow(m_params.N, -3.), comp, 1);
+        scalars_k.mult(std::pow(inflt_methods.N, -3.), comp, 1);
     }
 
     const auto& hs_arrs = hs_k.arrays();
@@ -402,7 +422,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     const auto& R_k_arrs = R_k.arrays();
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationParams cfg = m_params;
+    const InflationConfig cfg = inflt_methods;
 
     amrex::ParallelFor(gij_k, [=]
                 AMREX_GPU_DEVICE (int bx, int i, int j, int k)
@@ -474,27 +494,30 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::Gpu::streamSynchronize();
 
     // Prepare to IFT the polarisation fields and R field
-    m_params.apply_nyquist_conditions(hs_k);
-    m_params.apply_nyquist_conditions(R_k);
+    inflt_methods.apply_nyquist_conditions(hs_k);
+    inflt_methods.apply_nyquist_conditions(R_k);
 
     // Find the binned PS for each mode function and print to data/
-    if ((print_spec) && (static_cast<int>(m_cur_time/m_dt) 
-                         % m_params.plot_int == 0))
+    GRParmParse extraction_pp("extraction");
+    int spec_interval = 100;
+    extraction_pp.query("spec_interval", spec_interval);
+    if ((print_spec) && (static_cast<int>(time/dt)
+                         % spec_interval == 0))
     {
         amrex::Print() << "Time step at print: "
-                       << static_cast<int>(std::round(m_cur_time/m_dt)) << "\n";
-        std::string spec_path = make_subdirectory(m_data_path, "spectra", m_first_step);
+                       << static_cast<int>(std::round(time/dt)) << "\n";
+        std::string spec_path = make_subdirectory(m_data_path, "spectra", first_step);
 
         for(int comp = 0; comp < hs_k.nComp(); comp++)
         {
             SmallDataIO spectrum_file(
                 spec_path+"spectrum-comp-"+std::to_string(comp)+"-time-",
-                m_dt, m_cur_time, m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
+                dt, time, restart_time, SmallDataIO::NEW, first_step, ".dat");
             print_power_spectrum(hs_k, spectrum_file, comp);
         }
 
-        SmallDataIO spectrum_file(spec_path+"spectrum-Rk-time-", m_dt, m_cur_time, 
-                                  m_restart_time, SmallDataIO::NEW, m_first_step, ".dat");
+        SmallDataIO spectrum_file(spec_path+"spectrum-Rk-time-", dt, time, 
+                                  restart_time, SmallDataIO::NEW, first_step, ".dat");
         print_power_spectrum(R_k, spectrum_file, 0);
     }
 
@@ -506,16 +529,27 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // (before applying the physical normalisation)
     if(print_spec)
     {
-        TensorTests::Test_Parsevals_thm(hs, hs_k, m_params.N);
-        TensorTests::Test_Parsevals_thm(R, R_k, m_params.N);
+        TensorTests::Test_Parsevals_thm(hs, hs_k, inflt_methods.N);
+        TensorTests::Test_Parsevals_thm(R, R_k, inflt_methods.N);
     }
 
     // Apply physical normalisation
-    hs.mult(m_params.norm());
-    R.mult(m_params.norm());
+    hs.mult(inflt_methods.norm());
+    R.mult(inflt_methods.norm());
 }
 
 // Put R and hs into plotfiles
+// DeriveFuncMF callback: build an extractor and fill the plotfile output with
+// R, hplus, hcross. src_mf arrives already FillPatch-ed by the framework.
+inline void InflationExtraction::compute_mf(
+    amrex::MultiFab &out_mf, int dcomp, int /*ncomp*/,
+    const amrex::MultiFab &src_mf, const amrex::Geometry & /*geomdata*/,
+    amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
+{
+    InflationExtraction extractor;
+    extractor.derive(src_mf, out_mf, dcomp);
+}
+
 inline void InflationExtraction::derive(const amrex::MultiFab &source,
                                         amrex::MultiFab &out, const int dcomp)
 {
@@ -529,7 +563,8 @@ inline void InflationExtraction::derive(const amrex::MultiFab &source,
     hs_x.setVal(0.0);
     R_x.setVal(0.0);
 
-    extract_hs_and_R(hs_x, R_x, source);
+    // print_spec = false: no data-file side effects on the plotfile path
+    extract_hs_and_R(hs_x, R_x, source, false);
 
     const auto& hs_arrs = hs_x.arrays();
     const auto& R_arrs = R_x.arrays();
@@ -571,25 +606,30 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
     amrex::MultiFab::Copy(out_MF, R_x, 0, 0, R_x.nComp(), 0);
     amrex::MultiFab::Copy(out_MF, hs_x, 0, R_x.nComp(), hs_x.nComp(), 0);
 
+    // Read the requested moment orders
+    GRParmParse extraction_pp("extraction");
+    amrex::Vector<int> orders;
+    extraction_pp.queryarr("moments_to_print", orders);
+
     // Calculate and print field moments
     amrex::Vector<amrex::Real> stdevs;
-    SmallDataIO stats_file(m_data_path+"field-statistics", m_dt, m_cur_time, 
-                            m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
+    SmallDataIO stats_file(m_data_path+"field-statistics", dt, time,
+                            restart_time, SmallDataIO::APPEND, first_step, ".dat");
 
-    if (!m_params.orders.empty())
+    if (!orders.empty())
     {
-        stdevs = print_moment(out_MF, var_names, m_params.orders,
-                              stats_file, m_first_step);
+        stdevs = print_moment(out_MF, var_names, orders,
+                              stats_file, first_step);
     }
-    
-    // Calculate and print tensor to scalar ratio (integrated PS)
-    if (std::find(m_params.orders.begin(), m_params.orders.end(), 2)
-        != m_params.orders.end())
-    {
-        SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", m_dt, m_cur_time,
-                            m_restart_time, SmallDataIO::APPEND, m_first_step, ".dat");
 
-        if(m_first_step)
+    // Calculate and print tensor to scalar ratio (integrated PS)
+    if (std::find(orders.begin(), orders.end(), 2)
+        != orders.end())
+    {
+        SmallDataIO ts_file(m_data_path+"tensor-scalar-ratio", dt, time,
+                            restart_time, SmallDataIO::APPEND, first_step, ".dat");
+
+        if(first_step)
         {
             ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"});
         }
