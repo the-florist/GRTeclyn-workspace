@@ -440,7 +440,10 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 if(cfg.scalar_init)
                 {
                     // Find the unitful k vector
-                    amrex::Vector<amrex::Real> iv_k(iv.begin(), iv.end());
+                    amrex::GpuArray<amrex::Real, 3> iv_k{
+                        static_cast<amrex::Real>(iv[0]),
+                        static_cast<amrex::Real>(iv[1]),
+                        static_cast<amrex::Real>(iv[2])};
                     iv_k[1] = cfg.invert_index_with_sign(iv_k[1]);
                     iv_k[2] = cfg.invert_index_with_sign(iv_k[2]);
 
