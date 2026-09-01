@@ -124,7 +124,7 @@ struct InflationParams
 
     //! Computes both polarisation basis vectors for this mode in one call
     AMREX_GPU_HOST_DEVICE inline BasisVectors
-    calculate_basis_vectors(const amrex::IntVect iv);
+    calculate_basis_vectors(const amrex::IntVect iv) const;
 
     //! The plus and cross polarisation tensors for a Fourier mode
     struct PolarisationTensors
@@ -135,7 +135,7 @@ struct InflationParams
 
     //! Computes both polarisation tensors for this mode in one call
     AMREX_GPU_HOST_DEVICE inline PolarisationTensors
-    calculate_polarisation_tensors(const amrex::IntVect iv)
+    calculate_polarisation_tensors(const amrex::IntVect iv) const
     {
         // Find basis vectors
         const auto [mhat, nhat] = calculate_basis_vectors(iv);

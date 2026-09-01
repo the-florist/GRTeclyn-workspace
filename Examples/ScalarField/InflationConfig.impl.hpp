@@ -13,7 +13,7 @@
 
 // Calculates both basis vectors required for the polarisation tensors
 AMREX_GPU_HOST_DEVICE inline InflationParams::BasisVectors
-InflationParams::calculate_basis_vectors(const amrex::IntVect iv)
+InflationParams::calculate_basis_vectors(const amrex::IntVect iv) const
 {
     using Vec = amrex::GpuArray<amrex::Real, 3>;
 
