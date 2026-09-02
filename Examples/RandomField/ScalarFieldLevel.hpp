@@ -11,7 +11,6 @@
 #include "GRAmrLevel.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
-#include "ScalarFieldAmr.hpp"
 #include "SixthOrderDerivatives.hpp"
 
 /// Evolution level for a real scalar field minimally coupled to gravity.
@@ -24,8 +23,6 @@ class ScalarFieldLevel : public GRAmrLevel
 
     template <class deriv_t = FourthOrderDerivatives>
     using ScalarFieldWithPotential = ScalarField<Potential, deriv_t>;
-
-    ScalarFieldAmr *get_scalar_field_amr_ptr();
 
     static void variableSetUp();
 

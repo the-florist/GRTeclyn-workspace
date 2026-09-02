@@ -313,8 +313,9 @@ void ScalarFieldLevel::specific_post_timestep()
         {
             means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
         }
-        
-        means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
+        const std::vector<amrex::Real> means_data = 
+            {phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg}
+        means_file.write_time_data_line(means_data);
 
         // Extract the spectra and field statistics
         InflationExtraction inflation_extractor_engine;

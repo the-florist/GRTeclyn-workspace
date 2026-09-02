@@ -9,7 +9,7 @@
 #include "ArrayTools.hpp"
 #include "BCParity.hpp"
 
-#include "CCZ4Variables.hpp"
+#include "CCZ4StateVariables.hpp"
 
 // assign an enum to each variable
 enum

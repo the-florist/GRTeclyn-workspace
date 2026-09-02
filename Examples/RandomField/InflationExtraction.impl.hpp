@@ -184,7 +184,8 @@ inline void InflationExtraction::print_power_spectrum(
     for(int s = 0; s < inflt_methods.N/2; s++)
     {
         const amrex::Real avg_power = (kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.;
-        power_spec_file.write_data_line({(kiso[s] + kiso[s+1]) / 2., avg_power});
+        const std::vector<amrex::Real> data{(kiso[s] + kiso[s+1]) / 2., avg_power};
+        power_spec_file.write_data_line(data);
     }
 }
 
@@ -439,10 +440,10 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 {
                     hs_arrs[bx](i, j, k, 0) +=
                         (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
-                         * eplus[l][p])/2.;
+                         * eplus(l, p))/2.;
                     hs_arrs[bx](i, j, k, 1) +=
                         (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
-                         * ecross[l][p])/2.;
+                         * ecross(l, p))/2.;
                 }
 
                 // Calculate the TT and scalar-(vector) components of the 
@@ -450,8 +451,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                 Tensor<2, amrex::GpuComplex<amrex::Real>> hij, hSV;
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
-                    hij[l][p] = (hs_arrs[bx](i, j, k, 0) * eplus[l][p]
-                                + hs_arrs[bx](i, j, k, 1) * ecross[l][p]);
+                    hij[l][p] = (hs_arrs[bx](i, j, k, 0) * eplus(l, p)
+                                + hs_arrs[bx](i, j, k, 1) * ecross(l, p));
                     hSV[l][p] =
                         gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) - hij[l][p];
                 }

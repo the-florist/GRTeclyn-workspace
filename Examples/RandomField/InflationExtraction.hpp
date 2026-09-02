@@ -7,7 +7,6 @@
 #define INFLATIONEXTRACTION_HPP_
 
 #include "InflationConfig.hpp"
-#include "VarsTools.hpp"
 #include "FilesystemTools.hpp" 
 #include "SmallDataIO.hpp"
 

@@ -6,12 +6,8 @@
 #ifndef INITIALBACKGROUNDDATA_HPP_
 #define INITIALBACKGROUNDDATA_HPP_
 
-#include "Cell.hpp"
 #include "Coordinates.hpp"
 #include "StateVariables.hpp"
-#include "Tensor.hpp"
-#include "simd.hpp"
-#include "Potential.hpp"
 
 #include <AMReX_Math.H>
 
