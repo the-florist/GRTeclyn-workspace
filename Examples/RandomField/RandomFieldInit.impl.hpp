@@ -11,47 +11,63 @@
 #ifndef RANDOMFIELDINIT_IMPL_HPP_
 #define RANDOMFIELDINIT_IMPL_HPP_
 
-// Flatten the STOIIC spectra (row-major [row][mode]) and upload them to the
-// device, then point m_params at the device storage.
+// Read the STOIIC spectra from the global table, flatten them (row-major
+// [row][mode]) and upload them to the device, then point inflt_methods at the
+// device storage.
 inline void RandomFieldInit::upload_stoiic_to_device()
 {
-    if (!m_params.read_from_stoiic) { return; }
+    if (!inflt_methods.read_from_stoiic) { return; }
 
-    const int n_modes = static_cast<int>(m_params.init_k.size());
-    m_params.n_modes = n_modes;
+    GRParmParse randominit_pp("randominit");
+
+    amrex::Vector<amrex::Real> init_k;
+    randominit_pp.getarr("init_k", init_k);
+    const int n_modes = static_cast<int>(init_k.size());
+    inflt_methods.n_modes = n_modes;
     if (n_modes == 0) { return; }
 
     m_init_k_d.resize(n_modes);
-    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, m_params.init_k.begin(),
-                          m_params.init_k.end(), m_init_k_d.begin());
-    m_params.init_k_ptr = m_init_k_d.data();
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, init_k.begin(),
+                          init_k.end(), m_init_k_d.begin());
+    inflt_methods.init_k_ptr = m_init_k_d.data();
 
-    if (m_params.scalar_init)
+    if (inflt_methods.scalar_init)
     {
-        const int n_rows = static_cast<int>(m_params.scalar_ps.size());
-        amrex::Vector<amrex::Real> flat(n_rows * n_modes);
-        for (int r = 0; r < n_rows; r++) for (int idx = 0; idx < n_modes; idx++)
+        const char *keys[8] = {"re_phi_k", "im_phi_k", "re_Pi_k", "im_Pi_k",
+                               "re_X_k",   "im_X_k",   "re_K_k",  "im_K_k"};
+        amrex::Vector<amrex::Real> flat(8 * n_modes);
+        for (int r = 0; r < 8; r++)
         {
-            flat[r * n_modes + idx] = m_params.scalar_ps[r][idx];
+            amrex::Vector<amrex::Real> row;
+            randominit_pp.getarr(keys[r], row);
+            for (int idx = 0; idx < n_modes; idx++)
+            {
+                flat[r * n_modes + idx] = row[idx];
+            }
         }
         m_scalar_ps_d.resize(flat.size());
         amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, flat.begin(),
                               flat.end(), m_scalar_ps_d.begin());
-        m_params.scalar_ps_ptr = m_scalar_ps_d.data();
+        inflt_methods.scalar_ps_ptr = m_scalar_ps_d.data();
     }
 
-    if (m_params.tensor_init)
+    if (inflt_methods.tensor_init)
     {
-        const int n_rows = static_cast<int>(m_params.tensor_ps.size());
-        amrex::Vector<amrex::Real> flat(n_rows * n_modes);
-        for (int r = 0; r < n_rows; r++) for (int idx = 0; idx < n_modes; idx++)
+        const char *keys[4] = {"re_h_k", "im_h_k", "re_dh_k", "im_dh_k"};
+        amrex::Vector<amrex::Real> flat(4 * n_modes);
+        for (int r = 0; r < 4; r++)
         {
-            flat[r * n_modes + idx] = m_params.tensor_ps[r][idx];
+            amrex::Vector<amrex::Real> row;
+            randominit_pp.getarr(keys[r], row);
+            for (int idx = 0; idx < n_modes; idx++)
+            {
+                flat[r * n_modes + idx] = row[idx];
+            }
         }
         m_tensor_ps_d.resize(flat.size());
         amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, flat.begin(),
                               flat.end(), m_tensor_ps_d.begin());
-        m_params.tensor_ps_ptr = m_tensor_ps_d.data();
+        inflt_methods.tensor_ps_ptr = m_tensor_ps_d.data();
     }
 
     amrex::Gpu::streamSynchronize();
@@ -104,7 +120,7 @@ inline amrex::Real RandomFieldInit::find_precision_loss(amrex::MultiFab &field,
 }
 
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-RandomFieldInit::find_in_stoiic(const InflationParams &cfg, const amrex::Real km,
+RandomFieldInit::find_in_stoiic(const InflationConfig &cfg, const amrex::Real km,
                                 const FieldType field_type,
                                 const auto field_selector)
 {
@@ -146,8 +162,8 @@ RandomFieldInit::find_in_stoiic(const InflationParams &cfg, const amrex::Real km
 
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-RandomFieldInit::calculate_mode_function(const InflationParams &cfg,
-                                         const amrex::Real H0, const amrex::Real km,
+RandomFieldInit::calculate_mode_function(const InflationConfig &cfg,
+                                         const amrex::Real km,
                                          const TensorField field_selector)
 {
     // Deals with k=0 case, which is undefined if m=0
@@ -160,10 +176,10 @@ RandomFieldInit::calculate_mode_function(const InflationParams &cfg,
     amrex::Real ms_mag = 0.;
     amrex::Real ms_arg = 0.;
 
-    amrex::Real kpr = km/H0;
+    amrex::Real kpr = km/cfg.H0;
     if (field_selector == TensorField::Amplitude) // Position mode funcion
     {
-        ms_mag = sqrt((1.0/km + H0*H0/pow(km, 3.))/2./pow(cfg.Mp, 2.));
+        ms_mag = sqrt((1.0/km + cfg.H0*cfg.H0/pow(km, 3.))/2./pow(cfg.Mp, 2.));
         ms_arg = atan2((cos(kpr) + kpr*sin(kpr)), (kpr*cos(kpr) - sin(kpr)));
     }
     else // Velocity mode funcion
@@ -179,8 +195,7 @@ RandomFieldInit::calculate_mode_function(const InflationParams &cfg,
 
 // Turns analytic PS into GRF and applies window function if requested
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-RandomFieldInit::calculate_random_field(const InflationParams &cfg,
-                                        const amrex::Real H0,
+RandomFieldInit::calculate_random_field(const InflationConfig &cfg,
                                         const amrex::IntVect iv,
                                         const amrex::Real rand_amp,
                                         const amrex::Real rand_phase,
@@ -205,7 +220,7 @@ RandomFieldInit::calculate_random_field(const InflationParams &cfg,
                 "RandomFieldInit::calculate_random_field, scalar de-Sitter "
                 "ICs are not yet implemented");
         }
-        else { value = calculate_mode_function(cfg, H0, kmag, field_selector); }
+        else { value = calculate_mode_function(cfg, kmag, field_selector); }
     }
 
     // Add stochastic perturbations
@@ -241,9 +256,9 @@ inline void RandomFieldInit::generate_fourier_realisation(
     amrex::cMultiFab &hij_k, amrex::cMultiFab &Aij_k, amrex::cMultiFab &scalar_fields_k)
 {
     // Test polarisation tensor orthonormality conditions
-    if (m_params.tensor_init && m_params.test_normalisation)
+    if (inflt_methods.tensor_init && inflt_methods.test_normalisation)
     {
-        m_params.test_polarisation_normalisation(hij_k);
+        inflt_methods.test_polarisation_normalisation(hij_k);
     }
 
     // Extract arrays before ParallelFor
@@ -254,8 +269,7 @@ inline void RandomFieldInit::generate_fourier_realisation(
     amrex::Print() << "Starting initial condition generation/read in...\n";
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationParams cfg = m_params;
-    const amrex::Real h0 = H0;
+    const InflationConfig cfg = inflt_methods;
 
     amrex::ParallelFor(hij_k,
         [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k)
@@ -284,7 +298,7 @@ inline void RandomFieldInit::generate_fourier_realisation(
             for (ScalarField fs : all_scalar_fields)
             {
                 scalar_field_arrs[bx](i, j, k, static_cast<int>(fs)) =
-                    calculate_random_field(cfg, h0, iv, draw1, draw2,
+                    calculate_random_field(cfg, iv, draw1, draw2,
                                            FieldType::Scalar, fs);
             }
         }
@@ -301,11 +315,11 @@ inline void RandomFieldInit::generate_fourier_realisation(
                 amrex::Real draw2 = InflationUtils::to_unit_open(
                     InflationUtils::splitmix64(cell_key + uint64_t(3 + 2*p)));
 
-                hs[p] = calculate_random_field(cfg, h0, iv, draw1, draw2,
+                hs[p] = calculate_random_field(cfg, iv, draw1, draw2,
                                                 FieldType::Tensor,
                                                 TensorField::Amplitude);
 
-                As[p] = calculate_random_field(cfg, h0, iv, draw1, draw2,
+                As[p] = calculate_random_field(cfg, iv, draw1, draw2,
                                                 FieldType::Tensor,
                                                 TensorField::Velocity);
             }
@@ -327,9 +341,9 @@ inline void RandomFieldInit::generate_fourier_realisation(
     amrex::Gpu::streamSynchronize();
 
     // Apply the DC and Nyquist symmetry conditions
-    m_params.apply_nyquist_conditions(hij_k);
-    m_params.apply_nyquist_conditions(Aij_k);
-    m_params.apply_nyquist_conditions(scalar_fields_k);
+    inflt_methods.apply_nyquist_conditions(hij_k);
+    inflt_methods.apply_nyquist_conditions(Aij_k);
+    inflt_methods.apply_nyquist_conditions(scalar_fields_k);
 }
 
 inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
@@ -343,16 +357,17 @@ inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
                   "c_A11..c_A33 are consecutive metric/A_ij components");
 
     // Apply normalisation into physical units
-    hij_x.mult(m_params.norm());
-    Aij_x.mult(m_params.norm());
-    scalar_fields_x.mult(m_params.norm());
+    hij_x.mult(inflt_methods.norm());
+    Aij_x.mult(inflt_methods.norm());
+    scalar_fields_x.mult(inflt_methods.norm());
 
-    // Check the scalar perturbations can be re-extracted 
+    // Check the scalar perturbations can be re-extracted
     // from the background.
-    if (m_params.scalar_init)
+    if (inflt_methods.scalar_init)
     {
         amrex::Print() << "RandomFieldInit::init, Precision lost in phi is ";
-        amrex::Print() << find_precision_loss(scalar_fields_x, 0, phi0) << "\n";
+        amrex::Print() << find_precision_loss(scalar_fields_x, 0, inflt_methods.phi0)
+                       << "\n";
         amrex::Print() << "RandomFieldInit::init, Precision lost in chi is ";
         amrex::Print() << find_precision_loss(scalar_fields_x, 2, 1.0) << "\n";
     }
@@ -369,7 +384,7 @@ inline void RandomFieldInit::add_perturbations_to_state(amrex::MultiFab &state,
     const auto &scalar_field_x_arrs = scalar_fields_x.const_arrays();
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationParams cfg = m_params;
+    const InflationConfig cfg = inflt_methods;
 
     amrex::ParallelFor(state,
         [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) noexcept
@@ -412,23 +427,26 @@ inline void RandomFieldInit::init(amrex::MultiFab &state)
 {
     BL_PROFILE("RandomFieldInit::init");
 
+    const int N = inflt_methods.N;
+    const int N_fine = inflt_methods.N_fine;
+
     // Derive MultiFab ingredients from state (configuration space)
     amrex::BoxArray sba = state.boxArray();
     amrex::DistributionMapping sdm = state.DistributionMap();
 
     // If coarse graining is requested, set up the coarse grid Ns
-    int Ni = m_params.N;
+    int Ni = N;
     int dN = 1;
-    if(m_params.N_fine != m_params.N) 
-    { 
-        Ni = m_params.N_fine; 
-        dN = m_params.N_fine / m_params.N; 
+    if(N_fine != N)
+    {
+        Ni = N_fine;
+        dN = N_fine / N;
     }
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    amrex::BoxArray xba = (m_params.N_fine != 0 ? sba.refine(dN) : sba);
+    amrex::BoxArray xba = (N_fine != 0 ? sba.refine(dN) : sba);
 
     amrex::IntVect k_domain_high(Ni/2, Ni-1, Ni-1);
     amrex::Box k_domain(domain_low, k_domain_high);
