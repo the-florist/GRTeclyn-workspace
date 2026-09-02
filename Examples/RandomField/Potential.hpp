@@ -15,7 +15,7 @@ class Potential
   public:
     struct params_t
     {
-        int type;
+        int type = -1;
 
         // Monodromy parameters
         amrex::Real scalar_mass = 0.;
@@ -133,7 +133,8 @@ class Potential
         m_params.check_params();
     }
 
-    // Classic quadratic potenital
+    // Classic quadratic potential
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     quadratic(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
@@ -142,7 +143,8 @@ class Potential
         dVdphi = std::pow(m_params.scalar_mass, 2.) * phi;
     }
 
-    // Classic quadratic potenital
+    // Classic quadratic potential with Gaussian bump
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     quadratic_bump(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
@@ -160,6 +162,7 @@ class Potential
     }
 
     // Monodromy potential, as used in STOIIC and also in arXiv:2403.12811
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     monodromy(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
@@ -191,6 +194,7 @@ class Potential
     }
 
     // Prokopec USR model, from arXiv:2507.04114
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void USR(data_t &V_of_phi, data_t &dVdphi,
                                                       const data_t &phi) const
@@ -211,7 +215,8 @@ class Potential
         dVdphi = -2. * m_params.Lambda * pow(m_params.v, 5.) * phi * fraction;
     }
 
-    // Prokopec USR model, from arxiv:0809.3915v2
+    // punctuated USR model from XXXXx
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     punctuated(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
@@ -230,7 +235,8 @@ class Potential
               m_params.scalar_mass * pow(phi, m_params.n - 1);
     }
 
-    // Classic quadratic potenital
+    // Classic quadratic potenital with inverted bump
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     inverted_quadratic_bump(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
@@ -249,6 +255,7 @@ class Potential
 
     // Quadratic potential modulated by a tanh step, as used in STOIIC
     // V_of_phi = 0.5 m^2 phi^2 [1 + c tanh((phi - phi_s) / d)]
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     quadratic_step(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
@@ -309,7 +316,7 @@ class Potential
     //! Concrete overload used by the ScalarField matter class
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
-                      const ScalarFieldVars &vars) const
+                      const ScalarFieldVars &vars) static
     {
         compute_background_potential(V_of_phi, dVdphi, vars.phi());
     }
