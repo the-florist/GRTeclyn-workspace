@@ -19,12 +19,12 @@ class InitialBackgroundData
 		{
 			amrex::Real phi0; //!< Amplitude of k=0 mode of initial SF
 			amrex::Real Pi0;  //!< Amplitude of initial SF velocity
-			amrex::Real G_Newton; 
+			amrex::Real G_Newton = 1.0;
 
 			void fill_params()
 			{
 				GRParmParse pp;
-				pp.get("G_Newton", G_Newton);
+				pp.query("scalar_field.G_Newton", G_Newton);
 				pp.get("init.background_phi", phi0);
 				pp.get("init.background_dphi", Pi0);
 			}

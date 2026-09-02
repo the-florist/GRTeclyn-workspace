@@ -237,21 +237,6 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     // NOLINTEND(bugprone-branch-clone)
 
     amrex::Gpu::streamSynchronize();
-
-    if (a_rhs.contains_nan(0, a_rhs.nComp(), 0))
-    {
-        amrex::Print() << "specific_eval_rhs: NaN detected in RHS at level "
-                       << Level() << "\n";
-        for (int n = 0; n < a_rhs.nComp(); ++n)
-        {
-            const bool nan = a_rhs.contains_nan(n, 1, 0);
-            amrex::Print() << "  [" << n << "] " << StateVariables::names[n]
-                           << (nan ? "  <-- NaN" : "  ok") << "  (min="
-                           << a_rhs.min(n, 0) << ", max=" << a_rhs.max(n, 0)
-                           << ")\n";
-        }
-        amrex::Abort("specific_eval_rhs: NaN in RHS, see per-component report");
-    }
 }
 
 void ScalarFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
@@ -354,7 +339,13 @@ void ScalarFieldLevel::specific_post_timestep()
 
         // Print statistics on the abs constraint terms
         amrex::Vector<int> moments{1,2};
-        inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names, 
+        inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names,
                                             moments, constrs_file, first_step);
         }
     }
+
+void ScalarFieldLevel::specific_post_init()
+{
+    BL_PROFILE("ScalarFieldLevel::specific_post_init()");
+    specific_post_timestep();
+}
