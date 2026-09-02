@@ -7,7 +7,6 @@
 #define POTENTIAL_HPP_
 
 #include "GRParmParse.hpp"
-#include "simd.hpp"
 #include <typeinfo>
 
 class Potential
@@ -283,7 +282,7 @@ class Potential
     }
 
 	//! Set the potential function for the scalar field mean value
-    template <class data_t, template <typename> class vars_t>
+    template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     compute_background_potential(data_t &V_of_phi, data_t &dVdphi,
                       			const data_t phi) const

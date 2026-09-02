@@ -8,7 +8,6 @@
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 
-#include "ScalarFieldAmr.hpp"
 #include "ScalarFieldLevel.hpp"
 
 int runGRTeclyn()

@@ -161,8 +161,8 @@ struct InflationConfig
     //! The plus and cross polarisation tensors for a Fourier mode
     struct PolarisationTensors
     {
-        Tensor<2, amrex::Real> eplus;
-        Tensor<2, amrex::Real> ecross;
+        Tensor::Rank2 eplus;
+        Tensor::Rank2 ecross;
     };
 
     //! Computes both polarisation tensors for this mode in one call
@@ -176,8 +176,8 @@ struct InflationConfig
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
         {
             // Assemble the polarisation tensors
-            pol.eplus[l][p] = mhat[l]*mhat[p] - nhat[l]*nhat[p];
-            pol.ecross[l][p] = mhat[l]*nhat[p] + nhat[l]*mhat[p];
+            pol.eplus(l, p) = mhat[l]*mhat[p] - nhat[l]*nhat[p];
+            pol.ecross(l, p) = mhat[l]*nhat[p] + nhat[l]*mhat[p];
         }
 
         return pol;

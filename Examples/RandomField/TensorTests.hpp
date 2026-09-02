@@ -7,6 +7,7 @@
 #define TENSORTESTS_HPP_
 
 #include "InflationUtils.hpp"
+#include "Tensor.hpp"
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Reduce.H>
@@ -83,8 +84,8 @@ namespace TensorTests
 
     // Test that the input basis tensors, and their rotated counterparts, are orthonormal
     inline void Test_polarisation_tensor_orthonorm(const amrex::IntVect iv,
-                                                   const Tensor<2, amrex::Real> eplus,
-                                                   const Tensor<2, amrex::Real> ecross)
+                                                   const Tensor::Rank2 eplus,
+                                                   const Tensor::Rank2 ecross)
     {
         amrex::GpuArray<amrex::Real, 3> conds;
         conds.fill(0.);
