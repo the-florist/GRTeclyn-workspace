@@ -9,6 +9,7 @@ t/
 *.[oa]
 TAGS
 ipo_out.optrpt
+.clang-env
 
 # editors
 .vscode

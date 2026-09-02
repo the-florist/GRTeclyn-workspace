@@ -174,8 +174,7 @@ inline void InflationExtraction::print_power_spectrum(
 
     for(int s = 0; s < inflt_methods.N/2; s++)
     {
-        const std::vector<amrex::Real> avg_power = 
-            ((kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.);
+        const std::vector<amrex::Real> avg_power{(kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.};
         const amrex::Real kiso_mid = (kiso[s] + kiso[s+1]) / 2.;
         power_spec_file.write_data_line(avg_power, kiso_mid);
     }
