@@ -34,7 +34,7 @@ class ScalarFieldLevel : public GRAmrLevel
 
     //! RHS routines used at each RK4 step
     void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const amrex::Real a_time) override;
+                           const amrex::Real a_time) override;
 
     //! Things to do in UpdateODE step, after soln + rhs update
     void specific_update_ode(amrex::MultiFab &a_soln) override;
@@ -45,7 +45,7 @@ class ScalarFieldLevel : public GRAmrLevel
     void specific_post_init() override;
 
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
-                amrex::Real a_regrid_threshold) final;
+                   amrex::Real a_regrid_threshold) final;
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */

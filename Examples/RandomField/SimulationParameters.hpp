@@ -19,10 +19,7 @@ class SimulationParameters
   public:
     SimulationParameters() = delete;
 
-    static void check_params()
-    {
-        ;
-    }
+    static void check_params() { ; }
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */
