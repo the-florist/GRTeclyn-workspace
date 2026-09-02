@@ -19,17 +19,17 @@ class Potential
 
         // Monodromy parameters
         amrex::Real scalar_mass = 0.;
-        amrex::Real location = 0.;
-        amrex::Real width = 0.;
-        amrex::Real amplitude = 0.;
-        amrex::Real period = 0.;
+        amrex::Real location    = 0.;
+        amrex::Real width       = 0.;
+        amrex::Real amplitude   = 0.;
+        amrex::Real period      = 0.;
 
         // USR (Prokopec) parameters
         amrex::Real Lambda = 0.;
-        amrex::Real v = 0.;
+        amrex::Real v      = 0.;
 
         // Punctuated inflation params
-        int n = 0.;
+        int n              = 0.;
         amrex::Real lambda = 0.;
 
         void fill_params()
@@ -139,8 +139,8 @@ class Potential
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     quadratic(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
     {
-        V_of_phi  = std::pow(m_params.scalar_mass * phi, 2.) / 2.;
-        dVdphi = std::pow(m_params.scalar_mass, 2.) * phi;
+        V_of_phi = std::pow(m_params.scalar_mass * phi, 2.) / 2.;
+        dVdphi   = std::pow(m_params.scalar_mass, 2.) * phi;
     }
 
     // Classic quadratic potential with Gaussian bump
@@ -154,11 +154,12 @@ class Potential
             std::exp(-std::pow((phi - m_params.location) / m_params.width, 2.) /
                      2.0);
 
-        V_of_phi  = std::pow(m_params.scalar_mass * phi, 2.) * (1.0 + feature) / 2.;
+        V_of_phi =
+            std::pow(m_params.scalar_mass * phi, 2.) * (1.0 + feature) / 2.;
         dVdphi = std::pow(m_params.scalar_mass, 2.) *
-             (phi * (1.0 + feature) -
-              (std::pow(phi, 2.0) * (phi - m_params.location) * feature /
-               std::pow(m_params.width, 2.0) / 4.0));
+                 (phi * (1.0 + feature) -
+                  (std::pow(phi, 2.0) * (phi - m_params.location) * feature /
+                   std::pow(m_params.width, 2.0) / 4.0));
     }
 
     // Monodromy potential, as used in STOIIC and also in arXiv:2403.12811
@@ -190,14 +191,14 @@ class Potential
 
         dVdphi  = pow(m_params.scalar_mass, 2.0) * phi;
         dVdphi += m_params.amplitude *
-              (envelope * d_oscillation + d_envelope * oscillation);
+                  (envelope * d_oscillation + d_envelope * oscillation);
     }
 
     // Prokopec USR model, from arXiv:2507.04114
     template <class data_t>
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void USR(data_t &V_of_phi, data_t &dVdphi,
-                                                      const data_t &phi) const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    USR(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
     {
         // Calculate V
         amrex::Real fraction =
@@ -205,8 +206,8 @@ class Potential
              6. * pow(m_params.v, 2.));
 
         fraction /= pow(3. * pow(phi, 2.) + 2. * pow(m_params.v, 2.), 2.);
-        V_of_phi = m_params.Lambda * pow(m_params.v, 4.) * pow(phi, 2.) * fraction /
-            3.;
+        V_of_phi  = m_params.Lambda * pow(m_params.v, 4.) * pow(phi, 2.) *
+                    fraction / 3.;
 
         // Calculate dV
         fraction  = ((2. * m_params.v + sqrt(2.) * phi) *
@@ -225,32 +226,34 @@ class Potential
         V_of_phi  = pow(m_params.scalar_mass * phi, 2.) / 2.;
         V_of_phi += m_params.lambda * pow(phi, 2 * (m_params.n - 1)) / 4.;
         V_of_phi -= sqrt(2. * m_params.lambda * (m_params.n - 1)) *
-             m_params.scalar_mass * pow(phi, m_params.n) / m_params.n;
+                    m_params.scalar_mass * pow(phi, m_params.n) / m_params.n;
 
         // Calculate dV
         dVdphi  = pow(m_params.scalar_mass, 2.) * phi;
         dVdphi += m_params.lambda * (m_params.n - 1) *
-              pow(phi, 2 * m_params.n - 3) / 2.;
+                  pow(phi, 2 * m_params.n - 3) / 2.;
         dVdphi -= sqrt(2. * m_params.lambda * (m_params.n - 1)) *
-              m_params.scalar_mass * pow(phi, m_params.n - 1);
+                  m_params.scalar_mass * pow(phi, m_params.n - 1);
     }
 
     // Classic quadratic potenital with inverted bump
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    inverted_quadratic_bump(data_t &V_of_phi, data_t &dVdphi, const data_t &phi) const
+    inverted_quadratic_bump(data_t &V_of_phi, data_t &dVdphi,
+                            const data_t &phi) const
     {
         amrex::Real feature =
             m_params.amplitude *
             std::exp(-std::pow((phi - m_params.location) / m_params.width, 2.) /
                      2.0);
 
-        V_of_phi  = std::pow(m_params.scalar_mass * phi, 2.) * (1.0 - feature) / 2.;
+        V_of_phi =
+            std::pow(m_params.scalar_mass * phi, 2.) * (1.0 - feature) / 2.;
         dVdphi = std::pow(m_params.scalar_mass, 2.) *
-             (phi * (1.0 - feature) +
-              (std::pow(phi, 2.0) * (phi - m_params.location) * feature /
-               std::pow(m_params.width, 2.0) / 2.0));
+                 (phi * (1.0 - feature) +
+                  (std::pow(phi, 2.0) * (phi - m_params.location) * feature /
+                   std::pow(m_params.width, 2.0) / 2.0));
     }
 
     // Quadratic potential modulated by a tanh step, as used in STOIIC
@@ -263,11 +266,11 @@ class Potential
         amrex::Real step   = tanh((phi - m_params.location) / m_params.width);
         amrex::Real d_step = (1.0 - std::pow(step, 2.)) / m_params.width;
 
-        V_of_phi  = std::pow(m_params.scalar_mass * phi, 2.) *
-             (1.0 + m_params.amplitude * step) / 2.;
-        dVdphi = std::pow(m_params.scalar_mass, 2.) *
-             (phi * (1.0 + m_params.amplitude * step) +
-              std::pow(phi, 2.) * m_params.amplitude * d_step / 2.);
+        V_of_phi = std::pow(m_params.scalar_mass * phi, 2.) *
+                   (1.0 + m_params.amplitude * step) / 2.;
+        dVdphi   = std::pow(m_params.scalar_mass, 2.) *
+                   (phi * (1.0 + m_params.amplitude * step) +
+                    std::pow(phi, 2.) * m_params.amplitude * d_step / 2.);
     }
 
     //! Set the potential function for the scalar field here
