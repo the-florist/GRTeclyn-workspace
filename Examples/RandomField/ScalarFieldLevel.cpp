@@ -281,13 +281,14 @@ void ScalarFieldLevel::specific_post_timestep()
 
         amrex::MultiFab &state_new = get_new_data(state_index);
 
-        std::string output_path, data_path, print_path;
-        pp.get("output_path", data_path);
-        pp.get("data_path", data_path);
-        print_path = output_path + data_path;
+        std::string output_path, data_subdir, print_path;
+        pp.get("grteclyn.output_path", output_path);
+        pp.get("extraction.data_file", data_subdir);
+        print_path = output_path + data_subdir;
         
-        int N;
-        pp.get("N", N);
+        amrex::Vector<int> ncell;
+        pp.getarr("amr.n_cell", ncell);
+        const int N = ncell[0];
 
         const int vol = std::pow(N, 3.); // (!!) unitless volume
         const double phi_avg = state_new.sum(c_phi)/vol;

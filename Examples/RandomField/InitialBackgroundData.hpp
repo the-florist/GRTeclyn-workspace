@@ -26,7 +26,7 @@ class InitialBackgroundData
 				GRParmParse pp;
 				pp.get("G_Newton", G_Newton);
 				pp.get("init.background_phi", phi0);
-				pp.get("init.background_Pi", Pi0);
+				pp.get("init.background_dphi", Pi0);
 			}
 		};
 
