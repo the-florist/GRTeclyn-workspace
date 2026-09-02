@@ -67,7 +67,7 @@ struct InflationConfig
         L = prob_extent[0];
 
         amrex::Real G_Newton = 1.;
-        pp.query("G_Newton", G_Newton);
+        pp.query("scalar_field.G_Newton", G_Newton);
         Mp = 1. / std::sqrt(G_Newton);
         amrex::Real Pi0 = 0., V = 0., dV = 0.;
 
