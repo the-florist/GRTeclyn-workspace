@@ -29,11 +29,6 @@
 using ScalarFieldConstraints =
     ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential<>>;
 
-ScalarFieldAmr *ScalarFieldLevel::get_scalar_field_amr_ptr()
-{
-    return dynamic_cast<ScalarFieldAmr *>(get_gr_amr_ptr());
-}
-
 void ScalarFieldLevel::variableSetUp()
 {
     BL_PROFILE("ScalarFieldLevel::variableSetUp()");
