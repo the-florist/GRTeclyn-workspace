@@ -29,7 +29,7 @@ class Potential
         amrex::Real v      = 0.;
 
         // Punctuated inflation params
-        int n              = 0.;
+        int n              = 0;
         amrex::Real lambda = 0.;
 
         void fill_params()
@@ -319,7 +319,7 @@ class Potential
     //! Concrete overload used by the ScalarField matter class
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
-                      const ScalarFieldVars &vars) static
+                      const ScalarFieldVars &vars) const
     {
         compute_background_potential(V_of_phi, dVdphi, vars.phi());
     }

@@ -267,7 +267,6 @@ inline void InflationExtraction::compute_mf(
     hs_x.setVal(0.0);
     R_x.setVal(0.0);
 
-    // print_spec = false: no data-file side effects on the plotfile path
     InflationExtraction extractor;
     extractor.extract_hs_and_R(hs_x, R_x, src_mf);
 

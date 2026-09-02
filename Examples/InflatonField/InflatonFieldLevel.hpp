@@ -41,9 +41,6 @@ class InflatonFieldLevel : public GRAmrLevel
 
     void specific_post_timestep() override;
 
-    //! Run the post-timestep processing once on the initial data too
-    void specific_post_init() override;
-
     void tag_cells(amrex::TagBoxArray &a_tag_box_array,
                    amrex::Real a_regrid_threshold) final;
 };

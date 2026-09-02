@@ -80,9 +80,18 @@ struct InflationConfig
         Potential potential;
         potential.compute_background_potential(V, dV, phi0);
 
-        H0        = calculate_H0(G_Newton, Pi0, V);
-        epsilon_1 = std::pow(Pi0 / H0, 2.) / 2. / Mp;
-        epsilon_2 = 6. + dV / Pi0 / H0 - std::pow(Pi0 / H0, 2.) / Mp;
+        H0 = calculate_H0(G_Newton, Pi0, V);
+
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            scalar_init == 0 || Pi0 != 0.,
+            "InflationConfig::fill_params, init.background_dphi must be "
+            "non-zero when init.scalar_init is enabled");
+        if (Pi0 != 0.)
+        {
+            epsilon_1 = std::pow(Pi0 / H0, 2.) / 2. / std::pow(Mp, 2.);
+            epsilon_2 = 6. + dV / Pi0 / H0 -
+                        std::pow(Pi0 / H0, 2.) / std::pow(Mp, 2.);
+        }
 
         check_params(ncell, prob_extent);
     }

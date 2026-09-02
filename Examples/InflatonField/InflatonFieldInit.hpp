@@ -46,7 +46,7 @@ class InflatonFieldInit
         Pi  = 1,
         Chi = 2,
         K   = 3
-    }
+    };
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
     calculate_mode_function(const InflationConfig &cfg, const amrex::Real km,

@@ -106,7 +106,7 @@ inline void InflatonFieldInit::generate_fourier_realisation(
     }
 
     // Declare array to hold R and dR fields
-    amrex::MultiFab R_dR_k(scalar_fields_k.boxArray(),
+    amrex::cMultiFab R_dR_k(scalar_fields_k.boxArray(),
                            scalar_fields_k.DistributionMap(), 2,
                            scalar_fields_k.nGrowVect(), amrex::MFInfo(),
                            scalar_fields_k.Factory());
@@ -148,12 +148,14 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                 amrex::Real draw2 = InflationUtils::to_unit_open(
                     InflationUtils::splitmix64(cell_key + 1ULL));
 
-                R_dR_k_arrs[bx](i, j, k, WhichField::Amplitude) =
+                R_dR_k_arrs[bx](i, j, k,
+                                static_cast<int>(WhichField::Amplitude)) =
                     calculate_random_field(cfg, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Amplitude);
 
-                R_dR_k_arrs[bx](i, j, k, WhichField::Velocity) =
+                R_dR_k_arrs[bx](i, j, k,
+                                static_cast<int>(WhichField::Velocity)) =
                     calculate_random_field(cfg, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Velocity);
@@ -258,10 +260,14 @@ inline void InflatonFieldInit::add_perturbations_to_state(
                 if (cfg.scalar_init)
                 {
                     const auto scalar_x       = scalar_field_x_arrs[bx];
-                    state_cell(iv_ds, c_phi) += scalar_x(iv, BSSNFields::Phi);
-                    state_cell(iv_ds, c_Pi)  += scalar_x(iv, BSSNFields::Pi);
-                    state_cell(iv_ds, c_chi) += scalar_x(iv, BSSNFields::Chi);
-                    state_cell(iv_ds, c_K)   += scalar_x(iv, BSSNFields::K);
+                    state_cell(iv_ds, c_phi) +=
+                        scalar_x(iv, static_cast<int>(BSSNFields::Phi));
+                    state_cell(iv_ds, c_Pi) +=
+                        scalar_x(iv, static_cast<int>(BSSNFields::Pi));
+                    state_cell(iv_ds, c_chi) +=
+                        scalar_x(iv, static_cast<int>(BSSNFields::Chi));
+                    state_cell(iv_ds, c_K) +=
+                        scalar_x(iv, static_cast<int>(BSSNFields::K));
                 }
 
                 // Add tensor perturbations to the existing background values
