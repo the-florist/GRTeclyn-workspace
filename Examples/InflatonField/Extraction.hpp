@@ -33,55 +33,8 @@ class InflationExtraction
                            const amrex::Geometry &geomdata, amrex::Real time,
                            const int *bcrec, int level);
 
-    // Main routines
-    void derive(const amrex::MultiFab &source, amrex::MultiFab &out,
-                const int dcomp);
-    void extract(const amrex::MultiFab &state);
-
-    // Set-up function when printing to data files
-    void set_print_params(const std::string data_path, const amrex::Real a_time,
-                          const amrex::Real a_dt,
-                          const amrex::Real a_restart_time)
-    {
-        m_data_path  = data_path;
-        time         = a_time;
-        dt           = a_dt;
-        restart_time = a_restart_time;
-        first_step   = (time <= dt);
-    }
-
-    amrex::Vector<amrex::Real>
-    print_moment(amrex::MultiFab &field, const amrex::Vector<std::string> names,
-                 const amrex::Vector<int> &moment_orders, SmallDataIO &file,
-                 const int is_first_step);
-
   private:
     InflationConfig inflt_methods;
-    std::string m_data_path;
-    amrex::Real time;
-    amrex::Real dt;
-    amrex::Real restart_time;
-    bool first_step;
-
-    std::string make_subdirectory(const std::string base, const std::string dir,
-                                  const int is_first_step) const;
-
-    void assign_statistics_data(amrex::Vector<std::string> &header_storage,
-                                const std::string name,
-                                amrex::Vector<amrex::Real> &data_storage,
-                                const amrex::Vector<amrex::Real> data,
-                                const int component, const int num_comps,
-                                const amrex::Vector<int>::const_iterator itr,
-                                const amrex::Vector<int>::const_iterator start,
-                                const int is_first_step);
-
-    void print_power_spectrum(const amrex::cMultiFab &field_array,
-                              SmallDataIO &power_spec_file,
-                              const int component);
-
-    amrex::Real calculate_field_moment_x(const amrex::MultiFab &field,
-                                         const amrex::Vector<amrex::Real> mean,
-                                         const int moment, const int component);
 
     void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
                           const amrex::MultiFab &state, const bool print_spec);
