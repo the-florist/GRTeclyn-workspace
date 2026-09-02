@@ -66,7 +66,7 @@ inline void Test_vector_orthonorm(const amrex::IntVect iv,
 
         if (std::abs(dot1 - 1.) > InflationUtils::tolerance ||
             std::abs(dot2 - 1.) > InflationUtils::tolerance ||
-            cross1 > InflationUtils::tolerance)
+            std::abs(cross1) > InflationUtils::tolerance)
         {
             amrex::Print() << "Location: " << iv << "\n";
             amrex::Print() << "Dot products: " << dot1 << ", " << dot2 << "\n";
@@ -180,7 +180,7 @@ inline void Test_Parsevals_thm(const amrex::MultiFab &hx,
 
     amrex::Real ksum = calculate_total_power(hk, N);
 
-    int p           = std::round(std::log10((ksum + ksum) / 2.));
+    int p           = std::round(std::log10((xsum + ksum) / 2.));
     amrex::Real tol = InflationUtils::tolerance * std::pow(10., p + 1);
 
     if (std::abs(xsum - ksum) > tol)
