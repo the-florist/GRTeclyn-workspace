@@ -4,6 +4,8 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
 EBASE = RandomField
 
+USE_FFT = TRUE
+
 AMREX_HOME ?= $(realpath ../../../amrex)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defs
@@ -12,7 +14,6 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
-include $(AMREX_HOME)/Src/FFT/Make.package
 
 GRTECLYN_SOURCE = $(GRTECLYN_HOME)/Source
 
