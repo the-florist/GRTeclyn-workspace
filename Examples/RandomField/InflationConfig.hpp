@@ -85,6 +85,22 @@ struct InflationConfig
         init_pp.query("background_dphi", Pi0);
         potential.compute_background_potential(V, dV, phi0);
         H0 = calculate_H0(G_Newton, Pi0, V);
+
+        check_params();
+    }
+
+    void check_params() const
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Mp != 0.,
+            "InflationConfig::check_params, Mp must be non-zero");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(N_fine >= N,
+            "InflationConfig::check_params, N_fine must be >= N");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(N_coarse <= N,
+            "InflationConfig::check_params, N_coarse must be <= N");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(L != 0.,
+            "InflationConfig::check_params, L must be non-zero");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Delta != 0.,
+            "InflationConfig::check_params, Delta must be non-zero");
     }
 
     /* Device-callable functions */
