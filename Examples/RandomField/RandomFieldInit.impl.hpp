@@ -18,7 +18,7 @@ inline void RandomFieldInit::upload_stoiic_to_device()
 {
     if (!inflt_methods.read_from_stoiic) { return; }
 
-    GRParmParse randominit_pp("randominit");
+    GRParmParse randominit_pp("init");
 
     amrex::Vector<amrex::Real> init_k;
     randominit_pp.getarr("init_k", init_k);

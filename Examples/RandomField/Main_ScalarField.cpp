@@ -26,8 +26,8 @@ int runGRTeclyn()
 
     amrex::Real stop_time{};
     pp.get("evolution.stop_time", stop_time);
-    int max_steps{};
-    pp.get("evolution.max_steps", max_steps);
+    int max_steps{-1};
+    pp.query("evolution.max_steps", max_steps);
 
     gr_amr.init(0.0, stop_time);
 

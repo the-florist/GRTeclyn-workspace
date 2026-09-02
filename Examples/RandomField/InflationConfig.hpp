@@ -55,41 +55,44 @@ struct InflationConfig
     void fill_params()
     {
         GRParmParse pp;
-        pp.get("N", N);
+        amrex::Vector<int> ncell;
+        pp.getarr("amr.n_cell", ncell);
+        N = ncell[0];
         N_fine = N;
         pp.query("N_fine", N_fine);
         N_coarse = N;
         pp.query("N_coarse", N_coarse);
-        pp.get("L", L);
+        amrex::Vector<amrex::Real> prob_extent;
+        pp.getarr("geometry.prob_extent", prob_extent);
+        L = prob_extent[0];
 
         amrex::Real G_Newton = 1.;
         pp.query("G_Newton", G_Newton);
         Mp = 1. / std::sqrt(G_Newton);
-
-        GRParmParse randominit_pp("randominit");
-        randominit_pp.query("read_from_STOIIC", read_from_stoiic);
-        randominit_pp.query("scalar_init", scalar_init);
-        randominit_pp.query("tensor_init", tensor_init);
-        randominit_pp.query("use_rand", use_rand);
-        randominit_pp.query("use_window", use_window);
-        randominit_pp.query("test_normalisation", test_normalisation);
-        randominit_pp.query("alpha", alpha);
-        randominit_pp.query("Delta", Delta);
-        randominit_pp.query("random_seed", random_seed);
-
         amrex::Real Pi0 = 0., V = 0., dV = 0.;
-        Potential potential;
 
         GRParmParse init_pp("init");
+        init_pp.query("read_from_STOIIC", read_from_stoiic);
+        init_pp.query("scalar_init", scalar_init);
+        init_pp.query("tensor_init", tensor_init);
+        init_pp.query("use_rand", use_rand);
+        init_pp.query("use_window", use_window);
+        init_pp.query("test_normalisation", test_normalisation);
+        init_pp.query("alpha", alpha);
+        init_pp.query("Delta", Delta);
+        init_pp.query("random_seed", random_seed);
         init_pp.get("background_phi", phi0);
         init_pp.query("background_dphi", Pi0);
+
+        Potential potential;
         potential.compute_background_potential(V, dV, phi0);
         H0 = calculate_H0(G_Newton, Pi0, V);
 
-        check_params();
+        check_params(ncell, prob_extent);
     }
 
-    void check_params() const
+    void check_params(const amrex::Vector<int> &ncell,
+                      const amrex::Vector<amrex::Real> &prob_extent) const
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Mp != 0.,
             "InflationConfig::check_params, Mp must be non-zero");
@@ -101,6 +104,19 @@ struct InflationConfig
             "InflationConfig::check_params, L must be non-zero");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Delta != 0.,
             "InflationConfig::check_params, Delta must be non-zero");
+
+        for (int d = 1; d < static_cast<int>(ncell.size()); d++)
+        {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncell[d] == ncell[0],
+                "InflationConfig::check_params, grid must be cubic "
+                "(amr.n_cell must be equal in all directions)");
+        }
+        for (int d = 1; d < static_cast<int>(prob_extent.size()); d++)
+        {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(prob_extent[d] == prob_extent[0],
+                "InflationConfig::check_params, domain must be cubic "
+                "(geometry.prob_extent must be equal in all directions)");
+        }
     }
 
     /* Device-callable functions */
