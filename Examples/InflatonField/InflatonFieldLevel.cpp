@@ -21,9 +21,9 @@
 
 // // Problem specific includes
 #include "InflationExtraction.hpp"
+#include "InflatonFieldInit.hpp"
 #include "InitialBackgroundData.hpp"
 #include "Potential.hpp"
-#include "InflatonFieldInit.hpp"
 #include "ScalarField.hpp"
 
 using InflatonFieldConstraints =

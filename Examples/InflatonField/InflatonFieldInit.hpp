@@ -17,14 +17,14 @@
 class InflatonFieldInit
 {
   protected:
-    InflationConfig inflt_methods;
+    InflationConfig m_inflaton_methods;
 
   public:
     // Constructor used when initialising stochastic fields
     InflatonFieldInit()
     {
         // Read the parameters once from the global GRParmParse table
-        inflt_methods.fill_params();
+        m_inflaton_methods.fill_params();
     }
 
     void init(amrex::MultiFab &state);

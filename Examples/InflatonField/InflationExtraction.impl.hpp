@@ -48,20 +48,20 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::MultiFab gij_x(sba, sdm, 6, 0);
 
     // Copy the spatial metric from the state
-    Copy(gij_x, state, c_h11, InflationUtils::lut[0][0], 1, 0);
-    Copy(gij_x, state, c_h12, InflationUtils::lut[0][1], 1, 0);
-    Copy(gij_x, state, c_h13, InflationUtils::lut[0][2], 1, 0);
-    Copy(gij_x, state, c_h22, InflationUtils::lut[1][1], 1, 0);
-    Copy(gij_x, state, c_h23, InflationUtils::lut[1][2], 1, 0);
-    Copy(gij_x, state, c_h33, InflationUtils::lut[2][2], 1, 0);
+    Copy(gij_x, state, c_h11, InflationUtils::look_up_table[0][0], 1, 0);
+    Copy(gij_x, state, c_h12, InflationUtils::look_up_table[0][1], 1, 0);
+    Copy(gij_x, state, c_h13, InflationUtils::look_up_table[0][2], 1, 0);
+    Copy(gij_x, state, c_h22, InflationUtils::look_up_table[1][1], 1, 0);
+    Copy(gij_x, state, c_h23, InflationUtils::look_up_table[1][2], 1, 0);
+    Copy(gij_x, state, c_h33, InflationUtils::look_up_table[2][2], 1, 0);
 
-    constexpr int m_c_phi = 0;
-    constexpr int m_c_chi = 1;
-    Copy(scalars_x, state, c_phi, m_c_phi, 1, 0);
-    Copy(scalars_x, state, c_chi, m_c_chi, 1, 0);
+    constexpr int phi_component = 0;
+    constexpr int chi_component = 1;
+    Copy(scalars_x, state, c_phi, phi_component, 1, 0);
+    Copy(scalars_x, state, c_chi, chi_component, 1, 0);
 
     // Find background quantities needed to extract \cal R
-    const int vol               = std::pow(inflt_methods.N, 3);
+    const int vol               = std::pow(m_inflaton_methods.N, 3);
     const amrex::Real K_bar     = state.sum(c_K) / vol;
     const amrex::Real alpha_bar = state.sum(c_lapse) / vol;
     const amrex::Real Pi_bar    = state.sum(c_Pi) / vol;
@@ -69,23 +69,23 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     const amrex::Real chi_bar   = state.sum(c_chi) / vol;
 
     // Remove background from scalar field
-    scalars_x.plus(-phi_bar, m_c_phi, 1);
-    scalars_x.plus(-chi_bar, m_c_chi, 1);
-    scalars_x.mult(1. / inflt_methods.norm());
+    scalars_x.plus(-phi_bar, phi_component, 1);
+    scalars_x.plus(-chi_bar, chi_component, 1);
+    scalars_x.mult(1. / m_inflaton_methods.calculate_norm());
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l = 0; l < 3; l++)
     {
-        gij_x.plus(-1., InflationUtils::lut[l][l], 1);
+        gij_x.plus(-1., InflationUtils::look_up_table[l][l], 1);
     }
-    gij_x.mult(1. / inflt_methods.norm());
+    gij_x.mult(1. / m_inflaton_methods.calculate_norm());
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist
     // conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    amrex::IntVect k_domain_high(inflt_methods.N / 2, inflt_methods.N - 1,
-                                 inflt_methods.N - 1);
+    amrex::IntVect k_domain_high(m_inflaton_methods.N / 2, m_inflaton_methods.N - 1,
+                                 m_inflaton_methods.N - 1);
     amrex::Box k_domain(domain_low, k_domain_high);
     constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
     amrex::BoxArray kba =
@@ -104,8 +104,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     R_k.setVal(0.0);
 
     // Set up the FFT
-    amrex::IntVect x_domain_high(inflt_methods.N - 1, inflt_methods.N - 1,
-                                 inflt_methods.N - 1);
+    amrex::IntVect x_domain_high(m_inflaton_methods.N - 1, m_inflaton_methods.N - 1,
+                                 m_inflaton_methods.N - 1);
     amrex::Box x_domain(domain_low, x_domain_high);
     amrex::FFT::R2C<amrex::Real> tensor_fft(
         x_domain, amrex::FFT::Info().setBatchSize(gij_k.nComp()));
@@ -123,11 +123,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // Normalise the fft (fftw style)
     for (int comp = 0; comp < 6; comp++)
     {
-        gij_k.mult(std::pow(inflt_methods.N, -3.), comp, 1);
+        gij_k.mult(std::pow(m_inflaton_methods.N, -3.), comp, 1);
     }
     for (int comp = 0; comp < 2; comp++)
     {
-        scalars_k.mult(std::pow(inflt_methods.N, -3.), comp, 1);
+        scalars_k.mult(std::pow(m_inflaton_methods.N, -3.), comp, 1);
     }
 
     const auto &hs_arrs      = hs_k.arrays();
@@ -136,7 +136,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     const auto &R_k_arrs     = R_k.arrays();
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationConfig cfg = inflt_methods;
+    const InflationConfig cfg = m_inflaton_methods;
 
     amrex::ParallelFor(
         gij_k,
@@ -155,11 +155,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     for (int p = 0; p < 3; p++)
                     {
                         hs_arrs[bx](i, j, k, 0) +=
-                            (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) *
+                            (gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) *
                              eplus(l, p)) /
                             2.;
                         hs_arrs[bx](i, j, k, 1) +=
-                            (gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) *
+                            (gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) *
                              ecross(l, p)) /
                             2.;
                     }
@@ -179,11 +179,11 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                              hs_arrs[bx](i, j, k, 1).imag() * ecross(l, p));
 
                         hSV_re(l, p) =
-                            gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
+                            gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p])
                                 .real() -
                             hij_re(l, p);
                         hSV_im(l, p) =
-                            gij_arrs[bx](i, j, k, InflationUtils::lut[l][p])
+                            gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p])
                                 .imag() -
                             hij_im(l, p);
                     }
@@ -218,12 +218,12 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                                     std::pow(kmag, 2.)};
                         }
                     Phi *= 1. / 4.;
-                    Phi += 0.5 * (scalars_arrs[bx](i, j, k, m_c_chi));
+                    Phi += 0.5 * (scalars_arrs[bx](i, j, k, chi_component));
 
                     // Combine the above to find R(k)
                     R_k_arrs[bx](i, j, k, 0) =
                         Phi -
-                        ((K_bar / 3.) * scalars_arrs[bx](i, j, k, m_c_phi) /
+                        ((K_bar / 3.) * scalars_arrs[bx](i, j, k, phi_component) /
                          alpha_bar / Pi_bar);
                 }
             }
@@ -232,8 +232,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::Gpu::streamSynchronize();
 
     // Prepare to IFT the polarisation fields and R field
-    inflt_methods.apply_nyquist_conditions(hs_k);
-    inflt_methods.apply_nyquist_conditions(R_k);
+    m_inflaton_methods.apply_nyquist_conditions(hs_k);
+    m_inflaton_methods.apply_nyquist_conditions(R_k);
 
     // Fourier transform
     mode_fn_fft.backward(hs_k, hs);
@@ -241,12 +241,12 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 
     // Confirm Parseval's theorem holds between config and Fourier space
     // (before applying the physical normalisation)
-    TensorTests::Test_Parsevals_thm(hs, hs_k, inflt_methods.N);
-    TensorTests::Test_Parsevals_thm(R, R_k, inflt_methods.N);
+    TensorTests::test_parsevals_theorem(hs, hs_k, m_inflaton_methods.N);
+    TensorTests::test_parsevals_theorem(R, R_k, m_inflaton_methods.N);
 
     // Apply physical normalisation
-    hs.mult(inflt_methods.norm());
-    R.mult(inflt_methods.norm());
+    hs.mult(m_inflaton_methods.calculate_norm());
+    R.mult(m_inflaton_methods.calculate_norm());
 }
 
 // Put R and hs into plotfiles

@@ -23,7 +23,7 @@ class InflationExtraction
                                                              "hcross"};
 
     // Constructor used in extraction of diagnostics
-    InflationExtraction() { inflt_methods.fill_params(); }
+    InflationExtraction() { m_inflaton_methods.fill_params(); }
 
     static void set_up(int a_state_index);
 
@@ -34,7 +34,7 @@ class InflationExtraction
                            const int *bcrec, int level);
 
   private:
-    InflationConfig inflt_methods;
+    InflationConfig m_inflaton_methods;
 
     void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
                           const amrex::MultiFab &state);

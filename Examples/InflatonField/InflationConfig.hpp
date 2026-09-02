@@ -40,8 +40,8 @@ struct InflationConfig
     int test_normalisation{0};
     int random_seed{3539263};
 
-    amrex::Real phi0{0.};     //!< Background scalar-field value
-    amrex::Real H0{0.};       //!< Initial Hubble parameter
+    amrex::Real phi0{0.};      //!< Background scalar-field value
+    amrex::Real H0{0.};        //!< Initial Hubble parameter
     amrex::Real epsilon_1{0.}; //!< First slow-roll parameter
     amrex::Real epsilon_2{0.}; //!< Second slow-roll parameter
 
@@ -89,8 +89,8 @@ struct InflationConfig
         if (Pi0 != 0.)
         {
             epsilon_1 = std::pow(Pi0 / H0, 2.) / 2. / std::pow(Mp, 2.);
-            epsilon_2 = 6. + dV / Pi0 / H0 -
-                        std::pow(Pi0 / H0, 2.) / std::pow(Mp, 2.);
+            epsilon_2 =
+                6. + dV / Pi0 / H0 - std::pow(Pi0 / H0, 2.) / std::pow(Mp, 2.);
         }
 
         check_params(ncell, prob_extent);
@@ -172,14 +172,14 @@ struct InflationConfig
 
     // Physical FFT normalisation, shared by the init and extraction classes.
     // CHANGE WITH CARE
-    inline amrex::Real norm() const
+    inline amrex::Real calculate_norm() const
     {
         AMREX_ASSERT(L > 0);
         return std::pow(std::sqrt(2. * amrex::Math::pi<amrex::Real>()) / L, 3.);
     }
 
     AMREX_GPU_HOST_DEVICE inline amrex::Real
-    window_function(const amrex::Real kmag) const
+    calculate_window_function(const amrex::Real kmag) const
     {
         AMREX_ASSERT(L > 0 && Delta > 0);
         const int N_w = (N_coarse != 0) ? N_coarse : N;
@@ -248,11 +248,11 @@ struct InflationConfig
                     {
                         const amrex::IntVect iv{i, j, k};
                         const auto [mhat, nhat] = calculate_basis_vectors(iv);
-                        TensorTests::Test_vector_orthonorm(iv, mhat, nhat);
+                        TensorTests::test_vector_orthonorm(iv, mhat, nhat);
 
                         const auto [eplus, ecross] =
                             calculate_polarisation_tensors(iv);
-                        TensorTests::Test_polarisation_tensor_orthonorm(
+                        TensorTests::test_polarisation_tensor_orthonorm(
                             iv, eplus, ecross);
                     }
         }

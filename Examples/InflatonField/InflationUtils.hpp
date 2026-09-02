@@ -15,7 +15,7 @@ namespace InflationUtils
 {
 // Look-up table
 // Used to construct polarisation basis tensors
-inline constexpr int lut[3][3]{
+inline constexpr int look_up_table[3][3]{
     {0, 1, 2},
     {1, 3, 4},
     {2, 4, 5}

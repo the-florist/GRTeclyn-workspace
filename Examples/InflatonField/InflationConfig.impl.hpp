@@ -108,7 +108,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
     // the (host) this pointer
     const InflationConfig cfg = *this;
 
-    int nc = field.nComp();
+    int num_components = field.nComp();
     for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
     {
         // The geometry for this MPI rank
@@ -126,7 +126,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                     (j == 0 || j == cfg.N_fine / 2) &&
                     (k == 0 || k == cfg.N_fine / 2))
                 {
-                    for (int comp = 0; comp < nc; comp++)
+                    for (int comp = 0; comp < num_components; comp++)
                     {
                         amrex::GpuComplex<amrex::Real> temp(
                             field_ptr(i, j, k, comp).real(), 0.);
@@ -140,7 +140,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
                     if ((k > nh && j == nh) || (k == 0 && j > nh) ||
                         (k > nh && j == 0) || (k == nh && j > nh))
                     {
-                        for (int comp = 0; comp < nc; comp++)
+                        for (int comp = 0; comp < num_components; comp++)
                         {
                             amrex::GpuComplex<amrex::Real> temp(
                                 field_ptr(i, cfg.invert_index(j),
@@ -155,7 +155,7 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
 
                     else if (j > nh)
                     {
-                        for (int comp = 0; comp < nc; comp++)
+                        for (int comp = 0; comp < num_components; comp++)
                         {
                             amrex::GpuComplex<amrex::Real> temp(
                                 field_ptr(i, cfg.invert_index(j),

@@ -89,7 +89,7 @@ InflatonFieldInit::calculate_random_field(const InflationConfig &cfg,
     // Apply a window function if requested
     if (cfg.use_window == 1)
     {
-        value *= cfg.window_function(kmag);
+        value *= cfg.calculate_window_function(kmag);
     }
 
     return value;
@@ -100,16 +100,16 @@ inline void InflatonFieldInit::generate_fourier_realisation(
     amrex::cMultiFab &scalar_fields_k)
 {
     // Test polarisation tensor orthonormality conditions
-    if (inflt_methods.tensor_init && inflt_methods.test_normalisation)
+    if (m_inflaton_methods.tensor_init && m_inflaton_methods.test_normalisation)
     {
-        inflt_methods.test_polarisation_normalisation(hij_k);
+        m_inflaton_methods.test_polarisation_normalisation(hij_k);
     }
 
     // Declare array to hold R and dR fields
     amrex::cMultiFab R_dR_k(scalar_fields_k.boxArray(),
-                           scalar_fields_k.DistributionMap(), 2,
-                           scalar_fields_k.nGrowVect(), amrex::MFInfo(),
-                           scalar_fields_k.Factory());
+                            scalar_fields_k.DistributionMap(), 2,
+                            scalar_fields_k.nGrowVect(), amrex::MFInfo(),
+                            scalar_fields_k.Factory());
     R_dR_k.setVal(0.0);
 
     // Extract arrays before ParallelFor
@@ -121,7 +121,7 @@ inline void InflatonFieldInit::generate_fourier_realisation(
     amrex::Print() << "Starting initial condition generation/read in...\n";
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationConfig cfg = inflt_methods;
+    const InflationConfig cfg = m_inflaton_methods;
 
     amrex::ParallelFor(
         hij_k,
@@ -192,9 +192,9 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                 for (int l = 0; l < 3; l++)
                     for (int p = 0; p < 3; p++)
                     {
-                        hij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) =
+                        hij_k_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) =
                             (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
-                        Aij_k_arrs[bx](i, j, k, InflationUtils::lut[l][p]) =
+                        Aij_k_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) =
                             (As[0] * eplus(l, p) + As[1] * ecross(l, p));
                     }
             }
@@ -212,9 +212,9 @@ inline void InflatonFieldInit::generate_fourier_realisation(
     // All possible parameters are found in the Config.hpp file.
 
     // Apply the DC and Nyquist symmetry conditions
-    inflt_methods.apply_nyquist_conditions(hij_k);
-    inflt_methods.apply_nyquist_conditions(Aij_k);
-    inflt_methods.apply_nyquist_conditions(scalar_fields_k);
+    m_inflaton_methods.apply_nyquist_conditions(hij_k);
+    m_inflaton_methods.apply_nyquist_conditions(Aij_k);
+    m_inflaton_methods.apply_nyquist_conditions(scalar_fields_k);
 }
 
 inline void InflatonFieldInit::add_perturbations_to_state(
@@ -226,12 +226,12 @@ inline void InflatonFieldInit::add_perturbations_to_state(
                   "c_A11..c_A33 are consecutive metric/A_ij components");
 
     // Apply normalisation into physical units
-    hij_x.mult(inflt_methods.norm());
-    Aij_x.mult(inflt_methods.norm());
-    scalar_fields_x.mult(inflt_methods.norm());
+    hij_x.mult(m_inflaton_methods.calculate_norm());
+    Aij_x.mult(m_inflaton_methods.calculate_norm());
+    scalar_fields_x.mult(m_inflaton_methods.calculate_norm());
 
     // Test that the resuling tensor perturbation field is trace-free
-    TensorTests::Test_is_trace_free(hij_x);
+    TensorTests::test_is_trace_free(hij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     Aij_x.mult(-0.5);
@@ -242,7 +242,7 @@ inline void InflatonFieldInit::add_perturbations_to_state(
     const auto &scalar_field_x_arrs = scalar_fields_x.const_arrays();
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationConfig cfg = inflt_methods;
+    const InflationConfig cfg = m_inflaton_methods;
 
     amrex::ParallelFor(
         state,
@@ -259,7 +259,7 @@ inline void InflatonFieldInit::add_perturbations_to_state(
                 // Add scalar perturbations to the existing background values
                 if (cfg.scalar_init)
                 {
-                    const auto scalar_x       = scalar_field_x_arrs[bx];
+                    const auto scalar_x = scalar_field_x_arrs[bx];
                     state_cell(iv_ds, c_phi) +=
                         scalar_x(iv, static_cast<int>(BSSNFields::Phi));
                     state_cell(iv_ds, c_Pi) +=
@@ -291,8 +291,8 @@ inline void InflatonFieldInit::init(amrex::MultiFab &state)
 {
     BL_PROFILE("InflatonFieldInit::init");
 
-    const int N      = inflt_methods.N;
-    const int N_fine = inflt_methods.N_fine;
+    const int N      = m_inflaton_methods.N;
+    const int N_fine = m_inflaton_methods.N_fine;
 
     // Derive MultiFab ingredients from state (configuration space)
     amrex::BoxArray sba            = state.boxArray();
