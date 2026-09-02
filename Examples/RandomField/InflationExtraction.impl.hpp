@@ -37,16 +37,7 @@ InflationExtraction::make_subdirectory(const std::string base,
     std::string new_path = base+"../"+dir+"/";
     if(is_first_step)
     {
-        if (!FilesystemTools::directory_exists(base))
-        {
-            amrex::Print() << "InflationExtraction::make_subdirectory, "
-                              "Directory creation failed for "; 
-            amrex::Print() << new_path << "\n";
-        }
-        else if (!FilesystemTools::directory_exists(new_path))
-        {
-            FilesystemTools::mkdir_recursive(new_path);
-        }
+        FilesystemTools::ensure_directory_exists(new_path);
     }
     return new_path;
 }
