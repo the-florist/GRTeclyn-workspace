@@ -7,6 +7,7 @@
 #define POTENTIAL_HPP_
 
 #include "GRParmParse.hpp"
+#include "ScalarFieldVars.hpp"
 #include <typeinfo>
 
 class Potential
@@ -281,10 +282,18 @@ class Potential
 		}
     }
 
+    //! Concrete overload used by the ScalarField matter class
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+    compute(amrex::Real &V_of_phi, amrex::Real &dVdphi,
+                      const ScalarFieldVars &vars) const
+    {
+		compute_potential(V_of_phi, dVdphi, vars.phi());
+    }
+
 	//! Set the potential function for the scalar field mean value
     template <class data_t>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-    compute_background_potential(data_t &V_of_phi, data_t &dVdphi,
+    compute_potential(data_t &V_of_phi, data_t &dVdphi,
                       			const data_t phi) const
     {
 		switch (m_params.type)
@@ -312,7 +321,7 @@ class Potential
 				break;
 			default:
 				AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
-    				"Potential::compute_background_potential, "
+    				"Potential::compute_potential, "
 					" potential type not supported");
 		}
 	}

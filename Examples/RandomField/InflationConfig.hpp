@@ -83,7 +83,7 @@ struct InflationConfig
         GRParmParse init_pp("init");
         init_pp.get("background_phi", phi0);
         init_pp.query("background_dphi", Pi0);
-        potential.compute_background_potential(V, dV, phi0);
+        potential.compute_potential(V, dV, phi0);
         H0 = calculate_H0(G_Newton, Pi0, V);
     }
 

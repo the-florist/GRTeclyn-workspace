@@ -50,7 +50,7 @@ class InitialBackgroundData
 			state_cell[c_Pi]  = m_params.Pi0;
 
 			data_t V, dV;
-			m_potential.compute_background_potential(V, dV, m_params.phi0);
+			m_potential.compute_potential(V, dV, m_params.phi0);
 
 			amrex::Real H0 =
 				sqrt((8. * amrex::Math::pi<amrex::Real>() * m_params.G_Newton / 3.)

@@ -284,7 +284,7 @@ void ScalarFieldLevel::specific_post_timestep()
         std::string output_path, data_path, print_path;
         pp.get("output_path", data_path);
         pp.get("data_path", data_path);
-        print_path = output_path + data_path
+        print_path = output_path + data_path;
         
         int N;
         pp.get("N", N);
@@ -309,7 +309,7 @@ void ScalarFieldLevel::specific_post_timestep()
             means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
         }
         const std::vector<amrex::Real> means_data = 
-            {phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg}
+            {phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg};
         means_file.write_time_data_line(means_data);
 
         // Extract the spectra and field statistics
