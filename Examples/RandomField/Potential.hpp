@@ -206,7 +206,7 @@ class Potential
 
         // Calculate dV
         fraction  = ((2. * m_params.v + sqrt(2.) * phi) *
-                    (pow(phi, 2.) - 2. * pow(m_params.v, 2.)));
+                     (pow(phi, 2.) - 2. * pow(m_params.v, 2.)));
         fraction /= pow(2. * pow(m_params.v, 2.) + 3. * pow(phi, 2.), 3.);
         dV = -2. * m_params.Lambda * pow(m_params.v, 5.) * phi * fraction;
     }
@@ -256,8 +256,8 @@ class Potential
         amrex::Real step   = tanh((phi - m_params.location) / m_params.width);
         amrex::Real d_step = (1.0 - std::pow(step, 2.)) / m_params.width;
 
-        V = std::pow(m_params.scalar_mass * phi, 2.) *
-            (1.0 + m_params.amplitude * step) / 2.;
+        V  = std::pow(m_params.scalar_mass * phi, 2.) *
+             (1.0 + m_params.amplitude * step) / 2.;
         dV = std::pow(m_params.scalar_mass, 2.) *
              (phi * (1.0 + m_params.amplitude * step) +
               std::pow(phi, 2.) * m_params.amplitude * d_step / 2.);
