@@ -17,6 +17,7 @@
 
 #include "InflationUtils.hpp"
 #include "TensorTests.hpp"
+#include "Potential.hpp"
 
 // Trivially-copyable configuration and methods for the stochastic inflaton
 // initialisation. The parameters are read once on the host by fill_params()
@@ -46,6 +47,8 @@ struct InflationConfig
     const amrex::Real *init_k_ptr{nullptr};
     const amrex::Real *scalar_ps_ptr{nullptr};
     const amrex::Real *tensor_ps_ptr{nullptr};
+    
+    amrex::Real H0{0.};   //!< Initial Hubble parameter
 
     // Read the scalar parameters once from the global GRParmParse table
     void fill_params()
@@ -72,6 +75,15 @@ struct InflationConfig
         randominit_pp.query("alpha", alpha);
         randominit_pp.query("Delta", Delta);
         randominit_pp.query("random_seed", random_seed);
+
+        amrex::Real phi0 = 0., Pi0 = 0., V = 0., dV = 0.;
+        Potential potential;
+
+        GRParmParse init_pp("init");
+        init_pp.get("background_phi", phi0);
+        init_pp.query("background_dphi", Pi0);
+        potential.compute_background_potential(V, dV, phi0);
+        H0 = calculate_H0(G_Newton, Pi0, V);
     }
 
     /* Device-callable functions */
@@ -125,6 +137,13 @@ struct InflationConfig
             std::sqrt(3.) * N_w * amrex::Math::pi<amrex::Real>() / L / 5. / 2.;
         const amrex::Real Dt = L / Delta;
         return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
+    }
+
+    AMREX_GPU_HOST_DEVICE static amrex::Real
+    calculate_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
+    {
+        return sqrt((8. * amrex::Math::pi<amrex::Real>() * G / 3.)
+                    * (0.5 * pow(Pi, 2.) + V));
     }
 
     //! An orthonormal pair of polarisation basis vectors for a Fourier mode
