@@ -173,7 +173,7 @@ inline amrex::Real calculate_total_power(const amrex::cMultiFab &fk,
 // Confirm Parseval's theorem holds between a config-space field hx and its
 // Fourier-space counterpart hk (checked before physical normalisation)
 inline void test_parsevals_theorem(const amrex::MultiFab &hx,
-                               const amrex::cMultiFab &hk, const int N)
+                                   const amrex::cMultiFab &hk, const int N)
 {
     amrex::Real xsum  = std::pow(hx.norm2(), 2.);
     xsum             /= std::pow(N, 3.);

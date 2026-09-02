@@ -84,7 +84,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     // And impose that MPI ranks only slice along the i index (for Nyquist
     // conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    amrex::IntVect k_domain_high(m_inflaton_methods.N / 2, m_inflaton_methods.N - 1,
+    amrex::IntVect k_domain_high(m_inflaton_methods.N / 2,
+                                 m_inflaton_methods.N - 1,
                                  m_inflaton_methods.N - 1);
     amrex::Box k_domain(domain_low, k_domain_high);
     constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
@@ -104,7 +105,8 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     R_k.setVal(0.0);
 
     // Set up the FFT
-    amrex::IntVect x_domain_high(m_inflaton_methods.N - 1, m_inflaton_methods.N - 1,
+    amrex::IntVect x_domain_high(m_inflaton_methods.N - 1,
+                                 m_inflaton_methods.N - 1,
                                  m_inflaton_methods.N - 1);
     amrex::Box x_domain(domain_low, x_domain_high);
     amrex::FFT::R2C<amrex::Real> tensor_fft(
@@ -155,11 +157,13 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     for (int p = 0; p < 3; p++)
                     {
                         hs_arrs[bx](i, j, k, 0) +=
-                            (gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) *
+                            (gij_arrs[bx](i, j, k,
+                                          InflationUtils::look_up_table[l][p]) *
                              eplus(l, p)) /
                             2.;
                         hs_arrs[bx](i, j, k, 1) +=
-                            (gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) *
+                            (gij_arrs[bx](i, j, k,
+                                          InflationUtils::look_up_table[l][p]) *
                              ecross(l, p)) /
                             2.;
                     }
@@ -179,11 +183,13 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                              hs_arrs[bx](i, j, k, 1).imag() * ecross(l, p));
 
                         hSV_re(l, p) =
-                            gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p])
+                            gij_arrs[bx](i, j, k,
+                                         InflationUtils::look_up_table[l][p])
                                 .real() -
                             hij_re(l, p);
                         hSV_im(l, p) =
-                            gij_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p])
+                            gij_arrs[bx](i, j, k,
+                                         InflationUtils::look_up_table[l][p])
                                 .imag() -
                             hij_im(l, p);
                     }
@@ -222,9 +228,9 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 
                     // Combine the above to find R(k)
                     R_k_arrs[bx](i, j, k, 0) =
-                        Phi -
-                        ((K_bar / 3.) * scalars_arrs[bx](i, j, k, phi_component) /
-                         alpha_bar / Pi_bar);
+                        Phi - ((K_bar / 3.) *
+                               scalars_arrs[bx](i, j, k, phi_component) /
+                               alpha_bar / Pi_bar);
                 }
             }
         });

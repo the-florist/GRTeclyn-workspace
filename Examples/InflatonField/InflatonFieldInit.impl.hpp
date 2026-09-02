@@ -192,9 +192,11 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                 for (int l = 0; l < 3; l++)
                     for (int p = 0; p < 3; p++)
                     {
-                        hij_k_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) =
+                        hij_k_arrs[bx](i, j, k,
+                                       InflationUtils::look_up_table[l][p]) =
                             (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
-                        Aij_k_arrs[bx](i, j, k, InflationUtils::look_up_table[l][p]) =
+                        Aij_k_arrs[bx](i, j, k,
+                                       InflationUtils::look_up_table[l][p]) =
                             (As[0] * eplus(l, p) + As[1] * ecross(l, p));
                     }
             }
