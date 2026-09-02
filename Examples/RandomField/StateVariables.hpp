@@ -46,4 +46,3 @@ static const std::array<amrex::Real, NUM_VARS> asymptotic_values =
 } // namespace StateVariables
 
 #endif /* STATEVARIABLES_HPP */
-
