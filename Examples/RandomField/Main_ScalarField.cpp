@@ -7,7 +7,6 @@
 #include "GRAmr.hpp"
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
-#include "SimulationParameters.hpp"
 
 #include "ScalarFieldAmr.hpp"
 #include "ScalarFieldLevel.hpp"

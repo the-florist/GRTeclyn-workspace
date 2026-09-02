@@ -2,6 +2,6 @@ GRTECLYN_CEXE_sources += ScalarFieldLevel.cpp Main_ScalarField.cpp
 
 GRTECLYN_CEXE_headers += InflationUtils.hpp TensorTests.hpp InflationConfig.hpp
 GRTECLYN_CEXE_headers += RandomFieldInit.hpp InflationExtraction.hpp
-GRTECLYN_CEXE_headers += ScalarFieldLevel.hpp  DiagnosticVariables.hpp  SimulationParameters.hpp  Potential.hpp  StateVariables.hpp
+GRTECLYN_CEXE_headers += ScalarFieldLevel.hpp  DiagnosticVariables.hpp  Potential.hpp  StateVariables.hpp
 
 
