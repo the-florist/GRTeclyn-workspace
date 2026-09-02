@@ -8,11 +8,8 @@
 
 #include "Cell.hpp"
 #include "Coordinates.hpp"
-#include "MatterCCZ4RHS.hpp"
-#include "ScalarField.hpp"
-#include "StateVariables.hpp" //This files needs NUM_VARS - total no. components
+#include "StateVariables.hpp"
 #include "Tensor.hpp"
-#include "VarsTools.hpp"
 #include "simd.hpp"
 #include "Potential.hpp"
 
@@ -27,45 +24,45 @@ class InitialBackgroundData
 			amrex::Real phi0; //!< Amplitude of k=0 mode of initial SF
 			amrex::Real Pi0;  //!< Amplitude of initial SF velocity
 			amrex::Real G_Newton; 
+
+			void fill_params()
+			{
+				GRParmParse pp;
+				pp.get("G_Newton", G_Newton);
+				pp.get("init.background_phi", phi0);
+				pp.get("init.background_Pi", Pi0);
+			}
 		};
 
-		InitialBackgroundData(params_t a_params, const Potential a_potential)
-			: m_params(a_params), m_potential(a_potential)
-		{
-		}
+		InitialBackgroundData() { m_params.fill_params(); }
 
 		template <class data_t> 
 		AMREX_GPU_DEVICE AMREX_FORCE_INLINE void 
 		compute(int i, int j, int k, const amrex::Array4<data_t> &cell) const
 		{
-			MatterCCZ4RHS<ScalarField<>>::Vars<data_t> vars;
-        		VarsTools::assign(vars, 0.); // Set only the non-zero components below
+			const amrex::CellData<data_t> &state_cell = cell.cellData(i, j, k);
 
-        		// start with unit lapse and flat metric (must be relaxed for chi)
-        		vars.lapse = 1.0;
-        		vars.chi   = 1.0;
+			// The caller zero-initialises the state, so only the non-zero
+			// components of the flat, unit-lapse background are set here.
+			state_cell[c_chi]   = 1.0;
+			state_cell[c_lapse] = 1.0;
+			state_cell[c_h11]   = 1.0;
+			state_cell[c_h22]   = 1.0;
+			state_cell[c_h33]   = 1.0;
 
-			FOR(index)
-				vars.shift[index] = 0.;
-        		// conformal metric is flat
-        		FOR (index)
-            			vars.h[index][index] = 1.;
+			state_cell[c_phi] = m_params.phi0;
+			state_cell[c_Pi]  = m_params.Pi0;
 
-			vars.phi = m_params.phi0;
-			vars.Pi = m_params.Pi0;
+			data_t V, dV;
+			m_potential.compute_background_potential(V, dV, m_params.phi0);
 
-			amrex::Real V, dV;
-			m_potential.compute_potential(V, dV, vars);
-			
 			amrex::Real H0 =
 				sqrt((8. * amrex::Math::pi<amrex::Real>() * m_params.G_Newton / 3.)
 				     * (0.5 * pow(m_params.Pi0, 2.) + V));
-			vars.K = -3.*H0;
-
-			store_vars(cell.cellData(i, j, k), vars);
+			state_cell[c_K] = -3. * H0;
 		}
 	protected:
-		const params_t m_params;
+		params_t m_params;
 		const Potential m_potential;
 
 };
