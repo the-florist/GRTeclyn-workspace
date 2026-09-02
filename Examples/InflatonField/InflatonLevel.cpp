@@ -3,7 +3,7 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#include "ScalarFieldLevel.hpp"
+#include "InflatonFieldLevel.hpp"
 
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHSWithMatter.hpp"
@@ -26,21 +26,21 @@
 #include "RandomFieldInit.hpp"
 #include "ScalarField.hpp"
 
-using ScalarFieldConstraints =
+using InflatonFieldConstraints =
     ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential<>>;
 
-void ScalarFieldLevel::variableSetUp()
+void InflatonFieldLevel::variableSetUp()
 {
-    BL_PROFILE("ScalarFieldLevel::variableSetUp()");
+    BL_PROFILE("InflatonFieldLevel::variableSetUp()");
     state_variable_set_up();
-    ScalarFieldConstraints::set_up(state_index);
+    InflatonFieldConstraints::set_up(state_index);
     InflationExtraction::set_up(state_index);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
-void ScalarFieldLevel::specific_advance()
+void InflatonFieldLevel::specific_advance()
 {
-    BL_PROFILE("ScalarFieldLevel::specific_advance()");
+    BL_PROFILE("InflatonFieldLevel::specific_advance()");
 
     amrex::MultiFab &state_new = get_new_data(state_index);
     const auto &state_arrays   = state_new.arrays();
@@ -59,12 +59,12 @@ void ScalarFieldLevel::specific_advance()
 }
 
 // Initial data for field and metric variables
-void ScalarFieldLevel::initData()
+void InflatonFieldLevel::initData()
 {
-    BL_PROFILE("ScalarFieldLevel::initData()");
+    BL_PROFILE("InflatonFieldLevel::initData()");
     if (get_gr_amr_ptr()->Verbose() > 0)
     {
-        amrex::Print() << "ScalarFieldLevel::initData " << Level() << "\n";
+        amrex::Print() << "InflatonFieldLevel::initData " << Level() << "\n";
     }
 
     amrex::MultiFab &state_new = get_new_data(state_index);
@@ -125,11 +125,11 @@ void ScalarFieldLevel::initData()
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
+void InflatonFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
                                          amrex::MultiFab &a_rhs,
                                          const amrex::Real /*a_time*/)
 {
-    BL_PROFILE("ScalarFieldLevel::specific_eval_rhs()");
+    BL_PROFILE("InflatonFieldLevel::specific_eval_rhs()");
 
     const auto &soln_arrays       = a_soln.arrays();
     const auto &const_soln_arrays = a_soln.const_arrays();
@@ -239,9 +239,9 @@ void ScalarFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
+void InflatonFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
 {
-    BL_PROFILE("ScalarFieldLevel::specific_update_ode()");
+    BL_PROFILE("InflatonFieldLevel::specific_update_ode()");
 
     const auto &soln_arrays = a_soln.arrays();
     const AlgebraicConstraintsEnforcer algebraic_constraints_enforcer;
@@ -253,10 +253,10 @@ void ScalarFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
+void InflatonFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
                                  const amrex::Real /*a_regrid_threshold*/)
 {
-    BL_PROFILE("ScalarFieldLevel::tag_cells()");
+    BL_PROFILE("InflatonFieldLevel::tag_cells()");
 
     const auto &tag_arrays = a_tag_box_array.arrays();
 
@@ -268,9 +268,9 @@ void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
     amrex::Gpu::streamSynchronize();
 }
 
-void ScalarFieldLevel::specific_post_timestep()
+void InflatonFieldLevel::specific_post_timestep()
 {
-    BL_PROFILE("ScalarFieldLevel::specific_post_timestep()");
+    BL_PROFILE("InflatonFieldLevel::specific_post_timestep()");
     if (Level() == 0)
     {
         GRParmParse pp;
@@ -358,8 +358,8 @@ void ScalarFieldLevel::specific_post_timestep()
     }
 }
 
-void ScalarFieldLevel::specific_post_init()
+void InflatonFieldLevel::specific_post_init()
 {
-    BL_PROFILE("ScalarFieldLevel::specific_post_init()");
+    BL_PROFILE("InflatonFieldLevel::specific_post_init()");
     specific_post_timestep();
 }

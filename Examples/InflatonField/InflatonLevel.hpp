@@ -14,7 +14,7 @@
 #include "SixthOrderDerivatives.hpp"
 
 /// Evolution level for a real scalar field minimally coupled to gravity.
-class ScalarFieldLevel : public GRAmrLevel
+class InflatonFieldLevel : public GRAmrLevel
 {
   public:
 

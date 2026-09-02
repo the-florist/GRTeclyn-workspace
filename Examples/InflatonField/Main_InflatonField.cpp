@@ -8,7 +8,7 @@
 #include "GRParmParse.hpp"
 #include "SetupFunctions.hpp"
 
-#include "ScalarFieldLevel.hpp"
+#include "InflatonFieldLevel.hpp"
 
 int runGRTeclyn()
 {
@@ -21,7 +21,7 @@ int runGRTeclyn()
         return 0;
     }
 
-    DefaultLevelBld<ScalarFieldLevel> scalar_field_level_bld;
+    DefaultLevelBld<InflatonFieldLevel> scalar_field_level_bld;
     GRAmr gr_amr(&scalar_field_level_bld);
 
     amrex::Real stop_time{};
