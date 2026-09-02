@@ -92,9 +92,9 @@ namespace TensorTests
 
         for (int l=0; l<3; l++) for (int p=0; p<3; p++)
         {
-            conds[0] += eplus[l][p] * eplus[l][p];
-            conds[1] += eplus[l][p] * ecross[l][p];
-            conds[2] += ecross[l][p] * ecross[l][p];
+            conds[0] += eplus(l, p) * eplus(l, p);
+            conds[1] += eplus(l, p) * ecross(l, p);
+            conds[2] += ecross(l, p) * ecross(l, p);
         }
 
         if (iv != amrex::IntVect{0, 0, 0})
@@ -112,7 +112,7 @@ namespace TensorTests
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
                     amrex::Print() << l << ", " << p << ": "
-                                   << eplus[l][p] << ", " << ecross[l][p] << "\n";
+                                   << eplus(l, p) << ", " << ecross(l, p) << "\n";
                 }
                 amrex::Error("RandomField::Test_polarisation_tensor_orthonorm: "
                              "polarisation tensors are not orthonormal here");
