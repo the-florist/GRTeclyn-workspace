@@ -72,29 +72,28 @@ void ScalarFieldLevel::initData()
         amrex::Print() << "ScalarFieldLevel::initData " << Level() << "\n";
     }
 
-    Potential potential(simParams().potential_params);
-    InitialBackgroundData FLRW_background(simParams().background_params, potential);
+    amrex::MultiFab &state_new = get_new_data(state_index);
+    const auto &state_arrays   = state_new.arrays();
 
-    amrex::MultiFab &state  = get_new_data(State_Type);
-    auto const &state_array = state.arrays();
-
+    InitialBackgroundData FLRW_background;
     amrex::ParallelFor(
-        state, state.nGrowVect(),
+        state_new, state_new.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_ind, int i, int j, int k) noexcept
         {
             amrex::CellData<amrex::Real> cell =
-                state_array[box_ind].cellData(i, j, k);
+                state_arrays[box_ind].cellData(i, j, k);
             for (int n = 0; n < cell.nComp(); ++n)
             {
                 cell[n] = 0.;
             }
 
-            FLRW_background.compute(i, j, k, state_array[box_ind]);
+            FLRW_background.compute(i, j, k, state_arrays[box_ind]);
         });
 
-    // TODO: no more simParams()
-    RandomFieldInit random_field_initialiser();
-    random_field_initialiser.init(state);
+    amrex::Gpu::streamSynchronize();
+
+    RandomFieldInit random_field_initialiser;
+    random_field_initialiser.init(state_new);
 
     if (m_evolution_spatial_derivative_order == 4)
     {
@@ -277,68 +276,73 @@ void ScalarFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 void ScalarFieldLevel::specific_post_timestep()
 {
 	BL_PROFILE("ScalarFieldLevel::specific_post_timestep()");
-
-    GRParmParse pp();
-
     if (Level() == 0)
     {
+        GRParmParse pp;
         const amrex::Real time         = get_state_data(state_index).curTime();
         const amrex::Real dt           = get_gr_amr_ptr()->dtLevel(0);
         const amrex::Real restart_time = get_gr_amr_ptr()->get_restart_time();
         const bool first_step          = (time <= dt);
-    }
 
-	amrex::MultiFab &state_new = get_new_data(State_Type);
+        amrex::MultiFab &state_new = get_new_data(state_index);
 
-	const int vol = std::pow(simParams().inflt_params.N, 3.); // (!!) unitless volume
-	const double phi_avg = state_new.sum(c_phi)/vol;
-	const double Pi_avg = state_new.sum(c_Pi)/vol;
-    const double chi_avg = state_new.sum(c_chi)/vol;
-	const double scale_fact_avg = 1./sqrt(chi_avg);
-	const double Hubble_fact_avg = -state_new.sum(c_K)/vol/3.;
-	const double lapse_avg = state_new.sum(c_lapse)/vol;
+        std::string output_path, data_path, print_path;
+        pp.get("output_path", data_path);
+        pp.get("data_path", data_path);
+        print_path = output_path + data_path
+        
+        int N;
+        pp.get("N", N);
 
-    const amrex::BoxArray& ba = state_new.boxArray();
-    const amrex::DistributionMapping& dm = state_new.DistributionMap();
-    int ncomp = state_new.nComp();
-    int ngrow = state_new.nGrow();
+        const int vol = std::pow(N, 3.); // (!!) unitless volume
+        const double phi_avg = state_new.sum(c_phi)/vol;
+        const double Pi_avg = state_new.sum(c_Pi)/vol;
+        const double chi_avg = state_new.sum(c_chi)/vol;
+        const double scale_fact_avg = 1./sqrt(chi_avg);
+        const double Hubble_fact_avg = -state_new.sum(c_K)/vol/3.;
+        const double lapse_avg = state_new.sum(c_lapse)/vol;
 
-	SmallDataIO means_file(simParams().data_path+"means-file", dt, time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
-	means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
+        const amrex::BoxArray& ba = state_new.boxArray();
+        const amrex::DistributionMapping& dm = state_new.DistributionMap();
+        int ngrow = state_new.nGrow();
 
-    if(first_step) 
-    {
-        means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
-    }
-    
-    means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
+        SmallDataIO means_file(print_path+"means-file", dt, time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+        means_file.remove_duplicate_time_data(); // removes any duplicate data from previous run (for checkpointing)
 
-    // Extract the spectra and field statistics
-    InflationExtraction inflation_extractor_engine();
-    inflation_extractor_engine.set_print_params(pp.data_path, time, dt, 
-                                                restart_time);
-    inflation_extractor_engine.extract(state_new);
+        if(first_step) 
+        {
+            means_file.write_header_line({"PhiMean","PiMean","ScaleFactMean","HubbleMean","LapseMean"});
+        }
+        
+        means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
-    // Make a file object for constraint statistics
-    SmallDataIO constrs_file(simParams().data_path+"constraint-statistics", dt, 
-                             time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
-    constrs_file.remove_duplicate_time_data();
-    
-    // Find the constraints and put them in a MF
-    int num = 0;
-    const std::list<amrex::DeriveRec>& dlist = derive_lst.dlist();
-    for (auto const& var: dlist)
-    {
-        if(var.name() == "constraints") { num = var.numDerive(); }
-    }
-    if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
+        // Extract the spectra and field statistics
+        InflationExtraction inflation_extractor_engine;
+        inflation_extractor_engine.set_print_params(print_path, time, dt, 
+                                                    restart_time);
+        inflation_extractor_engine.extract(state_new);
 
-    amrex::MultiFab constr_alias(ba, dm, num, ngrow, amrex::MFInfo(), Factory());
-    constr_alias.setVal(0.0);
-    derive("constraints", time, constr_alias, 0);
+        // Make a file object for constraint statistics
+        SmallDataIO constrs_file(print_path+"constraint-statistics", dt, 
+                                time, restart_time, SmallDataIO::APPEND, first_step, ".dat");
+        constrs_file.remove_duplicate_time_data();
+        
+        // Find the constraints and put them in a MF
+        int num = 0;
+        const std::list<amrex::DeriveRec>& dlist = derive_lst.dlist();
+        for (auto const& var: dlist)
+        {
+            if(var.name() == "constraints") { num = var.numDerive(); }
+        }
+        if(first_step) { std::cout << "Num derive vars: " << num << "\n"; }
 
-    // Print statistics on the abs constraint terms
-    amrex::Vector<int> moments{1,2};
-    inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names, 
+        amrex::MultiFab constr_alias(ba, dm, num, ngrow, amrex::MFInfo(), Factory());
+        constr_alias.setVal(0.0);
+        derive("constraints", time, constr_alias, 0);
+
+        // Print statistics on the abs constraint terms
+        amrex::Vector<int> moments{1,2};
+        inflation_extractor_engine.print_moment(constr_alias, Constraints::var_names, 
                                             moments, constrs_file, first_step);
-}
+        }
+    }
