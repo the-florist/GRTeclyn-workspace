@@ -13,9 +13,9 @@
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
 InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
-                                         const amrex::Real km,
-                                         const FieldType field_type,
-                                         const WhichField which_field)
+                                           const amrex::Real km,
+                                           const FieldType field_type,
+                                           const WhichField which_field)
 {
     // Deals with k=0 case, which is undefined if m=0
     if (km < InflationUtils::tolerance)
@@ -47,7 +47,7 @@ InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
 
     if (field_type == FieldType::Scalar)
     {
-        ps /= std::sqrt(2. * cfg.epsilon_1); 
+        ps /= std::sqrt(2. * cfg.epsilon_1);
     }
 
     return ps;
@@ -56,11 +56,11 @@ InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
 // Turns analytic PS into GRF and applies window function if requested
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
 InflatonFieldInit::calculate_random_field(const InflationConfig &cfg,
-                                        const amrex::IntVect iv,
-                                        const amrex::Real rand_amp,
-                                        const amrex::Real rand_phase,
-                                        const FieldType field_type,
-                                        const WhichField which_field)
+                                          const amrex::IntVect iv,
+                                          const amrex::Real rand_amp,
+                                          const amrex::Real rand_phase,
+                                          const FieldType field_type,
+                                          const WhichField which_field)
 {
     amrex::GpuComplex<amrex::Real> value(0., 0.);
     amrex::Real kmag = cfg.get_kmag(iv);
@@ -95,10 +95,9 @@ InflatonFieldInit::calculate_random_field(const InflationConfig &cfg,
     return value;
 }
 
-inline void
-InflatonFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
-                                              amrex::cMultiFab &Aij_k,
-                                              amrex::cMultiFab &scalar_fields_k)
+inline void InflatonFieldInit::generate_fourier_realisation(
+    amrex::cMultiFab &hij_k, amrex::cMultiFab &Aij_k,
+    amrex::cMultiFab &scalar_fields_k)
 {
     // Test polarisation tensor orthonormality conditions
     if (inflt_methods.tensor_init && inflt_methods.test_normalisation)
@@ -107,11 +106,9 @@ InflatonFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
     }
 
     // Declare array to hold R and dR fields
-    amrex::MultiFab R_dR_k(scalar_fields_k.boxArray(), 
-                           scalar_fields_k.DistributionMap(),
-                           2, 
-                           scalar_fields_k.nGrowVect(), 
-                           amrex::MFInfo(),
+    amrex::MultiFab R_dR_k(scalar_fields_k.boxArray(),
+                           scalar_fields_k.DistributionMap(), 2,
+                           scalar_fields_k.nGrowVect(), amrex::MFInfo(),
                            scalar_fields_k.Factory());
     R_dR_k.setVal(0.0);
 
@@ -151,13 +148,13 @@ InflatonFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
                 amrex::Real draw2 = InflationUtils::to_unit_open(
                     InflationUtils::splitmix64(cell_key + 1ULL));
 
-                R_dR_k_arrs[bx](i, j, k, WhichField::Amplitude) = 
-                    calculate_random_field(cfg, iv, draw1, draw2, 
+                R_dR_k_arrs[bx](i, j, k, WhichField::Amplitude) =
+                    calculate_random_field(cfg, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Amplitude);
-                
-                R_dR_k_arrs[bx](i, j, k, WhichField::Velocity) = 
-                    calculate_random_field(cfg, iv, draw1, draw2, 
+
+                R_dR_k_arrs[bx](i, j, k, WhichField::Velocity) =
+                    calculate_random_field(cfg, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Velocity);
             }
@@ -203,17 +200,14 @@ InflatonFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
 
     amrex::Gpu::streamSynchronize();
 
-    // The R, dR -> BSSN functionals can go here, 
+    // The R, dR -> BSSN functionals can go here,
     // and should put the BSSN fields into the scalar_fields_k MF.
-    // The scalar_fields_k MF is indexed by 0-3, 
-    // and can be accessed using the BSSNFields enum, 
+    // The scalar_fields_k MF is indexed by 0-3,
+    // and can be accessed using the BSSNFields enum,
     // like in the assignment to state_cell below.
-    // the slow-roll parameters can be accessed with cfg.epsilon_1 and 
+    // the slow-roll parameters can be accessed with cfg.epsilon_1 and
     // cfg.epsilon_2, the Hubble parameter is cfg.H0 and Mp is cfg.Mp.
     // All possible parameters are found in the Config.hpp file.
-
-
-
 
     // Apply the DC and Nyquist symmetry conditions
     inflt_methods.apply_nyquist_conditions(hij_k);

@@ -126,8 +126,8 @@ void InflatonFieldLevel::initData()
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void InflatonFieldLevel::specific_eval_rhs(amrex::MultiFab &a_soln,
-                                         amrex::MultiFab &a_rhs,
-                                         const amrex::Real /*a_time*/)
+                                           amrex::MultiFab &a_rhs,
+                                           const amrex::Real /*a_time*/)
 {
     BL_PROFILE("InflatonFieldLevel::specific_eval_rhs()");
 
@@ -254,7 +254,7 @@ void InflatonFieldLevel::specific_update_ode(amrex::MultiFab &a_soln)
 }
 
 void InflatonFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
-                                 const amrex::Real /*a_regrid_threshold*/)
+                                   const amrex::Real /*a_regrid_threshold*/)
 {
     BL_PROFILE("InflatonFieldLevel::tag_cells()");
 

@@ -40,10 +40,10 @@ struct InflationConfig
     int test_normalisation{0};
     int random_seed{3539263};
 
-    amrex::Real phi0{0.};       //!< Background scalar-field value
-    amrex::Real H0{0.};         //!< Initial Hubble parameter
-    amrex::Real epsilon_1{0.}   //!< First slow-roll parameter
-    amrex::Real epsilon_2{0.}   //!< Second slow-roll parameter
+    amrex::Real phi0{0.};     //!< Background scalar-field value
+    amrex::Real H0{0.};       //!< Initial Hubble parameter
+    amrex::Real epsilon_1{0.} //!< First slow-roll parameter
+    amrex::Real epsilon_2{0.} //!< Second slow-roll parameter
 
     // Read the scalar parameters once from the global GRParmParse table
     void fill_params()
@@ -80,7 +80,7 @@ struct InflationConfig
         Potential potential;
         potential.compute_background_potential(V, dV, phi0);
 
-        H0 = calculate_H0(G_Newton, Pi0, V);
+        H0        = calculate_H0(G_Newton, Pi0, V);
         epsilon_1 = std::pow(Pi0 / H0, 2.) / 2. / Mp;
         epsilon_2 = 6. + dV / Pi0 / H0 - std::pow(Pi0 / H0, 2.) / Mp;
 

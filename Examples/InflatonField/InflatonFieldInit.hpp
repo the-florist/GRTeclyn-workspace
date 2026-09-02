@@ -38,7 +38,7 @@ class InflatonFieldInit
     enum class WhichField
     {
         Amplitude = 0,
-        Velocity = 1
+        Velocity  = 1
     };
     enum class BSSNFields
     {
@@ -49,14 +49,12 @@ class InflatonFieldInit
     }
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
-    calculate_mode_function(const InflationConfig &cfg, 
-                            const amrex::Real km,
-                            const FieldType field_type, 
+    calculate_mode_function(const InflationConfig &cfg, const amrex::Real km,
+                            const FieldType field_type,
                             const WhichField which_field);
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
-    calculate_random_field(const InflationConfig &cfg, 
-                           const amrex::IntVect iv,
+    calculate_random_field(const InflationConfig &cfg, const amrex::IntVect iv,
                            const amrex::Real rand_amp,
                            const amrex::Real rand_phase,
                            const FieldType field_type,
