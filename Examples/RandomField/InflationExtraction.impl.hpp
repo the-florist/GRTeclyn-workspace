@@ -176,7 +176,7 @@ inline void InflationExtraction::print_power_spectrum(
     {
         const amrex::Real avg_power = (kcount[s] > 0) ? ps_map[s] / kcount[s] : 0.;
         const amrex::Real kiso_mid = (kiso[s] + kiso[s+1]) / 2.;
-        power_spec_file.write_data_line({avg_power}, kiso_mid);
+        power_spec_file.write_data_line(avg_power, kiso_mid);
     }
 }
 
