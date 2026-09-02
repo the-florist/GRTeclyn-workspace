@@ -48,7 +48,8 @@ struct InflationConfig
     const amrex::Real *scalar_ps_ptr{nullptr};
     const amrex::Real *tensor_ps_ptr{nullptr};
     
-    amrex::Real H0{0.};   //!< Initial Hubble parameter
+    amrex::Real phi0{0.};  //!< Background scalar-field value
+    amrex::Real H0{0.};    //!< Initial Hubble parameter
 
     // Read the scalar parameters once from the global GRParmParse table
     void fill_params()
@@ -76,7 +77,7 @@ struct InflationConfig
         randominit_pp.query("Delta", Delta);
         randominit_pp.query("random_seed", random_seed);
 
-        amrex::Real phi0 = 0., Pi0 = 0., V = 0., dV = 0.;
+        amrex::Real Pi0 = 0., V = 0., dV = 0.;
         Potential potential;
 
         GRParmParse init_pp("init");

@@ -290,10 +290,7 @@ void ScalarFieldLevel::specific_post_timestep()
 
 	amrex::MultiFab &state_new = get_new_data(State_Type);
 
-	auto first_step = (time == 0);
 	const int vol = std::pow(simParams().inflt_params.N, 3.); // (!!) unitless volume
-    const int nghost = simParams().num_ghosts;
-
 	const double phi_avg = state_new.sum(c_phi)/vol;
 	const double Pi_avg = state_new.sum(c_Pi)/vol;
     const double chi_avg = state_new.sum(c_chi)/vol;
