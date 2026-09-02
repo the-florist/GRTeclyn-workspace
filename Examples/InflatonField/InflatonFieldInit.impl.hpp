@@ -205,6 +205,15 @@ RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
 
     // The R, dR -> BSSN functionals can go here, 
     // and should put the BSSN fields into the scalar_fields_k MF.
+    // The scalar_fields_k MF is indexed by 0-3, 
+    // and can be accessed using the BSSNFields enum, 
+    // like in the assignment to state_cell below.
+    // the slow-roll parameters can be accessed with cfg.epsilon_1 and 
+    // cfg.epsilon_2, the Hubble parameter is cfg.H0 and Mp is cfg.Mp.
+    // All possible parameters are found in the Config.hpp file.
+
+
+    
 
     // Apply the DC and Nyquist symmetry conditions
     inflt_methods.apply_nyquist_conditions(hij_k);
