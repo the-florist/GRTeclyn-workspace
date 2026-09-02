@@ -284,7 +284,7 @@ class Potential
 
     //! Concrete overload used by the ScalarField matter class
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-    compute(amrex::Real &V_of_phi, amrex::Real &dVdphi,
+    compute_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
                       const ScalarFieldVars &vars) const
     {
 		compute_background_potential(V_of_phi, dVdphi, vars.phi());
