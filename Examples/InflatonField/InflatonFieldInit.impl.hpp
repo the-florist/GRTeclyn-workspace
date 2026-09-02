@@ -4,7 +4,7 @@
  */
 
 #if !defined(RANDOMFIELDINIT_HPP_)
-#error "This file should only be included via RandomFieldInit.hpp"
+#error "This file should only be included via InflatonFieldInit.hpp"
 #endif
 
 #ifndef RANDOMFIELDINIT_IMPL_HPP_
@@ -12,7 +12,7 @@
 
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-RandomFieldInit::calculate_mode_function(const InflationConfig &cfg,
+InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
                                          const amrex::Real km,
                                          const FieldType field_type,
                                          const WhichField which_field)
@@ -55,7 +55,7 @@ RandomFieldInit::calculate_mode_function(const InflationConfig &cfg,
 
 // Turns analytic PS into GRF and applies window function if requested
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-RandomFieldInit::calculate_random_field(const InflationConfig &cfg,
+InflatonFieldInit::calculate_random_field(const InflationConfig &cfg,
                                         const amrex::IntVect iv,
                                         const amrex::Real rand_amp,
                                         const amrex::Real rand_phase,
@@ -96,7 +96,7 @@ RandomFieldInit::calculate_random_field(const InflationConfig &cfg,
 }
 
 inline void
-RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
+InflatonFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
                                               amrex::cMultiFab &Aij_k,
                                               amrex::cMultiFab &scalar_fields_k)
 {
@@ -213,7 +213,7 @@ RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
     // All possible parameters are found in the Config.hpp file.
 
 
-    
+
 
     // Apply the DC and Nyquist symmetry conditions
     inflt_methods.apply_nyquist_conditions(hij_k);
@@ -221,7 +221,7 @@ RandomFieldInit::generate_fourier_realisation(amrex::cMultiFab &hij_k,
     inflt_methods.apply_nyquist_conditions(scalar_fields_k);
 }
 
-inline void RandomFieldInit::add_perturbations_to_state(
+inline void InflatonFieldInit::add_perturbations_to_state(
     amrex::MultiFab &state, amrex::MultiFab &hij_x, amrex::MultiFab &Aij_x,
     amrex::MultiFab &scalar_fields_x, const int dN)
 {
@@ -287,9 +287,9 @@ inline void RandomFieldInit::add_perturbations_to_state(
 }
 
 // Main initialisation routine
-inline void RandomFieldInit::init(amrex::MultiFab &state)
+inline void InflatonFieldInit::init(amrex::MultiFab &state)
 {
-    BL_PROFILE("RandomFieldInit::init");
+    BL_PROFILE("InflatonFieldInit::init");
 
     const int N      = inflt_methods.N;
     const int N_fine = inflt_methods.N_fine;

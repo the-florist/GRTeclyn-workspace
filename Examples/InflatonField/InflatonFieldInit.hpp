@@ -14,14 +14,14 @@
 #include <AMReX_FFT.H>
 #include <AMReX_GpuContainers.H>
 
-class RandomFieldInit
+class InflatonFieldInit
 {
   protected:
     InflationConfig inflt_methods;
 
   public:
     // Constructor used when initialising stochastic fields
-    RandomFieldInit()
+    InflatonFieldInit()
     {
         // Read the parameters once from the global GRParmParse table
         inflt_methods.fill_params();
@@ -73,6 +73,6 @@ class RandomFieldInit
                                     const int dN);
 };
 
-#include "RandomFieldInit.impl.hpp"
+#include "InflatonFieldInit.impl.hpp"
 
 #endif /* RANDOMFIELDINIT_HPP_ */
