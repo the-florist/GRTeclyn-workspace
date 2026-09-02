@@ -6,63 +6,46 @@
 #ifndef SCALARFIELDLEVEL_HPP_
 #define SCALARFIELDLEVEL_HPP_
 
-#include "DefaultLevelFactory.hpp"
-#include "GRAMRLevel.hpp"
-// Problem specific includes
-#include "DefaultPotential.hpp"
+#include "DefaultLevelBld.hpp"
+#include "FourthOrderDerivatives.hpp"
+#include "GRAmrLevel.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
+#include "ScalarFieldAmr.hpp"
+#include "SixthOrderDerivatives.hpp"
 
-//!  A class for the evolution of a scalar field, minimally coupled to gravity
-/*!
-     The class takes some initial data for a scalar field (variables phi and Pi)
-     and evolves it using the CCZ4 equations. It is possible to specify an
-   initial period of relaxation for the conformal factor chi, for non analytic
-   initial conditions (for example, a general field configuration at a moment of
-   time symmetry assuming conformal flatness). \sa MatterCCZ4(),
-   ConstraintsMatter(), ScalarField(), RelaxationChi()
-*/
-class ScalarFieldLevel : public GRAMRLevel
+/// Evolution level for a real scalar field minimally coupled to gravity.
+class ScalarFieldLevel : public GRAmrLevel
 {
-    friend class DefaultLevelFactory<ScalarFieldLevel>;
-
   public:
 
-    // Inherit the contructors from GRAMRLevel
-    using GRAMRLevel::GRAMRLevel;
+    // Inherit the contructors from GRAmrLevel
+    using GRAmrLevel::GRAmrLevel;
+
+    template <class deriv_t = FourthOrderDerivatives>
+    using ScalarFieldWithPotential = ScalarField<Potential, deriv_t>;
+
+    ScalarFieldAmr *get_scalar_field_amr_ptr();
 
     static void variableSetUp();
 
-    // Typedef for scalar field
-    typedef ScalarField<Potential> ScalarFieldWithPotential;
-
-    using DefaultScalarField = ScalarField<DefaultPotential>;
-
     //! Things to do at the end of the advance step, after RK4 calculation
-    void specificAdvance() override;
+    void specific_advance() override;
 
     //! Initialize data for the field and metric variables
-
     void initData() override;
 
     //! RHS routines used at each RK4 step
-    void specificEvalRHS(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
-                         const double a_time) override;
+    void specific_eval_rhs(amrex::MultiFab &a_soln, amrex::MultiFab &a_rhs,
+                         const amrex::Real a_time) override;
 
     //! Things to do in UpdateODE step, after soln + rhs update
-    void specificUpdateODE(amrex::MultiFab &a_soln) override;
+    void specific_update_ode(amrex::MultiFab &a_soln) override;
 
-    /// Things to do before tagging cells (i.e. filling ghosts)
-    void preTagCells();
+    void specific_post_timestep() override;
 
-    //! Tell GRTeclyn how to tag cells for regridding
-    void errorEst(amrex::TagBoxArray &tag_box_array, int clearval, int tagval,
-                  amrex::Real time, int n_error_buf = 0, int ngrow = 0) final;
-
-    void derive(const std::string &name, amrex::Real time,
-                amrex::MultiFab &multifab, int dcomp) override;
-
-    void specificPostTimeStep(amrex::Real dt, int restart_time) override;
+    void tag_cells(amrex::TagBoxArray &a_tag_box_array,
+                amrex::Real a_regrid_threshold) final;
 };
 
 #endif /* SCALARFIELDLEVEL_HPP_ */

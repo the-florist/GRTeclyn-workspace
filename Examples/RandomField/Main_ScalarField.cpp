@@ -24,7 +24,7 @@ int runGRTeclyn()
     }
 
     DefaultLevelBld<ScalarFieldLevel> scalar_field_level_bld;
-    ScalarFieldAmr gr_amr(&scalar_field_level_bld);
+    GRAmr gr_amr(&scalar_field_level_bld);
 
     amrex::Real stop_time{};
     pp.get("evolution.stop_time", stop_time);
