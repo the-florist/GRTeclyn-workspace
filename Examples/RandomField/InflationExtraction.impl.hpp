@@ -439,13 +439,18 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 
                 // Calculate the TT and scalar-(vector) components of the 
                 // metric, by reconstructing hij and subtracting it from \tilde{gamma}_ij
-                Tensor<2, amrex::GpuComplex<amrex::Real>> hij, hSV;
+                Tensor::Rank2 hij_re, hSV_im, hij_im, hSV_re;
                 for (int l=0; l<3; l++) for (int p=0; p<3; p++)
                 {
-                    hij[l][p] = (hs_arrs[bx](i, j, k, 0) * eplus(l, p)
-                                + hs_arrs[bx](i, j, k, 1) * ecross(l, p));
-                    hSV[l][p] =
-                        gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]) - hij[l][p];
+                    hij_re(l, p) = (hs_arrs[bx](i, j, k, 0).real() * eplus(l, p)
+                                + hs_arrs[bx](i, j, k, 1).real() * ecross(l, p));
+                    hij_im(l, p) = (hs_arrs[bx](i, j, k, 0).imag() * eplus(l, p)
+                                + hs_arrs[bx](i, j, k, 1).imag() * ecross(l, p));
+
+                    hSV_re(l, p) =
+                        gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]).real() - hij_re(l, p);
+                    hSV_im(l, p) =
+                        gij_arrs[bx](i, j, k, InflationUtils::lut[l][p]).imag() - hij_im(l, p);
                 }
 
                 // Extract R according to the scheme detailed in
@@ -470,7 +475,10 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                     // converstion from chi and gamma_ij -> Phi
                     for(int l=0; l<3; l++) for(int p=0; p<3; p++)
                     {
-                        Phi += (iv_k[l] * iv_k[p] * hSV[l][p])/std::pow(kmag, 2.);
+                        Phi += amrex::GpuComplex<amrex::Real>{
+                            (iv_k[l] * iv_k[p] * hSV_re(l, p))/std::pow(kmag, 2.),
+                            (iv_k[l] * iv_k[p] * hSV_im(l, p))/std::pow(kmag, 2.)
+                        };
                     }
                     Phi *= 1./4.;
                     Phi += 0.5 * (scalars_arrs[bx](i, j, k, m_c_chi));
@@ -626,7 +634,9 @@ inline void InflationExtraction::extract(const amrex::MultiFab &state)
             ts_file.write_header_line({"T/S ratio (plus)", "T/S ratio (cross)"});
         }
 
-        ts_file.write_time_data_line({stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]});
+        const std::vector<amrex::Real> tsr_data = 
+            {stdevs[1] / stdevs[0], stdevs[2] / stdevs[0]};
+        ts_file.write_time_data_line(tsr_data);
     }
 }
 
