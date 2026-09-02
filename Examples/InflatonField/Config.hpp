@@ -33,7 +33,6 @@ struct InflationConfig
     int N{0};
     int N_fine{0};
     int N_coarse{0};
-    int read_from_stoiic{0};
     int scalar_init{0};
     int tensor_init{0};
     int use_rand{1};
@@ -41,15 +40,10 @@ struct InflationConfig
     int test_normalisation{0};
     int random_seed{3539263};
 
-    // STOIIC spectra uploaded to the device, flattened row-major as
-    // [row][mode]. Set by RandomFieldInit; null when STOIIC is unused.
-    int n_modes{0};
-    const amrex::Real *init_k_ptr{nullptr};
-    const amrex::Real *scalar_ps_ptr{nullptr};
-    const amrex::Real *tensor_ps_ptr{nullptr};
-
-    amrex::Real phi0{0.}; //!< Background scalar-field value
-    amrex::Real H0{0.};   //!< Initial Hubble parameter
+    amrex::Real phi0{0.};       //!< Background scalar-field value
+    amrex::Real H0{0.};         //!< Initial Hubble parameter
+    amrex::Real epsilon_1{0.}   //!< First slow-roll parameter
+    amrex::Real epsilon_2{0.}   //!< Second slow-roll parameter
 
     // Read the scalar parameters once from the global GRParmParse table
     void fill_params()
@@ -72,7 +66,6 @@ struct InflationConfig
         amrex::Real Pi0 = 0., V = 0., dV = 0.;
 
         GRParmParse init_pp("init");
-        init_pp.query("read_from_STOIIC", read_from_stoiic);
         init_pp.query("scalar_init", scalar_init);
         init_pp.query("tensor_init", tensor_init);
         init_pp.query("use_rand", use_rand);
@@ -86,7 +79,10 @@ struct InflationConfig
 
         Potential potential;
         potential.compute_background_potential(V, dV, phi0);
+
         H0 = calculate_H0(G_Newton, Pi0, V);
+        epsilon_1 = std::pow(Pi0 / H0, 2.) / 2. / Mp;
+        epsilon_2 = 6. + dV / Pi0 / H0 - std::pow(Pi0 / H0, 2.) / Mp;
 
         check_params(ncell, prob_extent);
     }
