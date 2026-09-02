@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef RANDOMFIELDINIT_HPP_
-#define RANDOMFIELDINIT_HPP_
+#ifndef INFLATONFIELDINIT_HPP_
+#define INFLATONFIELDINIT_HPP_
 
 #include "GRParmParse.hpp"
 #include "InflationConfig.hpp"
@@ -73,4 +73,4 @@ class InflatonFieldInit
 
 #include "InflatonFieldInit.impl.hpp"
 
-#endif /* RANDOMFIELDINIT_HPP_ */
+#endif /* INFLATONFIELDINIT_HPP_ */

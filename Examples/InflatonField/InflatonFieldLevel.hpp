@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef SCALARFIELDLEVEL_HPP_
-#define SCALARFIELDLEVEL_HPP_
+#ifndef INFLATONFIELDLEVEL_HPP_
+#define INFLATONFIELDLEVEL_HPP_
 
 #include "DefaultLevelBld.hpp"
 #include "FourthOrderDerivatives.hpp"
@@ -48,4 +48,4 @@ class InflatonFieldLevel : public GRAmrLevel
                    amrex::Real a_regrid_threshold) final;
 };
 
-#endif /* SCALARFIELDLEVEL_HPP_ */
+#endif /* INFLATONFIELDLEVEL_HPP_ */

@@ -3,12 +3,12 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(RANDOMFIELDINIT_HPP_)
+#if !defined(INFLATONFIELDINIT_HPP_)
 #error "This file should only be included via InflatonFieldInit.hpp"
 #endif
 
-#ifndef RANDOMFIELDINIT_IMPL_HPP_
-#define RANDOMFIELDINIT_IMPL_HPP_
+#ifndef INFLATONFIELDINIT_IMPL_HPP_
+#define INFLATONFIELDINIT_IMPL_HPP_
 
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
@@ -28,7 +28,7 @@ InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
     amrex::Real ms_arg = 0.;
 
     amrex::Real kpr = km / cfg.H0;
-    if (field_selector == WhichField::Amplitude) // Position mode funcion
+    if (which_field == WhichField::Amplitude) // Position mode funcion
     {
         ms_mag = sqrt((1.0 / km + cfg.H0 * cfg.H0 / pow(km, 3.)) / 2. /
                       pow(cfg.Mp, 2.));
@@ -175,11 +175,11 @@ inline void InflatonFieldInit::generate_fourier_realisation(
 
                     hs[p] = calculate_random_field(cfg, iv, draw1, draw2,
                                                    FieldType::Tensor,
-                                                   TensorField::Amplitude);
+                                                   WhichField::Amplitude);
 
                     As[p] = calculate_random_field(cfg, iv, draw1, draw2,
                                                    FieldType::Tensor,
-                                                   TensorField::Velocity);
+                                                   WhichField::Velocity);
                 }
 
                 // Construct polarisation tensors from basis vectors
@@ -351,4 +351,4 @@ inline void InflatonFieldInit::init(amrex::MultiFab &state)
     add_perturbations_to_state(state, hij_x, Aij_x, scalar_fields_x, dN);
 }
 
-#endif /* RANDOMFIELDINIT_IMPL_HPP_ */
+#endif /* INFLATONFIELDINIT_IMPL_HPP_ */

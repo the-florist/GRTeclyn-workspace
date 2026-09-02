@@ -23,11 +23,11 @@
 #include "InflationExtraction.hpp"
 #include "InitialBackgroundData.hpp"
 #include "Potential.hpp"
-#include "RandomFieldInit.hpp"
+#include "InflatonFieldInit.hpp"
 #include "ScalarField.hpp"
 
 using InflatonFieldConstraints =
-    ConstraintsWithMatter<ScalarFieldLevel::ScalarFieldWithPotential<>>;
+    ConstraintsWithMatter<InflatonFieldLevel::ScalarFieldWithPotential<>>;
 
 void InflatonFieldLevel::variableSetUp()
 {
@@ -87,7 +87,7 @@ void InflatonFieldLevel::initData()
 
     amrex::Gpu::streamSynchronize();
 
-    RandomFieldInit random_field_initialiser;
+    InflatonFieldInit random_field_initialiser;
     random_field_initialiser.init(state_new);
 
     if (m_evolution_spatial_derivative_order == 4)

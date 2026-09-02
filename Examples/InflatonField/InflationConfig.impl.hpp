@@ -174,4 +174,4 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
     }
 }
 
-#endif /* INFLATIONCONFIG_IMPL_HPP */
+#endif /* INFLATIONCONFIG_IMPL_HPP_ */

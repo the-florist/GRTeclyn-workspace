@@ -37,7 +37,7 @@ class InflationExtraction
     InflationConfig inflt_methods;
 
     void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
-                          const amrex::MultiFab &state, const bool print_spec);
+                          const amrex::MultiFab &state);
 };
 
 #include "InflationExtraction.impl.hpp"

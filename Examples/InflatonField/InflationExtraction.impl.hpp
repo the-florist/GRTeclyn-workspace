@@ -31,8 +31,7 @@ void InflationExtraction::set_up(int a_state_index)
 // Extract R and hs in configuration space from the BSSN variables
 inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
                                                   amrex::MultiFab &R,
-                                                  const amrex::MultiFab &state,
-                                                  const bool print_spec = false)
+                                                  const amrex::MultiFab &state)
 {
     // Extract amrex::MultiFab ingredients from state
     amrex::BoxArray sba            = state.boxArray();
@@ -236,42 +235,14 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     inflt_methods.apply_nyquist_conditions(hs_k);
     inflt_methods.apply_nyquist_conditions(R_k);
 
-    // Find the binned PS for each mode function and print to data/
-    GRParmParse extraction_pp("extraction");
-    int spec_interval = 100;
-    extraction_pp.query("spec_interval", spec_interval);
-    if ((print_spec) && (static_cast<int>(time / dt) % spec_interval == 0))
-    {
-        amrex::Print() << "Time step at print: "
-                       << static_cast<int>(std::round(time / dt)) << "\n";
-        std::string spec_path =
-            make_subdirectory(m_data_path, "spectra", first_step);
-
-        for (int comp = 0; comp < hs_k.nComp(); comp++)
-        {
-            SmallDataIO spectrum_file(
-                spec_path + "spectrum-comp-" + std::to_string(comp) + "-time-",
-                dt, time, restart_time, SmallDataIO::NEW, first_step, ".dat");
-            print_power_spectrum(hs_k, spectrum_file, comp);
-        }
-
-        SmallDataIO spectrum_file(spec_path + "spectrum-Rk-time-", dt, time,
-                                  restart_time, SmallDataIO::NEW, first_step,
-                                  ".dat");
-        print_power_spectrum(R_k, spectrum_file, 0);
-    }
-
     // Fourier transform
     mode_fn_fft.backward(hs_k, hs);
     R_fft.backward(R_k, R);
 
     // Confirm Parseval's theorem holds between config and Fourier space
     // (before applying the physical normalisation)
-    if (print_spec)
-    {
-        TensorTests::Test_Parsevals_thm(hs, hs_k, inflt_methods.N);
-        TensorTests::Test_Parsevals_thm(R, R_k, inflt_methods.N);
-    }
+    TensorTests::Test_Parsevals_thm(hs, hs_k, inflt_methods.N);
+    TensorTests::Test_Parsevals_thm(R, R_k, inflt_methods.N);
 
     // Apply physical normalisation
     hs.mult(inflt_methods.norm());
@@ -289,22 +260,23 @@ inline void InflationExtraction::compute_mf(
     BL_PROFILE("InflationExtraction::compute_mf");
 
     // Make a multifab to store config space mode functions
-    amrex::BoxArray oba            = out.boxArray();
-    amrex::DistributionMapping odm = out.DistributionMap();
+    amrex::BoxArray oba            = out_mf.boxArray();
+    amrex::DistributionMapping odm = out_mf.DistributionMap();
     amrex::MultiFab hs_x(oba, odm, 2, 0);
     amrex::MultiFab R_x(oba, odm, 1, 0);
     hs_x.setVal(0.0);
     R_x.setVal(0.0);
 
     // print_spec = false: no data-file side effects on the plotfile path
-    extract_hs_and_R(hs_x, R_x, source, false);
+    InflationExtraction extractor;
+    extractor.extract_hs_and_R(hs_x, R_x, src_mf);
 
     const auto &hs_arrs  = hs_x.arrays();
     const auto &R_arrs   = R_x.arrays();
-    const auto &out_arrs = out.arrays();
+    const auto &out_arrs = out_mf.arrays();
 
     amrex::ParallelFor(hs_x,
-                       [=, this] AMREX_GPU_DEVICE(int bx, int i, int j, int k)
+                       [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k)
                        {
                            const amrex::IntVect iv{i, j, k};
                            out_arrs[bx](iv, dcomp) = R_arrs[bx](i, j, k);

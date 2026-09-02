@@ -42,8 +42,8 @@ struct InflationConfig
 
     amrex::Real phi0{0.};     //!< Background scalar-field value
     amrex::Real H0{0.};       //!< Initial Hubble parameter
-    amrex::Real epsilon_1{0.} //!< First slow-roll parameter
-    amrex::Real epsilon_2{0.} //!< Second slow-roll parameter
+    amrex::Real epsilon_1{0.}; //!< First slow-roll parameter
+    amrex::Real epsilon_2{0.}; //!< Second slow-roll parameter
 
     // Read the scalar parameters once from the global GRParmParse table
     void fill_params()
@@ -255,4 +255,4 @@ struct InflationConfig
 
 #include "InflationConfig.impl.hpp"
 
-#endif /* INFLATIONCONFIG */
+#endif /* INFLATIONCONFIG_HPP_ */
