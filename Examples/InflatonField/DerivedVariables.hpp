@@ -18,6 +18,10 @@
 class DerivedVariables
 {
   public:
+    //! Name of the derive record. This, not the individual variable names
+    //! below, is what amr.derive_plot_vars is matched against.
+    static inline const std::string name = "InflationFields";
+
     // Names of diagnostic variables
     static inline const amrex::Vector<std::string> var_names{"R", "hplus",
                                                              "hcross"};

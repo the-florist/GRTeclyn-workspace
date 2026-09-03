@@ -2,7 +2,7 @@ GRTECLYN_HOME = $(realpath ../..)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 
-EBASE = RandomField
+EBASE = InflatonField
 
 USE_FFT = TRUE
 

@@ -50,16 +50,11 @@ void InflatonFieldLevel::variableSetUp()
         std::find(derive_plot_vars.begin(), derive_plot_vars.end(), "ALL") !=
         derive_plot_vars.end();
 
-    bool derive_requested = false;
-    for (const auto &name : DerivedVariables::var_names)
-    {
-        if (std::find(derive_plot_vars.begin(), derive_plot_vars.end(), name) !=
-            derive_plot_vars.end())
-        {
-            derive_requested = true;
-            break;
-        }
-    }
+    // amr.derive_plot_vars is matched against the name of the derive record,
+    // not the names of the individual variables it holds.
+    const bool derive_requested =
+        std::find(derive_plot_vars.begin(), derive_plot_vars.end(),
+                  DerivedVariables::name) != derive_plot_vars.end();
 
     if ((derive_requested || all_requested) && max_level != 0)
     {

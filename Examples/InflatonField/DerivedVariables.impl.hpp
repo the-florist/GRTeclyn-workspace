@@ -17,12 +17,12 @@ void DerivedVariables::set_up(int a_state_index)
 
     // Add Constraints to the derive list
     derive_lst.add(
-        "InflationFields", amrex::IndexType::TheCellType(),
+        DerivedVariables::name, amrex::IndexType::TheCellType(),
         static_cast<int>(field_names.size()), field_names,
         DerivedVariables::compute_mf, [=](const amrex::Box &box)
         { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
-    derive_lst.addComponent("InflationFields", desc_lst, a_state_index, 0,
+    derive_lst.addComponent(DerivedVariables::name, desc_lst, a_state_index, 0,
                             NUM_VARS);
 }
 

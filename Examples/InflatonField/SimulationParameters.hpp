@@ -6,6 +6,7 @@
 #ifndef SIMULATIONPARAMETERS_HPP_
 #define SIMULATIONPARAMETERS_HPP_
 
+#include "BaseParameterChecker.hpp"
 #include "GRParmParse.hpp"
 #include "InflatonUtils.hpp"
 #include "Potential.hpp"
@@ -17,6 +18,11 @@ class SimulationParameters
 
     static void check_params()
     {
+        // Must come first: it validates the core parameters and adds the
+        // derived ones (geometry.coarsest_dx among them) that the checks
+        // below read.
+        BaseParameterChecker::check_params();
+
         GRParmParse pp;
         amrex::Vector<int> ncell;
         pp.getarr("amr.n_cell", ncell);
