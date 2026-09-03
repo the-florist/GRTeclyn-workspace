@@ -58,6 +58,12 @@ class ScalarTensorInit
                            const FieldType field_type,
                            const WhichField which_field);
 
+    AMREX_GPU_HOST_DEVICE inline void 
+    ScalarTensorInit::convert_R_to_BSSN_scalars(const InflatonUtils &cfg,
+                                                const InflatonParameters &params,
+                                                amrex::cMultiFab &R_and_dR,
+                                                amrex::cMultiFab &bssn_scalars)
+
     void generate_fourier_realisation(amrex::cMultiFab &hij_k,
                                       amrex::cMultiFab &Aij_k,
                                       amrex::cMultiFab &scalar_fields_k);

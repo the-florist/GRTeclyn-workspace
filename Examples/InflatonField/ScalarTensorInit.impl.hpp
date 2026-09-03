@@ -50,6 +50,15 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
         ps /= std::sqrt(2. * d_params.epsilon_1);
     }
 
+    if(which_field == WhichField::Amplitude)
+    {
+        ps /= d_params.init_a;
+    }
+    else 
+    {
+        ps /= std::pow(d_params.init_a, 2.);
+    }
+
     return ps;
 }
 
@@ -94,6 +103,77 @@ ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
     }
 
     return value;
+}
+
+AMREX_GPU_HOST_DEVICE inline void 
+ScalarTensorInit::convert_R_to_BSSN_scalars(const InflatonUtils &cfg,
+                                            const InflatonParameters &params,
+                                            amrex::cMultiFab &R_and_dR,
+                                            amrex::cMultiFab &bssn_scalars)
+{
+    // Refer to https://arxiv.org/abs/2502.06783 
+    // for the derivation of these initial conditions.
+    // bssn_scalars can be indexed by the BSSNFields enum 
+    // 0: phi, 1:Pi, 2: chi and 3: K
+    
+    // Some useful background quantities for the initial conditions
+    // γ =  2.0 * epsilon1 * Mpl * Mpl;
+    // d(ln γ)/dt using Klein-Gordon: φ̈ = -3Hφ̇ - V'(φ) 
+
+    amrex::Real H0 = params.H0;
+    amrex::Real epsilon_1 = params.epsilon_1;
+    amrex::Real epsilon_2 = params.epsilon_2;
+    amrex::Real Mp = params.Mp;
+    amrex::Real init_a = params.init_a;
+
+    dROverKSquared = 2;
+    amrex::Real dlnGamma = H0 * epsilon_2;
+
+    // Phi ICs
+    amrex::Real factor_R1 = Mp*std::sqrt(2.0*epsilon_1);
+    amrex::Real factor_dR1invLap = factor_R1*epsilon_1*H0*init_a*init_a;
+    //// R
+    R_dR_k.mult(factor_R1, 0, 1, 0);
+    //// Rdot/k^2
+    R_dR_k.mult(factor_dR1invLap, 2, 1, 0);
+
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 0, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 0, 1, 0);
+
+    // Pi ICs
+    amrex::Real factor_R2 = -Mp*std::sqrt(epsilon_1/2.0)*(2.0*epsilon_1-dlnGamma/H0)*H0;
+    amrex::Real factor_dR2 = -Mp*std::sqrt(epsilon_1/2.0);
+    amrex::Real factor_dR2invLap = factor_dR2*H0*H0*init_a*init_a*epsilon_1*(2.0*epsilon_1-dlnGamma/H0);
+    factor_dR2*= -2.0;
+    
+    //// R
+    R_dR_k.mult(factor_R2/factor_R1, 0, 1, 0);
+    //// dR
+    R_dR_k.mult(factor_dR2, 1, 1, 0);
+    //// dR//k^2
+    R_dR_k.mult(factor_dR2invLap/factor_dR1invLap, 2, 1, 0);
+
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 1, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 1, 1, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 1, 1, 0);
+
+    // X ICs
+    amrex::Real factor_dR3invLap = -2.0*H0*epsilon_1;
+    //// dR//k^2
+    R_dR_k.mult(factor_dR3invLap/factor_dR2invLap, 2, 1, 0);
+        
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 2, 1, 0);
+
+    // K ICs
+    amrex::Real factor_R4 = 3.0*H0*epsilon_1;
+    amrex::Real factor_dR4invLap = 3.0*init_a*init_a*H0*H0*epsilon_1*epsilon_1;
+    //// R
+    R_dR_k.mult(factor_R4/factor_R2, 0, 1, 0);
+    //// Rdot/k^2
+    R_dR_k.mult(factor_dR4invLap/factor_dR3invLap, 2, 1, 0);
+    
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 3, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 3, 1, 0);
 }
 
 inline void ScalarTensorInit::generate_fourier_realisation(
@@ -206,78 +286,7 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 
     amrex::Gpu::streamSynchronize();
 
-    // The R, dR -> BSSN functionals can go here,
-    // and should put the BSSN fields into the scalar_fields_k MF.
-    // The scalar_fields_k MF is indexed by 0-3,
-    // and can be accessed using the BSSNFields enum,
-    // like in the assignment to state_cell below.
-    // the slow-roll parameters can be accessed with cfg.epsilon_1 and
-    // cfg.epsilon_2, the Hubble parameter is cfg.H0 and Mp is cfg.Mp.
-    // All possible parameters are found in the InflatonUtils.hpp file.
-
-    // Refer to https://arxiv.org/abs/2502.06783 for the derivation of these initial conditions.
-    // 0: phi, 1:Pi, 2: chi and 3: K
-    
-    // Some useful background quantities for the initial conditions
-    
-    // γ =  2.0 * epsilon1 * Mpl * Mpl;
-    // d(ln γ)/dt using Klein-Gordon: φ̈ = -3Hφ̇ - V'(φ)
-    BackgroundVars<double> bg_vars{av_phi};
-    double V_bg, Vprime;
-    Potential potential(simParams().potential_params);
-    potential.compute_potential(V_bg, Vprime, bg_vars);
-    double init_Pi = cfg.Mp*cfg.H0*std::sqrt(2.0_rt*cfg.epsilon1);
-    double dlnGamma = 2.0 * (-3.0 * cfg.H0 - Vprime / init_Pi + cfg.H0 * cfg.epsilon_1);
-    double init_a = 1.0;
-
-    // Phi ICs
-    double factor_R1 = cfg.Mp*std::sqrt(2.0*cfg.epsilon_1);
-    double factor_dR1invLap = factor_R1*cfg.epsilon_1*cfg.H0*init_a*init_a;
-    //// R
-    R_dR_k.mult(factor_R1, 0, 1, 0);
-    //// Rdot/k^2
-    R_dR_k.mult(factor_dR1invLap, 2, 1, 0);
-
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 0, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 0, 1, 0);
-
-    // Pi ICs
-    double factor_R2 = -cfg.Mp*std::sqrt(cfg.epsilon_1/2.0)*(2.0*cfg.epsilon_1-cfg.dlnGamma/cfg.H0)*cfg.H0;
-    double factor_dR2 = -cfg.Mp*std::sqrt(cfg.epsilon_1/2.0);
-    double factor_dR2invLap = factor_dR2*cfg.H0*cfg.H0*init_a*init_a*cfg.epsilon_1*(2.0*cfg.epsilon_1-cfg.dlnGamma/cfg.H0);
-    factor_dR2*= -2.0;
-    
-    //// R
-    R_dR_k.mult(factor_R2/factor_R1, 0, 1, 0);
-    //// dR
-    R_dR_k.mult(factor_dR2, 1, 1, 0);
-    //// dR//k^2
-    R_dR_k.mult(factor_dR2invLap/factor_dR1invLap, 2, 1, 0);
-
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 1, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 1, 1, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 1, 1, 0);
-
-    // X ICs
-    double factor_dR3invLap = -2.0*cfg.H0*cfg.epsilon_1;
-    //// dR//k^2
-    R_dR_k.mult(factor_dR3invLap/factor_dR2invLap, 2, 1, 0);
-        
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 2, 1, 0);
-
-    // K ICs
-    double factor_R4 = 3.0*cfg.H0*cfg.epsilon_1;
-    double factor_dR4invLap = 3.0*init_a*init_a*cfg.H0*cfg.H0*cfg.epsilon_1*cfg.epsilon_1;
-    //// R
-    R_dR_k.mult(factor_R4/factor_R2, 0, 1, 0);
-    //// Rdot/k^2
-    R_dR_k.mult(factor_dR4invLap/factor_dR3invLap, 2, 1, 0);
-    
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 3, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 3, 1, 0);
-
-    // Fill boundaries?
-    // scalar_fields_k.FillBoundary(0, scalar_fields_k.nComp(), geom.periodicity());
+    convert_R_to_BSSN_scalars(m_utils, params(), R_dR_k, scalar_fields_k);
 
     // Apply the DC and Nyquist symmetry conditions
     m_utils.apply_nyquist_conditions(hij_k);

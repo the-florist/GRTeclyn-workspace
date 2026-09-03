@@ -35,9 +35,13 @@ struct InflatonParameters
     int random_seed{3539263};
 
     amrex::Real phi0{0.};      //!< Background scalar-field value
+    amrex::Real Pi0{0.};
+    amrex::Real V_background{0.};
+    amrex::Real dV_backgrond{0.};
     amrex::Real H0{0.};        //!< Initial Hubble parameter
     amrex::Real epsilon_1{0.}; //!< First slow-roll parameter
     amrex::Real epsilon_2{0.}; //!< Second slow-roll parameter
+    amrex::Real init_a{1.};
 
     // Read the scalar parameters once from the global GRParmParse table
     void fill_params()
@@ -57,7 +61,6 @@ struct InflatonParameters
         amrex::Real G_Newton = 1.;
         pp.query("scalar_field.G_Newton", G_Newton);
         Mp              = 1. / std::sqrt(G_Newton);
-        amrex::Real Pi0 = 0., V = 0., dV = 0.;
 
         GRParmParse init_pp("init");
         init_pp.query("scalar_init", scalar_init);
@@ -72,9 +75,8 @@ struct InflatonParameters
         init_pp.query("background_dphi", Pi0);
 
         Potential potential;
-        potential.compute_background_potential(V, dV, phi0);
-
-        H0 = calculate_H0(G_Newton, Pi0, V);
+        potential.compute_background_potential(V_background, dV_backgrond, phi0);
+        H0 = calculate_H0(G_Newton, Pi0, V_background);
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             scalar_init == 0 || Pi0 != 0.,
