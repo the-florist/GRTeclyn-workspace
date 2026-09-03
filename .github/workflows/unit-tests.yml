@@ -90,7 +90,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        PACKAGES="hdf5-tools ccache"
+        PACKAGES="hdf5-tools ccache libfftw3-dev"
         if [[ "${{ matrix.mpi }}" == "TRUE" ]]; then
           PACKAGES="${PACKAGES} libopenmpi-dev libhdf5-openmpi-dev"
         else
