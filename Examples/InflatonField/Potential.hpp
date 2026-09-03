@@ -74,7 +74,7 @@ class Potential
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     compute_background_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
-                      const amrex::Real &phi) const
+                                 const amrex::Real &phi) const
     {
         const amrex::Real mass_times_phi = m_params.scalar_mass * phi;
         V_of_phi = 0.5 * mass_times_phi * mass_times_phi;
