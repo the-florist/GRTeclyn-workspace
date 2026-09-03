@@ -107,7 +107,7 @@ inline void InflatonFieldInit::generate_fourier_realisation(
 
     // Declare array to hold R and dR fields
     amrex::cMultiFab R_dR_k(scalar_fields_k.boxArray(),
-                            scalar_fields_k.DistributionMap(), 2,
+                            scalar_fields_k.DistributionMap(), 3,
                             scalar_fields_k.nGrowVect(), amrex::MFInfo(),
                             scalar_fields_k.Factory());
     R_dR_k.setVal(0.0);
@@ -159,6 +159,11 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                     calculate_random_field(cfg, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Velocity);
+
+                R_dR_k_arrs[bx](i, j, k, 3) =
+                    (R_dR_k_arrs[bx](i, j, k, 
+                        static_cast<int>(WhichField::Velocity)) 
+                        / std::pow(cfg.get_kmag(iv), 2.));
             }
 
             // Initialise tensor sector (two random draws)
