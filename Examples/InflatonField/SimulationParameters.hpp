@@ -6,8 +6,8 @@
 #ifndef SIMULATIONPARAMETERS_HPP_
 #define SIMULATIONPARAMETERS_HPP_
 
-#include "ScalarTensorInit.hpp"
 #include "Potential.hpp"
+#include "ScalarTensorInit.hpp"
 
 class SimulationParameters
 {

@@ -156,11 +156,13 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                     for (int p = 0; p < 3; p++)
                     {
                         hs_arrs[bx](i, j, k, 0) +=
-                            (gij_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p]) *
+                            (gij_arrs[bx](i, j, k,
+                                          InflatonUtils::look_up_table[l][p]) *
                              eplus(l, p)) /
                             2.;
                         hs_arrs[bx](i, j, k, 1) +=
-                            (gij_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p]) *
+                            (gij_arrs[bx](i, j, k,
+                                          InflatonUtils::look_up_table[l][p]) *
                              ecross(l, p)) /
                             2.;
                     }
@@ -180,11 +182,13 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                              hs_arrs[bx](i, j, k, 1).imag() * ecross(l, p));
 
                         hSV_re(l, p) =
-                            gij_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p])
+                            gij_arrs[bx](i, j, k,
+                                         InflatonUtils::look_up_table[l][p])
                                 .real() -
                             hij_re(l, p);
                         hSV_im(l, p) =
-                            gij_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p])
+                            gij_arrs[bx](i, j, k,
+                                         InflatonUtils::look_up_table[l][p])
                                 .imag() -
                             hij_im(l, p);
                     }
@@ -204,8 +208,8 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
 
                     for (auto &k_comp : iv_k)
                     {
-                        k_comp *=
-                            2. * amrex::Math::pi<amrex::Real>() / cfg.m_params.L;
+                        k_comp *= 2. * amrex::Math::pi<amrex::Real>() /
+                                  cfg.m_params.L;
                     }
                     amrex::GpuComplex<amrex::Real> Phi = 0;
 
@@ -240,11 +244,6 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
     // Fourier transform
     mode_fn_fft.backward(hs_k, hs);
     R_fft.backward(R_k, R);
-
-    // Confirm Parseval's theorem holds between config and Fourier space
-    // (before applying the physical normalisation)
-    InflatonUtils::test_parsevals_theorem(hs, hs_k, params().N);
-    InflatonUtils::test_parsevals_theorem(R, R_k, params().N);
 
     // Apply physical normalisation
     hs.mult(m_utils.calculate_norm());

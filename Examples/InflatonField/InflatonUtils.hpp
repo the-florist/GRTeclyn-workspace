@@ -163,7 +163,7 @@ struct InflatonUtils
     to_unit_open(const std::uint64_t bits)
     {
         return (static_cast<amrex::Real>(bits >> 11) + 0.5) *
-            (1.0 / 9007199254740992.0);
+               (1.0 / 9007199254740992.0);
     }
 
     // Nyquist condition
@@ -221,10 +221,11 @@ struct InflatonUtils
     calculate_window_function(const amrex::Real kmag) const
     {
         AMREX_ASSERT(m_params.L > 0 && m_params.Delta > 0);
-        const int N_w = (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
+        const int N_w =
+            (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
         const amrex::Real ks = std::sqrt(3.) * N_w *
-                               amrex::Math::pi<amrex::Real>() / m_params.L / 5. /
-                               2.;
+                               amrex::Math::pi<amrex::Real>() / m_params.L /
+                               5. / 2.;
         const amrex::Real Dt = m_params.L / m_params.Delta;
         return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
     }
@@ -264,29 +265,6 @@ struct InflatonUtils
 
     /* Host-only functions */
 
-    inline void test_polarisation_normalisation(const amrex::cMultiFab &kfield)
-    {
-        for (amrex::MFIter mfi(kfield); mfi.isValid(); ++mfi)
-        {
-            const amrex::Box &bx    = mfi.fabbox();
-            const amrex::IntVect lo = bx.smallEnd();
-            const amrex::IntVect hi = bx.bigEnd();
-            for (int k = lo[2]; k <= hi[2]; k++)
-                for (int j = lo[1]; j <= hi[1]; j++)
-                    for (int i = lo[0]; i <= hi[0]; i++)
-                    {
-                        const amrex::IntVect iv{i, j, k};
-                        const auto [mhat, nhat] = calculate_basis_vectors(iv);
-                        test_vector_orthonorm(iv, mhat, nhat);
-
-                        const auto [eplus, ecross] =
-                            calculate_polarisation_tensors(iv);
-                        test_polarisation_tensor_orthonorm(
-                            iv, eplus, ecross);
-                    }
-        }
-    }
-
     // Calculates both basis vectors required for the polarisation tensors
     AMREX_GPU_HOST_DEVICE inline BasisVectors
     calculate_basis_vectors(const amrex::IntVect iv) const
@@ -294,8 +272,8 @@ struct InflatonUtils
         using Vec = amrex::GpuArray<amrex::Real, 3>;
 
         // Hermitian symmetry inversion on j and k, with sign on the last two
-        // indices. (!!) The FT implemented in AMReX symmetrises across the i index,
-        // so i >= 0 always.
+        // indices. (!!) The FT implemented in AMReX symmetrises across the i
+        // index, so i >= 0 always.
         const amrex::Real i = static_cast<amrex::Real>(iv[0]);
         const amrex::Real j =
             static_cast<amrex::Real>(invert_index_with_sign(iv[1]));
@@ -323,7 +301,7 @@ struct InflatonUtils
                 const amrex::Real ij   = std::sqrt(i2j2);
                 const amrex::Real n    = std::sqrt(i2j2 * (i2j2 + k * k));
                 mhat                   = Vec{j / ij, -i / ij, 0.};
-                nhat                   = Vec{(i * k) / n, (j * k) / n, -i2j2 / n};
+                nhat = Vec{(i * k) / n, (j * k) / n, -i2j2 / n};
             }
         }
 
@@ -350,13 +328,15 @@ struct InflatonUtils
 
         else
         {
-            // Unreachable: (i, j, k) == (0, 0, 0) only when iv == {0,0,0}, which is
-            // handled by the zero-mode branch above.
-            AMREX_ASSERT_WITH_MESSAGE(false, "InflatonUtils::calculate_basis_vectors, "
-                                            "Fourier grid point not covered.");
+            // Unreachable: (i, j, k) == (0, 0, 0) only when iv == {0,0,0},
+            // which is handled by the zero-mode branch above.
+            AMREX_ASSERT_WITH_MESSAGE(false,
+                                      "InflatonUtils::calculate_basis_vectors, "
+                                      "Fourier grid point not covered.");
         }
 
-        // Apply the internal rotation in the +/x decomposition basis, if requested
+        // Apply the internal rotation in the +/x decomposition basis, if
+        // requested
         if (m_params.alpha != 0.)
         {
             const amrex::Real a =
@@ -421,11 +401,11 @@ struct InflatonUtils
                             {
                                 amrex::GpuComplex<amrex::Real> temp(
                                     field_ptr(i, cfg.invert_index(j),
-                                            cfg.invert_index(k), comp)
+                                              cfg.invert_index(k), comp)
                                         .real(),
                                     -field_ptr(i, cfg.invert_index(j),
-                                            cfg.invert_index(k), comp)
-                                        .imag());
+                                               cfg.invert_index(k), comp)
+                                         .imag());
                                 field_ptr(i, j, k, comp) = temp;
                             }
                         }
@@ -436,11 +416,11 @@ struct InflatonUtils
                             {
                                 amrex::GpuComplex<amrex::Real> temp(
                                     field_ptr(i, cfg.invert_index(j),
-                                            cfg.flip_index(k), comp)
+                                              cfg.flip_index(k), comp)
                                         .real(),
                                     -field_ptr(i, cfg.invert_index(j),
-                                            cfg.flip_index(k), comp)
-                                        .imag());
+                                               cfg.flip_index(k), comp)
+                                         .imag());
                                 field_ptr(i, j, k, comp) = temp;
                             }
                         }

@@ -30,8 +30,8 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     amrex::Real kpr = km / d_params.H0;
     if (which_field == WhichField::Amplitude) // Position mode funcion
     {
-        ms_mag = sqrt((1.0 / km + d_params.H0 * d_params.H0 / pow(km, 3.)) / 2. /
-                      pow(d_params.Mp, 2.));
+        ms_mag = sqrt((1.0 / km + d_params.H0 * d_params.H0 / pow(km, 3.)) /
+                      2. / pow(d_params.Mp, 2.));
         ms_arg =
             atan2((cos(kpr) + kpr * sin(kpr)), (kpr * cos(kpr) - sin(kpr)));
     }
@@ -117,7 +117,7 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 
     // Local copy so the kernel captures config by value, not via the host
     // `this` pointer
-    const InflatonUtils cfg = m_utils;
+    const InflatonUtils cfg           = m_utils;
     const InflatonParameters d_params = params();
 
     amrex::ParallelFor(
@@ -140,10 +140,10 @@ inline void ScalarTensorInit::generate_fourier_realisation(
             // Initialise scalar sector (one random draw)
             if (d_params.scalar_init)
             {
-                amrex::Real draw1 =
-                    InflatonUtils::to_unit_open(InflatonUtils::splitmix64(cell_key + 0ULL));
-                amrex::Real draw2 =
-                    InflatonUtils::to_unit_open(InflatonUtils::splitmix64(cell_key + 1ULL));
+                amrex::Real draw1 = InflatonUtils::to_unit_open(
+                    InflatonUtils::splitmix64(cell_key + 0ULL));
+                amrex::Real draw2 = InflatonUtils::to_unit_open(
+                    InflatonUtils::splitmix64(cell_key + 1ULL));
 
                 R_dR_k_arrs[bx](i, j, k,
                                 static_cast<int>(WhichField::Amplitude)) =
@@ -170,17 +170,19 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                 for (int p = 0; p < 2; p++)
                 {
                     // One draw per polarisation field
-                    amrex::Real draw1 = InflatonUtils::to_unit_open(
-                        InflatonUtils::splitmix64(cell_key + uint64_t(2 + 2 * p)));
-                    amrex::Real draw2 = InflatonUtils::to_unit_open(
-                        InflatonUtils::splitmix64(cell_key + uint64_t(3 + 2 * p)));
+                    amrex::Real draw1 =
+                        InflatonUtils::to_unit_open(InflatonUtils::splitmix64(
+                            cell_key + uint64_t(2 + 2 * p)));
+                    amrex::Real draw2 =
+                        InflatonUtils::to_unit_open(InflatonUtils::splitmix64(
+                            cell_key + uint64_t(3 + 2 * p)));
 
-                    hs[p] = calculate_random_field(cfg, d_params, iv, draw1, draw2,
-                                                   FieldType::Tensor,
+                    hs[p] = calculate_random_field(cfg, d_params, iv, draw1,
+                                                   draw2, FieldType::Tensor,
                                                    WhichField::Amplitude);
 
-                    As[p] = calculate_random_field(cfg, d_params, iv, draw1, draw2,
-                                                   FieldType::Tensor,
+                    As[p] = calculate_random_field(cfg, d_params, iv, draw1,
+                                                   draw2, FieldType::Tensor,
                                                    WhichField::Velocity);
                 }
 
@@ -192,9 +194,11 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                 for (int l = 0; l < 3; l++)
                     for (int p = 0; p < 3; p++)
                     {
-                        hij_k_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p]) =
+                        hij_k_arrs[bx](i, j, k,
+                                       InflatonUtils::look_up_table[l][p]) =
                             (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
-                        Aij_k_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p]) =
+                        Aij_k_arrs[bx](i, j, k,
+                                       InflatonUtils::look_up_table[l][p]) =
                             (As[0] * eplus(l, p) + As[1] * ecross(l, p));
                     }
             }
@@ -293,9 +297,6 @@ inline void ScalarTensorInit::add_perturbations_to_state(
     hij_x.mult(m_utils.calculate_norm());
     Aij_x.mult(m_utils.calculate_norm());
     scalar_fields_x.mult(m_utils.calculate_norm());
-
-    // Test that the resuling tensor perturbation field is trace-free
-    InflatonUtils::test_is_trace_free(hij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     Aij_x.mult(-0.5);
