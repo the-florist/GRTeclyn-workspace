@@ -6,12 +6,19 @@
 #ifndef SIMULATIONPARAMETERS_HPP_
 #define SIMULATIONPARAMETERS_HPP_
 
+#include "InflationConfig.hpp"
+#include "Potential.hpp"
+
 class SimulationParameters
 {
   public:
     SimulationParameters() = delete;
 
-    static void check_params() { ; }
+    static void check_params() 
+    { 
+      InflationConfig::params_t::check_params();
+      Potential::params_t::check_params(); 
+    }
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */

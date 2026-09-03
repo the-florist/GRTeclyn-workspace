@@ -92,8 +92,6 @@ struct InflationConfig
             epsilon_2 =
                 6. + dV / Pi0 / H0 - std::pow(Pi0 / H0, 2.) / std::pow(Mp, 2.);
         }
-
-        check_params(ncell, prob_extent);
     }
 
     void check_params(const amrex::Vector<int> &ncell,
