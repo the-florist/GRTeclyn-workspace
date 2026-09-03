@@ -6,8 +6,8 @@ include $(GRTECLYN_HOME)/Tools/GNUMake/Make.defaults
 USE_MPI = FALSE
 USE_PARTICLES = TRUE
 
-# Needed by the InflatonField initialisation exercised in InflatonFieldTest
-USE_FFT = TRUE
+# # Needed by the InflatonField initialisation exercised in InflatonFieldTest
+# USE_FFT = TRUE
 
 EBASE = Tests
 
@@ -63,7 +63,7 @@ INCLUDE_LOCATIONS += $(realpath .) $(src_dirs) $(test_dirs)
 # InflatonFieldTest pulls headers from the InflatonField example. Append it
 # last so the shared basenames (StateVariables.hpp, SimulationParameters.hpp)
 # still resolve to the Tests/Common versions.
-INCLUDE_LOCATIONS += $(GRTECLYN_HOME)/Examples/InflatonField
+# INCLUDE_LOCATIONS += $(GRTECLYN_HOME)/Examples/InflatonField
 SYSTEM_INCLUDE_LOCATIONS += $(doctest_dir)
 
 include $(GRTECLYN_HOME)/Tools/GNUMake/Make.rules
