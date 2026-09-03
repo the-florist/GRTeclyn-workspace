@@ -6,10 +6,9 @@
 #ifndef SCALARTENSORINIT_HPP_
 #define SCALARTENSORINIT_HPP_
 
-#include "Config.hpp"
+#include "InflatonUtils.hpp"
 #include "GRParmParse.hpp"
 #include "StateVariables.hpp"
-#include "TensorTests.hpp"
 
 #include <AMReX_FFT.H>
 #include <AMReX_GpuContainers.H>
@@ -17,14 +16,15 @@
 class ScalarTensorInit
 {
   protected:
-    Config m_inflaton_methods;
+    InflatonUtils m_utils;
+
+    const InflatonParameters &params() const { return m_utils.m_params; }
 
   public:
     // Constructor used when initialising stochastic fields
     ScalarTensorInit()
     {
-        // Read the parameters once from the global GRParmParse table
-        m_inflaton_methods.fill_params();
+      ;
     }
 
     void init(amrex::MultiFab &state);
@@ -49,12 +49,15 @@ class ScalarTensorInit
     };
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
-    calculate_mode_function(const Config &cfg, const amrex::Real km,
+    calculate_mode_function(const InflatonParameters &d_params, 
+                            const amrex::Real km,
                             const FieldType field_type,
                             const WhichField which_field);
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
-    calculate_random_field(const Config &cfg, const amrex::IntVect iv,
+    calculate_random_field(const InflatonUtils &cfg, 
+                           const InflatonParameters &d_params,
+                           const amrex::IntVect iv,
                            const amrex::Real rand_amp,
                            const amrex::Real rand_phase,
                            const FieldType field_type,

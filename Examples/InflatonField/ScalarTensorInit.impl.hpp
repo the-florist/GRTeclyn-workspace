@@ -12,13 +12,13 @@
 
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-ScalarTensorInit::calculate_mode_function(const Config &cfg,
+ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
                                           const amrex::Real km,
                                           const FieldType field_type,
                                           const WhichField which_field)
 {
     // Deals with k=0 case, which is undefined if m=0
-    if (km < Utils::tolerance)
+    if (km < InflatonUtils::tolerance)
     {
         return amrex::GpuComplex<amrex::Real>{0., 0.};
     }
@@ -27,17 +27,17 @@ ScalarTensorInit::calculate_mode_function(const Config &cfg,
     amrex::Real ms_mag = 0.;
     amrex::Real ms_arg = 0.;
 
-    amrex::Real kpr = km / cfg.H0;
+    amrex::Real kpr = km / d_params.H0;
     if (which_field == WhichField::Amplitude) // Position mode funcion
     {
-        ms_mag = sqrt((1.0 / km + cfg.H0 * cfg.H0 / pow(km, 3.)) / 2. /
-                      pow(cfg.Mp, 2.));
+        ms_mag = sqrt((1.0 / km + d_params.H0 * d_params.H0 / pow(km, 3.)) / 2. /
+                      pow(d_params.Mp, 2.));
         ms_arg =
             atan2((cos(kpr) + kpr * sin(kpr)), (kpr * cos(kpr) - sin(kpr)));
     }
     else // Velocity mode funcion
     {
-        ms_mag = sqrt(km / 2. / pow(cfg.Mp, 2.));
+        ms_mag = sqrt(km / 2. / pow(d_params.Mp, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
 
@@ -47,7 +47,7 @@ ScalarTensorInit::calculate_mode_function(const Config &cfg,
 
     if (field_type == FieldType::Scalar)
     {
-        ps /= std::sqrt(2. * cfg.epsilon_1);
+        ps /= std::sqrt(2. * d_params.epsilon_1);
     }
 
     return ps;
@@ -55,7 +55,8 @@ ScalarTensorInit::calculate_mode_function(const Config &cfg,
 
 // Turns analytic PS into GRF and applies window function if requested
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-ScalarTensorInit::calculate_random_field(const Config &cfg,
+ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
+                                         const InflatonParameters &d_params,
                                          const amrex::IntVect iv,
                                          const amrex::Real rand_amp,
                                          const amrex::Real rand_phase,
@@ -64,10 +65,10 @@ ScalarTensorInit::calculate_random_field(const Config &cfg,
 {
     amrex::GpuComplex<amrex::Real> value(0., 0.);
     amrex::Real kmag = cfg.get_kmag(iv);
-    value = calculate_mode_function(cfg, kmag, field_type, which_field);
+    value = calculate_mode_function(d_params, kmag, field_type, which_field);
 
     // Add stochastic perturbations
-    if (cfg.use_rand == 1)
+    if (d_params.use_rand == 1)
     {
         // Make one random draw for the amplitude and phase individually
         amrex::Real rand_mod = sqrt(-2. * log(rand_amp));
@@ -87,7 +88,7 @@ ScalarTensorInit::calculate_random_field(const Config &cfg,
     }
 
     // Apply a window function if requested
-    if (cfg.use_window == 1)
+    if (d_params.use_window == 1)
     {
         value *= cfg.calculate_window_function(kmag);
     }
@@ -99,12 +100,6 @@ inline void ScalarTensorInit::generate_fourier_realisation(
     amrex::cMultiFab &hij_k, amrex::cMultiFab &Aij_k,
     amrex::cMultiFab &scalar_fields_k)
 {
-    // Test polarisation tensor orthonormality conditions
-    if (m_inflaton_methods.tensor_init && m_inflaton_methods.test_normalisation)
-    {
-        m_inflaton_methods.test_polarisation_normalisation(hij_k);
-    }
-
     // Declare array to hold R and dR fields
     amrex::cMultiFab R_dR_k(scalar_fields_k.boxArray(),
                             scalar_fields_k.DistributionMap(), 3,
@@ -120,8 +115,10 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 
     amrex::Print() << "Starting initial condition generation/read in...\n";
 
-    // Slice to the POD base so the kernel captures config by value
-    const Config cfg = m_inflaton_methods;
+    // Local copy so the kernel captures config by value, not via the host
+    // `this` pointer
+    const InflatonUtils cfg = m_utils;
+    const InflatonParameters d_params = params();
 
     amrex::ParallelFor(
         hij_k,
@@ -135,54 +132,54 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 
             // Uniform random draw, MPI/OpenMP safe
             const uint64_t cell_key =
-                uint64_t(cfg.random_seed) *
+                uint64_t(d_params.random_seed) *
                 (645950ULL * uint64_t(iv[0]) +
                  520666ULL * uint64_t(cfg.invert_index_with_sign(iv[1])) +
                  767051ULL * uint64_t(cfg.invert_index_with_sign(iv[2])));
 
             // Initialise scalar sector (one random draw)
-            if (cfg.scalar_init)
+            if (d_params.scalar_init)
             {
                 amrex::Real draw1 =
-                    Utils::to_unit_open(Utils::splitmix64(cell_key + 0ULL));
+                    InflatonUtils::to_unit_open(InflatonUtils::splitmix64(cell_key + 0ULL));
                 amrex::Real draw2 =
-                    Utils::to_unit_open(Utils::splitmix64(cell_key + 1ULL));
+                    InflatonUtils::to_unit_open(InflatonUtils::splitmix64(cell_key + 1ULL));
 
                 R_dR_k_arrs[bx](i, j, k,
                                 static_cast<int>(WhichField::Amplitude)) =
-                    calculate_random_field(cfg, iv, draw1, draw2,
+                    calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Amplitude);
 
                 R_dR_k_arrs[bx](i, j, k,
                                 static_cast<int>(WhichField::Velocity)) =
-                    calculate_random_field(cfg, iv, draw1, draw2,
+                    calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Velocity);
 
-                R_dR_k_arrs[bx](i, j, k, 3) =
+                R_dR_k_arrs[bx](i, j, k, 2) =
                     (R_dR_k_arrs[bx](i, j, k,
                                      static_cast<int>(WhichField::Velocity)) /
                      std::pow(cfg.get_kmag(iv), 2.));
             }
 
             // Initialise tensor sector (two random draws)
-            if (cfg.tensor_init)
+            if (d_params.tensor_init)
             {
                 // Find the mode function realisation
                 for (int p = 0; p < 2; p++)
                 {
                     // One draw per polarisation field
-                    amrex::Real draw1 = Utils::to_unit_open(
-                        Utils::splitmix64(cell_key + uint64_t(2 + 2 * p)));
-                    amrex::Real draw2 = Utils::to_unit_open(
-                        Utils::splitmix64(cell_key + uint64_t(3 + 2 * p)));
+                    amrex::Real draw1 = InflatonUtils::to_unit_open(
+                        InflatonUtils::splitmix64(cell_key + uint64_t(2 + 2 * p)));
+                    amrex::Real draw2 = InflatonUtils::to_unit_open(
+                        InflatonUtils::splitmix64(cell_key + uint64_t(3 + 2 * p)));
 
-                    hs[p] = calculate_random_field(cfg, iv, draw1, draw2,
+                    hs[p] = calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                                    FieldType::Tensor,
                                                    WhichField::Amplitude);
 
-                    As[p] = calculate_random_field(cfg, iv, draw1, draw2,
+                    As[p] = calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                                    FieldType::Tensor,
                                                    WhichField::Velocity);
                 }
@@ -195,9 +192,9 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                 for (int l = 0; l < 3; l++)
                     for (int p = 0; p < 3; p++)
                     {
-                        hij_k_arrs[bx](i, j, k, Utils::look_up_table[l][p]) =
+                        hij_k_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p]) =
                             (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
-                        Aij_k_arrs[bx](i, j, k, Utils::look_up_table[l][p]) =
+                        Aij_k_arrs[bx](i, j, k, InflatonUtils::look_up_table[l][p]) =
                             (As[0] * eplus(l, p) + As[1] * ecross(l, p));
                     }
             }
@@ -212,7 +209,7 @@ inline void ScalarTensorInit::generate_fourier_realisation(
     // like in the assignment to state_cell below.
     // the slow-roll parameters can be accessed with cfg.epsilon_1 and
     // cfg.epsilon_2, the Hubble parameter is cfg.H0 and Mp is cfg.Mp.
-    // All possible parameters are found in the Config.hpp file.
+    // All possible parameters are found in the InflatonUtils.hpp file.
 
     // Refer to https://arxiv.org/abs/2502.06783 for the derivation of these initial conditions.
     // 0: phi, 1:Pi, 2: chi and 3: K
@@ -279,9 +276,9 @@ inline void ScalarTensorInit::generate_fourier_realisation(
     // scalar_fields_k.FillBoundary(0, scalar_fields_k.nComp(), geom.periodicity());
 
     // Apply the DC and Nyquist symmetry conditions
-    m_inflaton_methods.apply_nyquist_conditions(hij_k);
-    m_inflaton_methods.apply_nyquist_conditions(Aij_k);
-    m_inflaton_methods.apply_nyquist_conditions(scalar_fields_k);
+    m_utils.apply_nyquist_conditions(hij_k);
+    m_utils.apply_nyquist_conditions(Aij_k);
+    m_utils.apply_nyquist_conditions(scalar_fields_k);
 }
 
 inline void ScalarTensorInit::add_perturbations_to_state(
@@ -293,12 +290,12 @@ inline void ScalarTensorInit::add_perturbations_to_state(
                   "c_A11..c_A33 are consecutive metric/A_ij components");
 
     // Apply normalisation into physical units
-    hij_x.mult(m_inflaton_methods.calculate_norm());
-    Aij_x.mult(m_inflaton_methods.calculate_norm());
-    scalar_fields_x.mult(m_inflaton_methods.calculate_norm());
+    hij_x.mult(m_utils.calculate_norm());
+    Aij_x.mult(m_utils.calculate_norm());
+    scalar_fields_x.mult(m_utils.calculate_norm());
 
     // Test that the resuling tensor perturbation field is trace-free
-    TensorTests::test_is_trace_free(hij_x);
+    InflatonUtils::test_is_trace_free(hij_x);
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     Aij_x.mult(-0.5);
@@ -308,8 +305,9 @@ inline void ScalarTensorInit::add_perturbations_to_state(
     const auto &Aij_x_arrs          = Aij_x.const_arrays();
     const auto &scalar_field_x_arrs = scalar_fields_x.const_arrays();
 
-    // Slice to the POD base so the kernel captures config by value
-    const Config cfg = m_inflaton_methods;
+    // Local copy so the kernel captures config by value, not via the host
+    // `this` pointer
+    const InflatonParameters d_params = params();
 
     amrex::ParallelFor(
         state,
@@ -319,12 +317,12 @@ inline void ScalarTensorInit::add_perturbations_to_state(
             const amrex::IntVect iv{i * dN, j * dN,
                                     k * dN}; // fine (field) index
 
-            if (iv_ds.min() >= 0 && iv_ds.max() < cfg.N)
+            if (iv_ds.min() >= 0 && iv_ds.max() < d_params.N)
             {
                 const auto state_cell = state_arrs[bx];
 
                 // Add scalar perturbations to the existing background values
-                if (cfg.scalar_init)
+                if (d_params.scalar_init)
                 {
                     const auto scalar_x = scalar_field_x_arrs[bx];
                     state_cell(iv_ds, c_phi) +=
@@ -338,7 +336,7 @@ inline void ScalarTensorInit::add_perturbations_to_state(
                 }
 
                 // Add tensor perturbations to the existing background values
-                if (cfg.tensor_init)
+                if (d_params.tensor_init)
                 {
                     const auto h_x = hij_x_arrs[bx];
                     const auto A_x = Aij_x_arrs[bx];
@@ -358,8 +356,8 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
 {
     BL_PROFILE("ScalarTensorInit::init");
 
-    const int N      = m_inflaton_methods.N;
-    const int N_fine = m_inflaton_methods.N_fine;
+    const int N      = params().N;
+    const int N_fine = params().N_fine;
 
     // Derive MultiFab ingredients from state (configuration space)
     amrex::BoxArray sba            = state.boxArray();
