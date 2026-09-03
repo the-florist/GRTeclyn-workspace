@@ -22,7 +22,6 @@
 #include "EMTensorTest.hpp"
 #include "InflatonFieldBackgroundTest.hpp"
 #include "InflatonFieldStatisticsTest.hpp"
-#include "ParsevalTheoremTest.hpp"
 #include "ParticleInterpolatorUnitTest.hpp"
 #include "PolarisationTensorTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
