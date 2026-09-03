@@ -40,7 +40,6 @@ init.tensor_init = 0
 
 init.alpha = 0
 init.random_seed = 3539263
-init.use_rand = 1
 
 # cutoff
 init.use_window = 1

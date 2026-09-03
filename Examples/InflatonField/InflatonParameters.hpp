@@ -28,7 +28,6 @@ struct InflatonParameters
 
     int scalar_init{0}; //!< Add scalar perturbations (1) or not (0)
     int tensor_init{0}; //!< Add tensor perturbations (1) or not (0)
-    int use_rand{1};    //!< Make perturbations Gaussian random fields
     int use_window{0};  //!< Apply window function to initial spectrum
 
     amrex::Real phi0{0.};          //!< Background scalar field value
@@ -65,7 +64,6 @@ struct InflatonParameters
         GRParmParse init_pp("init");
         init_pp.query("scalar_init", scalar_init);
         init_pp.query("tensor_init", tensor_init);
-        init_pp.query("use_rand", use_rand);
         init_pp.query("use_window", use_window);
         init_pp.query("alpha", alpha);
         init_pp.query("Delta", Delta);
