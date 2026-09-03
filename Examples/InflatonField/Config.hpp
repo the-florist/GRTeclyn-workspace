@@ -15,9 +15,9 @@
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 
-#include "Utils.hpp"
 #include "Potential.hpp"
 #include "TensorTests.hpp"
+#include "Utils.hpp"
 
 // Trivially-copyable configuration and methods for the stochastic inflaton
 // initialisation. The parameters are read once on the host by fill_params()

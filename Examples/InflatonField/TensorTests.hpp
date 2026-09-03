@@ -6,8 +6,8 @@
 #ifndef TENSORTESTS_HPP_
 #define TENSORTESTS_HPP_
 
-#include "Utils.hpp"
 #include "Tensor.hpp"
+#include "Utils.hpp"
 
 #include <AMReX_Math.H>
 #include <AMReX_MultiFab.H>

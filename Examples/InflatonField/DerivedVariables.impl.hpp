@@ -30,8 +30,8 @@ void DerivedVariables::set_up(int a_state_index)
 
 // Extract R and hs in configuration space from the BSSN variables
 inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
-                                                  amrex::MultiFab &R,
-                                                  const amrex::MultiFab &state)
+                                               amrex::MultiFab &R,
+                                               const amrex::MultiFab &state)
 {
     // Extract amrex::MultiFab ingredients from state
     amrex::BoxArray sba            = state.boxArray();
@@ -157,13 +157,11 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                     for (int p = 0; p < 3; p++)
                     {
                         hs_arrs[bx](i, j, k, 0) +=
-                            (gij_arrs[bx](i, j, k,
-                                          Utils::look_up_table[l][p]) *
+                            (gij_arrs[bx](i, j, k, Utils::look_up_table[l][p]) *
                              eplus(l, p)) /
                             2.;
                         hs_arrs[bx](i, j, k, 1) +=
-                            (gij_arrs[bx](i, j, k,
-                                          Utils::look_up_table[l][p]) *
+                            (gij_arrs[bx](i, j, k, Utils::look_up_table[l][p]) *
                              ecross(l, p)) /
                             2.;
                     }
@@ -183,13 +181,11 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                              hs_arrs[bx](i, j, k, 1).imag() * ecross(l, p));
 
                         hSV_re(l, p) =
-                            gij_arrs[bx](i, j, k,
-                                         Utils::look_up_table[l][p])
+                            gij_arrs[bx](i, j, k, Utils::look_up_table[l][p])
                                 .real() -
                             hij_re(l, p);
                         hSV_im(l, p) =
-                            gij_arrs[bx](i, j, k,
-                                         Utils::look_up_table[l][p])
+                            gij_arrs[bx](i, j, k, Utils::look_up_table[l][p])
                                 .imag() -
                             hij_im(l, p);
                     }
@@ -258,10 +254,12 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
 // Put R and hs into plotfiles
 // DeriveFuncMF callback: build an extractor and fill the plotfile output with
 // R, hplus, hcross. src_mf arrives already FillPatch-ed by the framework.
-inline void DerivedVariables::compute_mf(
-    amrex::MultiFab &out_mf, int dcomp, int /*ncomp*/,
-    const amrex::MultiFab &src_mf, const amrex::Geometry & /*geomdata*/,
-    amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
+inline void DerivedVariables::compute_mf(amrex::MultiFab &out_mf, int dcomp,
+                                         int /*ncomp*/,
+                                         const amrex::MultiFab &src_mf,
+                                         const amrex::Geometry & /*geomdata*/,
+                                         amrex::Real /*time*/,
+                                         const int * /*bcrec*/, int /*level*/)
 {
     BL_PROFILE("DerivedVariables::compute_mf");
 

@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef INFLATONFIELDINIT_HPP_
-#define INFLATONFIELDINIT_HPP_
+#ifndef SCALARTENSORINIT_HPP_
+#define SCALARTENSORINIT_HPP_
 
 #include "Config.hpp"
 #include "GRParmParse.hpp"
@@ -14,14 +14,14 @@
 #include <AMReX_FFT.H>
 #include <AMReX_GpuContainers.H>
 
-class InflatonFieldInit
+class ScalarTensorInit
 {
   protected:
     Config m_inflaton_methods;
 
   public:
     // Constructor used when initialising stochastic fields
-    InflatonFieldInit()
+    ScalarTensorInit()
     {
         // Read the parameters once from the global GRParmParse table
         m_inflaton_methods.fill_params();
@@ -71,6 +71,6 @@ class InflatonFieldInit
                                     const int dN);
 };
 
-#include "InflatonFieldInit.impl.hpp"
+#include "ScalarTensorInit.impl.hpp"
 
-#endif /* INFLATONFIELDINIT_HPP_ */
+#endif /* SCALARTENSORINIT_HPP_ */

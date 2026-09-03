@@ -3,19 +3,19 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(INFLATONFIELDINIT_HPP_)
-#error "This file should only be included via InflatonFieldInit.hpp"
+#if !defined(SCALARTENSORINIT_HPP_)
+#error "This file should only be included via ScalarTensorInit.hpp"
 #endif
 
-#ifndef INFLATONFIELDINIT_IMPL_HPP_
-#define INFLATONFIELDINIT_IMPL_HPP_
+#ifndef SCALARTENSORINIT_IMPL_HPP_
+#define SCALARTENSORINIT_IMPL_HPP_
 
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-InflatonFieldInit::calculate_mode_function(const Config &cfg,
-                                           const amrex::Real km,
-                                           const FieldType field_type,
-                                           const WhichField which_field)
+ScalarTensorInit::calculate_mode_function(const Config &cfg,
+                                          const amrex::Real km,
+                                          const FieldType field_type,
+                                          const WhichField which_field)
 {
     // Deals with k=0 case, which is undefined if m=0
     if (km < Utils::tolerance)
@@ -55,12 +55,12 @@ InflatonFieldInit::calculate_mode_function(const Config &cfg,
 
 // Turns analytic PS into GRF and applies window function if requested
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-InflatonFieldInit::calculate_random_field(const Config &cfg,
-                                          const amrex::IntVect iv,
-                                          const amrex::Real rand_amp,
-                                          const amrex::Real rand_phase,
-                                          const FieldType field_type,
-                                          const WhichField which_field)
+ScalarTensorInit::calculate_random_field(const Config &cfg,
+                                         const amrex::IntVect iv,
+                                         const amrex::Real rand_amp,
+                                         const amrex::Real rand_phase,
+                                         const FieldType field_type,
+                                         const WhichField which_field)
 {
     amrex::GpuComplex<amrex::Real> value(0., 0.);
     amrex::Real kmag = cfg.get_kmag(iv);
@@ -95,7 +95,7 @@ InflatonFieldInit::calculate_random_field(const Config &cfg,
     return value;
 }
 
-inline void InflatonFieldInit::generate_fourier_realisation(
+inline void ScalarTensorInit::generate_fourier_realisation(
     amrex::cMultiFab &hij_k, amrex::cMultiFab &Aij_k,
     amrex::cMultiFab &scalar_fields_k)
 {
@@ -143,10 +143,10 @@ inline void InflatonFieldInit::generate_fourier_realisation(
             // Initialise scalar sector (one random draw)
             if (cfg.scalar_init)
             {
-                amrex::Real draw1 = Utils::to_unit_open(
-                    Utils::splitmix64(cell_key + 0ULL));
-                amrex::Real draw2 = Utils::to_unit_open(
-                    Utils::splitmix64(cell_key + 1ULL));
+                amrex::Real draw1 =
+                    Utils::to_unit_open(Utils::splitmix64(cell_key + 0ULL));
+                amrex::Real draw2 =
+                    Utils::to_unit_open(Utils::splitmix64(cell_key + 1ULL));
 
                 R_dR_k_arrs[bx](i, j, k,
                                 static_cast<int>(WhichField::Amplitude)) =
@@ -173,12 +173,10 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                 for (int p = 0; p < 2; p++)
                 {
                     // One draw per polarisation field
-                    amrex::Real draw1 =
-                        Utils::to_unit_open(Utils::splitmix64(
-                            cell_key + uint64_t(2 + 2 * p)));
-                    amrex::Real draw2 =
-                        Utils::to_unit_open(Utils::splitmix64(
-                            cell_key + uint64_t(3 + 2 * p)));
+                    amrex::Real draw1 = Utils::to_unit_open(
+                        Utils::splitmix64(cell_key + uint64_t(2 + 2 * p)));
+                    amrex::Real draw2 = Utils::to_unit_open(
+                        Utils::splitmix64(cell_key + uint64_t(3 + 2 * p)));
 
                     hs[p] = calculate_random_field(cfg, iv, draw1, draw2,
                                                    FieldType::Tensor,
@@ -197,11 +195,9 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                 for (int l = 0; l < 3; l++)
                     for (int p = 0; p < 3; p++)
                     {
-                        hij_k_arrs[bx](i, j, k,
-                                       Utils::look_up_table[l][p]) =
+                        hij_k_arrs[bx](i, j, k, Utils::look_up_table[l][p]) =
                             (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
-                        Aij_k_arrs[bx](i, j, k,
-                                       Utils::look_up_table[l][p]) =
+                        Aij_k_arrs[bx](i, j, k, Utils::look_up_table[l][p]) =
                             (As[0] * eplus(l, p) + As[1] * ecross(l, p));
                     }
             }
@@ -224,7 +220,7 @@ inline void InflatonFieldInit::generate_fourier_realisation(
     m_inflaton_methods.apply_nyquist_conditions(scalar_fields_k);
 }
 
-inline void InflatonFieldInit::add_perturbations_to_state(
+inline void ScalarTensorInit::add_perturbations_to_state(
     amrex::MultiFab &state, amrex::MultiFab &hij_x, amrex::MultiFab &Aij_x,
     amrex::MultiFab &scalar_fields_x, const int dN)
 {
@@ -294,9 +290,9 @@ inline void InflatonFieldInit::add_perturbations_to_state(
 }
 
 // Main initialisation routine
-inline void InflatonFieldInit::init(amrex::MultiFab &state)
+inline void ScalarTensorInit::init(amrex::MultiFab &state)
 {
-    BL_PROFILE("InflatonFieldInit::init");
+    BL_PROFILE("ScalarTensorInit::init");
 
     const int N      = m_inflaton_methods.N;
     const int N_fine = m_inflaton_methods.N_fine;
@@ -364,4 +360,4 @@ inline void InflatonFieldInit::init(amrex::MultiFab &state)
     add_perturbations_to_state(state, hij_x, Aij_x, scalar_fields_x, dN);
 }
 
-#endif /* INFLATONFIELDINIT_IMPL_HPP_ */
+#endif /* SCALARTENSORINIT_IMPL_HPP_ */
