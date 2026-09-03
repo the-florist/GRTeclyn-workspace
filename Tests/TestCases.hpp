@@ -20,6 +20,8 @@
 #include "CoordinateTransformationsTest.hpp"
 #include "DerivativeUnitTests.hpp"
 #include "EMTensorTest.hpp"
+#include "InflatonFieldBackgroundTest.hpp"
+#include "InflatonFieldStatisticsTest.hpp"
 #include "ParticleInterpolatorUnitTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
 #include "PunctureTrackerTest.hpp"
@@ -68,6 +70,8 @@ TEST_CASE("EMTensor"
 {
     run_emtensor_test();
 }
+
+TEST_CASE("InflatonFieldStatistics") { run_inflaton_field_statistics_test(); }
 
 TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 

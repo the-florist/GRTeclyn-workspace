@@ -121,7 +121,7 @@ jobs:
             cuda-nvml-dev-${CUDA_DASHED_VERSION} \
             cuda-nvtx-${CUDA_DASHED_VERSION} \
             libcurand-dev-${CUDA_DASHED_VERSION} \
-            libcusparse-dev-${CUDA_DASHED_VERSION} \ 
+            libcusparse-dev-${CUDA_DASHED_VERSION} \
             libcufft-dev-${CUDA_DASHED_VERSION}"
           elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
             PACKAGES="libopenmpi-dev \
