@@ -6,8 +6,8 @@
 #ifndef DERIVEDVARIABLES_HPP_
 #define DERIVEDVARIABLES_HPP_
 
-#include "Config.hpp"
 #include "FilesystemTools.hpp"
+#include "InflatonUtils.hpp"
 #include "SmallDataIO.hpp"
 
 #include <AMReX_FFT.H>
@@ -22,9 +22,6 @@ class DerivedVariables
     static inline const amrex::Vector<std::string> var_names{"R", "hplus",
                                                              "hcross"};
 
-    // Constructor used in extraction of diagnostics
-    DerivedVariables() { m_inflaton_methods.fill_params(); }
-
     static void set_up(int a_state_index);
 
     // Derive callback (amrex::DeriveFuncMF) that fills plotfile output
@@ -34,7 +31,9 @@ class DerivedVariables
                            const int *bcrec, int level);
 
   private:
-    Config m_inflaton_methods;
+    InflatonUtils m_utils;
+
+    const InflatonParameters &params() const { return m_utils.m_params; }
 
     void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
                           const amrex::MultiFab &state);
