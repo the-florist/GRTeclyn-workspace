@@ -106,16 +106,13 @@ ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
 }
 
 inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
-    const InflatonUtils & /*cfg*/, const InflatonParameters &d_params,
+    const InflatonUtils & cfg, const InflatonParameters &d_params,
     const amrex::cMultiFab &R_and_dR, amrex::cMultiFab &bssn_scalars)
 {
     // Refer to https://arxiv.org/abs/2502.06783 for the derivation of these
     // initial conditions. R_and_dR is indexed by WhichField (0: R, 1: dR)
     // plus a third component (2) holding dR/k^2. bssn_scalars is indexed by
     // the BSSNFields enum (0: Phi, 1: Pi, 2: Chi, 3: K).
-    constexpr int r_comp          = static_cast<int>(WhichField::Amplitude);
-    constexpr int dr_comp         = static_cast<int>(WhichField::Velocity);
-    constexpr int dr_over_k2_comp = 2;
 
     const amrex::Real H0        = d_params.H0;
     const amrex::Real epsilon_1 = d_params.epsilon_1;
@@ -128,7 +125,7 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     // Phi coefficients
     const amrex::Real factor_R1 = Mp * std::sqrt(2.0 * epsilon_1);
     const amrex::Real factor_dR1invLap =
-        factor_R1 * epsilon_1 * H0 * init_a * init_a;
+        factor_R1 * epsilon_1 * H0 * std::pow(init_a, 2.);
 
     // Pi coefficients. half_pi_dR_coeff is the pre-doubled value used inside
     // factor_dR2invLap's own formula; pi_dR_coeff is the (doubled, negated)
@@ -136,8 +133,8 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     const amrex::Real factor_R2        = -Mp * std::sqrt(epsilon_1 / 2.0) *
                                          (2.0 * epsilon_1 - dlnGamma / H0) * H0;
     const amrex::Real half_pi_dR_coeff = -Mp * std::sqrt(epsilon_1 / 2.0);
-    const amrex::Real factor_dR2invLap = half_pi_dR_coeff * H0 * H0 * init_a *
-                                         init_a * epsilon_1 *
+    const amrex::Real factor_dR2invLap = half_pi_dR_coeff * std::pow(H0, 2.) *
+                                         std::pow(init_a, 2.) * epsilon_1 *
                                          (2.0 * epsilon_1 - dlnGamma / H0);
     const amrex::Real pi_dR_coeff      = -2.0 * half_pi_dR_coeff;
 
@@ -149,6 +146,9 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     const amrex::Real factor_dR4invLap =
         3.0 * init_a * init_a * H0 * H0 * epsilon_1 * epsilon_1;
 
+    constexpr int r_comp          = static_cast<int>(WhichField::Amplitude);
+    constexpr int dr_comp         = static_cast<int>(WhichField::Velocity);
+    
     const auto &r_dr_arrs = R_and_dR.const_arrays();
     const auto &bssn_arrs = bssn_scalars.arrays();
     amrex::ParallelFor(
@@ -157,7 +157,7 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
         {
             const auto r          = r_dr_arrs[bx](i, j, k, r_comp);
             const auto dr         = r_dr_arrs[bx](i, j, k, dr_comp);
-            const auto dr_over_k2 = r_dr_arrs[bx](i, j, k, dr_over_k2_comp);
+            const auto dR_over_k2 = dr / std::pow(cfg.get_kmag(iv), 2.);
 
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Phi)) =
                 factor_R1 * r + factor_dR1invLap * dr_over_k2;
@@ -178,7 +178,7 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 {
     // Declare array to hold R and dR fields
     amrex::cMultiFab R_dR_k(scalar_fields_k.boxArray(),
-                            scalar_fields_k.DistributionMap(), 3,
+                            scalar_fields_k.DistributionMap(), 2,
                             scalar_fields_k.nGrowVect(), amrex::MFInfo(),
                             scalar_fields_k.Factory());
     R_dR_k.setVal(0.0);
@@ -232,11 +232,6 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                     calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                            FieldType::Scalar,
                                            WhichField::Velocity);
-
-                R_dR_k_arrs[bx](i, j, k, 2) =
-                    (R_dR_k_arrs[bx](i, j, k,
-                                     static_cast<int>(WhichField::Velocity)) /
-                     std::pow(cfg.get_kmag(iv), 2.));
             }
 
             // Initialise tensor sector (two random draws)
