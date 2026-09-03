@@ -43,24 +43,24 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     }
 
     // Construct the mode function and return it
-    amrex::GpuComplex<amrex::Real> ps(ms_mag * cos(ms_arg),
-                                      ms_mag * sin(ms_arg));
+    amrex::GpuComplex<amrex::Real> mode_val(ms_mag * cos(ms_arg),
+                                            ms_mag * sin(ms_arg));
 
     if (field_type == FieldType::Scalar)
     {
-        ps /= std::sqrt(2. * d_params.epsilon_1);
+        mode_val /= std::sqrt(2. * d_params.epsilon_1);
     }
 
     if (which_field == WhichField::Amplitude)
     {
-        ps /= d_params.init_a;
+        mode_val /= d_params.init_a;
     }
     else
     {
-        ps /= std::pow(d_params.init_a, 2.);
+        mode_val /= std::pow(d_params.init_a, 2.);
     }
 
-    return ps;
+    return mode_val;
 }
 
 // Turns analytic PS into GRF and applies window function if requested
@@ -159,19 +159,19 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
                 return;
             } // Skip the zero mode
 
-            const auto r          = r_dr_arrs[bx](i, j, k, r_comp);
-            const auto dr         = r_dr_arrs[bx](i, j, k, dr_comp);
-            const auto dr_over_k2 = dr / std::pow(cfg.get_kmag(iv), 2.);
+            const auto r_val       = r_dr_arrs[bx](i, j, k, r_comp);
+            const auto dr_val      = r_dr_arrs[bx](i, j, k, dr_comp);
+            const auto dr_over_k2 = dr_val / std::pow(cfg.get_kmag(iv), 2.);
 
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Phi)) =
-                factor_R1 * r + factor_dR1invLap * dr_over_k2;
+                factor_R1 * r_val + factor_dR1invLap * dr_over_k2;
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Pi)) =
-                factor_R2 * r + pi_dR_coeff * dr +
+                factor_R2 * r_val + pi_dR_coeff * dr_val +
                 factor_dR2invLap * dr_over_k2;
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Chi)) =
                 factor_dR3invLap * dr_over_k2;
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::K)) =
-                factor_R4 * r + factor_dR4invLap * dr_over_k2;
+                factor_R4 * r_val + factor_dR4invLap * dr_over_k2;
         });
     amrex::Gpu::streamSynchronize();
 }
@@ -206,9 +206,9 @@ inline void ScalarTensorInit::generate_fourier_realisation(
         {
             amrex::IntVect iv = {i, j, k};
             amrex::GpuArray<amrex::GpuComplex<amrex::Real>, 2>
-                hs; // Amp mode fn
+                h_mode_function; // Amp mode fn
             amrex::GpuArray<amrex::GpuComplex<amrex::Real>, 2>
-                As; // Vel mode fn
+                A_mode_function; // Vel mode fn
 
             // Uniform random draw, MPI/OpenMP safe
             const uint64_t cell_key =
@@ -252,13 +252,13 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                         InflatonUtils::to_unit_open(InflatonUtils::splitmix64(
                             cell_key + uint64_t(3 + 2 * p)));
 
-                    hs[p] = calculate_random_field(cfg, d_params, iv, draw1,
-                                                   draw2, FieldType::Tensor,
-                                                   WhichField::Amplitude);
+                    h_mode_function[p] = calculate_random_field(
+                        cfg, d_params, iv, draw1, draw2, FieldType::Tensor,
+                        WhichField::Amplitude);
 
-                    As[p] = calculate_random_field(cfg, d_params, iv, draw1,
-                                                   draw2, FieldType::Tensor,
-                                                   WhichField::Velocity);
+                    A_mode_function[p] = calculate_random_field(
+                        cfg, d_params, iv, draw1, draw2, FieldType::Tensor,
+                        WhichField::Velocity);
                 }
 
                 // Construct polarisation tensors from basis vectors
@@ -271,10 +271,12 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                     {
                         hij_k_arrs[bx](i, j, k,
                                        InflatonUtils::look_up_table[l][p]) =
-                            (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
+                            (h_mode_function[0] * eplus(l, p) +
+                             h_mode_function[1] * ecross(l, p));
                         Aij_k_arrs[bx](i, j, k,
                                        InflatonUtils::look_up_table[l][p]) =
-                            (As[0] * eplus(l, p) + As[1] * ecross(l, p));
+                            (A_mode_function[0] * eplus(l, p) +
+                             A_mode_function[1] * ecross(l, p));
                     }
             }
         });
@@ -369,12 +371,12 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
     amrex::DistributionMapping sdm = state.DistributionMap();
 
     // If coarse graining is requested, set up the coarse grid Ns
-    int Ni = N;
-    int dN = 1;
+    int n_eff = N;
+    int dN    = 1;
     if (N_fine != N)
     {
-        Ni = N_fine;
-        dN = N_fine / N;
+        n_eff = N_fine;
+        dN    = N_fine / N;
     }
 
     // Set up the problem domain in Fourier space
@@ -383,7 +385,7 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
     amrex::IntVect domain_low(0, 0, 0);
     amrex::BoxArray xba = (N_fine != 0 ? sba.refine(dN) : sba);
 
-    amrex::IntVect k_domain_high(Ni / 2, Ni - 1, Ni - 1);
+    amrex::IntVect k_domain_high(n_eff / 2, n_eff - 1, n_eff - 1);
     amrex::Box k_domain(domain_low, k_domain_high);
     constexpr amrex::Array<bool, AMREX_SPACEDIM> slicing{true, false, false};
     amrex::BoxArray kba =
@@ -406,7 +408,7 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
     scalar_fields_x.setVal(0.0);
 
     // Construct the Fourier transform
-    amrex::IntVect x_domain_high(Ni - 1, Ni - 1, Ni - 1);
+    amrex::IntVect x_domain_high(n_eff - 1, n_eff - 1, n_eff - 1);
     amrex::Box x_domain(domain_low, x_domain_high);
 
     amrex::FFT::R2C<amrex::Real> tensor_fft(

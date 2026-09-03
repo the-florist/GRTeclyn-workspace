@@ -121,10 +121,10 @@ struct InflatonParameters
 
     // Helper function that stores our form of the Friedmann equations
     AMREX_GPU_HOST_DEVICE static amrex::Real
-    calculate_H0(amrex::Real G, amrex::Real Pi, amrex::Real V)
+    calculate_H0(amrex::Real G_Newton, amrex::Real pi_dot, amrex::Real V)
     {
-        return sqrt((8. * amrex::Math::pi<amrex::Real>() * G / 3.) *
-                    (0.5 * pow(Pi, 2.) + V));
+        return sqrt((8. * amrex::Math::pi<amrex::Real>() * G_Newton / 3.) *
+                    (0.5 * pow(pi_dot, 2.) + V));
     }
 };
 

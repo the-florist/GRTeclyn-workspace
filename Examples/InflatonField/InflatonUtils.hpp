@@ -112,11 +112,11 @@ struct InflatonUtils
         AMREX_ASSERT(m_params.L > 0 && m_params.Delta > 0);
         const int N_w =
             (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
-        const amrex::Real ks = std::sqrt(3.) * N_w *
-                               amrex::Math::pi<amrex::Real>() / m_params.L /
-                               5. / 2.;
-        const amrex::Real Dt = m_params.L / m_params.Delta;
-        return 0.5 * (1.0 - tanh(Dt * (kmag - ks)));
+        const amrex::Real k_cutoff = std::sqrt(3.) * N_w *
+                                     amrex::Math::pi<amrex::Real>() /
+                                     m_params.L / 5. / 2.;
+        const amrex::Real window_width = m_params.L / m_params.Delta;
+        return 0.5 * (1.0 - tanh(window_width * (kmag - k_cutoff)));
     }
 
     //! An orthonormal pair of polarisation basis vectors for a Fourier mode
@@ -228,18 +228,18 @@ struct InflatonUtils
         // requested
         if (m_params.alpha != 0.)
         {
-            const amrex::Real a =
+            const amrex::Real alpha_rad =
                 m_params.alpha * amrex::Math::pi<amrex::Real>() / 180.;
-            const amrex::Real ca = std::cos(a);
-            const amrex::Real sa = std::sin(a);
-            Vec mp, np;
+            const amrex::Real cos_alpha = std::cos(alpha_rad);
+            const amrex::Real sin_alpha = std::sin(alpha_rad);
+            Vec mhat_rot, nhat_rot;
             for (int l = 0; l < 3; l++)
             {
-                mp[l] = ca * mhat[l] + sa * nhat[l];
-                np[l] = -sa * mhat[l] + ca * nhat[l];
+                mhat_rot[l] = cos_alpha * mhat[l] + sin_alpha * nhat[l];
+                nhat_rot[l] = -sin_alpha * mhat[l] + cos_alpha * nhat[l];
             }
-            mhat = mp;
-            nhat = np;
+            mhat = mhat_rot;
+            nhat = nhat_rot;
         }
 
         return {mhat, nhat};
