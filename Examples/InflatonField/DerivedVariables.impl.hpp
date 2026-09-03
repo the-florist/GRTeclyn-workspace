@@ -3,23 +3,23 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef INFLATIONEXTRACTION_IMPL_HPP_
-#define INFLATIONEXTRACTION_IMPL_HPP_
+#ifndef DERIVEDVARIABLES_IMPL_HPP_
+#define DERIVEDVARIABLES_IMPL_HPP_
 
-void InflationExtraction::set_up(int a_state_index)
+void DerivedVariables::set_up(int a_state_index)
 {
     int num_ghosts = 0;
 
     auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
     const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
-    const auto &field_names = InflationExtraction::var_names;
+    const auto &field_names = DerivedVariables::var_names;
 
     // Add Constraints to the derive list
     derive_lst.add(
         "InflationFields", amrex::IndexType::TheCellType(),
         static_cast<int>(field_names.size()), field_names,
-        InflationExtraction::compute_mf, [=](const amrex::Box &box)
+        DerivedVariables::compute_mf, [=](const amrex::Box &box)
         { return amrex::grow(box, num_ghosts); }, &amrex::cell_quartic_interp);
 
     derive_lst.addComponent("InflationFields", desc_lst, a_state_index, 0,
@@ -29,7 +29,7 @@ void InflationExtraction::set_up(int a_state_index)
 /* Main functions */
 
 // Extract R and hs in configuration space from the BSSN variables
-inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
+inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                                                   amrex::MultiFab &R,
                                                   const amrex::MultiFab &state)
 {
@@ -38,7 +38,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::DistributionMapping sdm = state.DistributionMap();
     if (sba != hs.boxArray() || sdm != hs.DistributionMap())
     {
-        amrex::Error("InflationExtraction::extract_hs_and_R "
+        amrex::Error("DerivedVariables::extract_hs_and_R "
                      "source and output BA or SDM do not match");
     }
 
@@ -258,12 +258,12 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
 // Put R and hs into plotfiles
 // DeriveFuncMF callback: build an extractor and fill the plotfile output with
 // R, hplus, hcross. src_mf arrives already FillPatch-ed by the framework.
-inline void InflationExtraction::compute_mf(
+inline void DerivedVariables::compute_mf(
     amrex::MultiFab &out_mf, int dcomp, int /*ncomp*/,
     const amrex::MultiFab &src_mf, const amrex::Geometry & /*geomdata*/,
     amrex::Real /*time*/, const int * /*bcrec*/, int /*level*/)
 {
-    BL_PROFILE("InflationExtraction::compute_mf");
+    BL_PROFILE("DerivedVariables::compute_mf");
 
     // Make a multifab to store config space mode functions
     amrex::BoxArray oba            = out_mf.boxArray();
@@ -273,7 +273,7 @@ inline void InflationExtraction::compute_mf(
     hs_x.setVal(0.0);
     R_x.setVal(0.0);
 
-    InflationExtraction extractor;
+    DerivedVariables extractor;
     extractor.extract_hs_and_R(hs_x, R_x, src_mf);
 
     const auto &hs_arrs  = hs_x.arrays();
@@ -294,4 +294,4 @@ inline void InflationExtraction::compute_mf(
     amrex::Gpu::streamSynchronize();
 }
 
-#endif /* INFLATIONEXTRACTION_IMPL_HPP_ */
+#endif /* DERIVEDVARIABLES_IMPL_HPP_ */

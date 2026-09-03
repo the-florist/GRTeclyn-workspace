@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef INFLATIONEXTRACTION_HPP_
-#define INFLATIONEXTRACTION_HPP_
+#ifndef DERIVEDVARIABLES_HPP_
+#define DERIVEDVARIABLES_HPP_
 
 #include "Config.hpp"
 #include "FilesystemTools.hpp"
@@ -15,7 +15,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 
-class InflationExtraction
+class DerivedVariables
 {
   public:
     // Names of diagnostic variables
@@ -23,7 +23,7 @@ class InflationExtraction
                                                              "hcross"};
 
     // Constructor used in extraction of diagnostics
-    InflationExtraction() { m_inflaton_methods.fill_params(); }
+    DerivedVariables() { m_inflaton_methods.fill_params(); }
 
     static void set_up(int a_state_index);
 
@@ -40,6 +40,6 @@ class InflationExtraction
                           const amrex::MultiFab &state);
 };
 
-#include "InflationExtraction.impl.hpp"
+#include "DerivedVariables.impl.hpp"
 
-#endif /* INFLATIONEXTRACTION_HPP_ */
+#endif /* DERIVEDVARIABLES_HPP_ */

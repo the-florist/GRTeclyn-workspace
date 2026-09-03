@@ -20,7 +20,7 @@
 #include <type_traits>
 
 // // Problem specific includes
-#include "InflationExtraction.hpp"
+#include "DerivedVariables.hpp"
 #include "InflatonFieldInit.hpp"
 #include "InitialBackgroundData.hpp"
 #include "Potential.hpp"
@@ -34,7 +34,7 @@ void InflatonFieldLevel::variableSetUp()
     BL_PROFILE("InflatonFieldLevel::variableSetUp()");
     state_variable_set_up();
     InflatonFieldConstraints::set_up(state_index);
-    InflationExtraction::set_up(state_index);
+    DerivedVariables::set_up(state_index);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
