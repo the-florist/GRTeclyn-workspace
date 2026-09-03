@@ -6,7 +6,7 @@
 #ifndef TENSORTESTS_HPP_
 #define TENSORTESTS_HPP_
 
-#include "InflationUtils.hpp"
+#include "Utils.hpp"
 #include "Tensor.hpp"
 
 #include <AMReX_Math.H>
@@ -35,11 +35,11 @@ inline void test_is_trace_free(amrex::MultiFab &field)
 
             for (int l = 0; l < 3; l++)
             {
-                sum += arrs[bx](i, j, k, InflationUtils::look_up_table[l][l]);
+                sum += arrs[bx](i, j, k, Utils::look_up_table[l][l]);
             }
 
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                amrex::Math::abs(sum) <= InflationUtils::tolerance,
+                amrex::Math::abs(sum) <= Utils::tolerance,
                 "TensorTests::test_is_trace_free, trace-free test failed");
         });
 
@@ -64,9 +64,9 @@ inline void test_vector_orthonorm(const amrex::IntVect iv,
             cross1 += mhat[l] * nhat[l];
         }
 
-        if (std::abs(dot1 - 1.) > InflationUtils::tolerance ||
-            std::abs(dot2 - 1.) > InflationUtils::tolerance ||
-            std::abs(cross1) > InflationUtils::tolerance)
+        if (std::abs(dot1 - 1.) > Utils::tolerance ||
+            std::abs(dot2 - 1.) > Utils::tolerance ||
+            std::abs(cross1) > Utils::tolerance)
         {
             amrex::Print() << "Location: " << iv << "\n";
             amrex::Print() << "Dot products: " << dot1 << ", " << dot2 << "\n";
@@ -102,9 +102,9 @@ inline void test_polarisation_tensor_orthonorm(const amrex::IntVect iv,
 
     if (iv != amrex::IntVect{0, 0, 0})
     {
-        bool plc = (std::abs(conds[0] / 2. - 1.) > InflationUtils::tolerance ||
-                    std::abs(conds[2] / 2. - 1.) > InflationUtils::tolerance);
-        bool ppc = (std::abs(conds[1]) > InflationUtils::tolerance);
+        bool plc = (std::abs(conds[0] / 2. - 1.) > Utils::tolerance ||
+                    std::abs(conds[2] / 2. - 1.) > Utils::tolerance);
+        bool ppc = (std::abs(conds[1]) > Utils::tolerance);
         if (plc || ppc)
         {
             amrex::Print() << "---------\nLocation: " << iv << "\n"
@@ -181,7 +181,7 @@ inline void test_parsevals_theorem(const amrex::MultiFab &hx,
     amrex::Real ksum = calculate_total_power(hk, N);
 
     int p           = std::round(std::log10((xsum + ksum) / 2.));
-    amrex::Real tol = InflationUtils::tolerance * std::pow(10., p + 1);
+    amrex::Real tol = Utils::tolerance * std::pow(10., p + 1);
 
     if (std::abs(xsum - ksum) > tol)
     {

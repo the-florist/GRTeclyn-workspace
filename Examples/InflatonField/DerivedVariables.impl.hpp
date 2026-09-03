@@ -48,12 +48,12 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
     amrex::MultiFab gij_x(sba, sdm, 6, 0);
 
     // Copy the spatial metric from the state
-    Copy(gij_x, state, c_h11, InflationUtils::look_up_table[0][0], 1, 0);
-    Copy(gij_x, state, c_h12, InflationUtils::look_up_table[0][1], 1, 0);
-    Copy(gij_x, state, c_h13, InflationUtils::look_up_table[0][2], 1, 0);
-    Copy(gij_x, state, c_h22, InflationUtils::look_up_table[1][1], 1, 0);
-    Copy(gij_x, state, c_h23, InflationUtils::look_up_table[1][2], 1, 0);
-    Copy(gij_x, state, c_h33, InflationUtils::look_up_table[2][2], 1, 0);
+    Copy(gij_x, state, c_h11, Utils::look_up_table[0][0], 1, 0);
+    Copy(gij_x, state, c_h12, Utils::look_up_table[0][1], 1, 0);
+    Copy(gij_x, state, c_h13, Utils::look_up_table[0][2], 1, 0);
+    Copy(gij_x, state, c_h22, Utils::look_up_table[1][1], 1, 0);
+    Copy(gij_x, state, c_h23, Utils::look_up_table[1][2], 1, 0);
+    Copy(gij_x, state, c_h33, Utils::look_up_table[2][2], 1, 0);
 
     constexpr int phi_component = 0;
     constexpr int chi_component = 1;
@@ -76,7 +76,7 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
     // Undo the normalisation and BSSN-CPT conversion
     for (int l = 0; l < 3; l++)
     {
-        gij_x.plus(-1., InflationUtils::look_up_table[l][l], 1);
+        gij_x.plus(-1., Utils::look_up_table[l][l], 1);
     }
     gij_x.mult(1. / m_inflaton_methods.calculate_norm());
 
@@ -158,12 +158,12 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                     {
                         hs_arrs[bx](i, j, k, 0) +=
                             (gij_arrs[bx](i, j, k,
-                                          InflationUtils::look_up_table[l][p]) *
+                                          Utils::look_up_table[l][p]) *
                              eplus(l, p)) /
                             2.;
                         hs_arrs[bx](i, j, k, 1) +=
                             (gij_arrs[bx](i, j, k,
-                                          InflationUtils::look_up_table[l][p]) *
+                                          Utils::look_up_table[l][p]) *
                              ecross(l, p)) /
                             2.;
                     }
@@ -184,12 +184,12 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
 
                         hSV_re(l, p) =
                             gij_arrs[bx](i, j, k,
-                                         InflationUtils::look_up_table[l][p])
+                                         Utils::look_up_table[l][p])
                                 .real() -
                             hij_re(l, p);
                         hSV_im(l, p) =
                             gij_arrs[bx](i, j, k,
-                                         InflationUtils::look_up_table[l][p])
+                                         Utils::look_up_table[l][p])
                                 .imag() -
                             hij_im(l, p);
                     }

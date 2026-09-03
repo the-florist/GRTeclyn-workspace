@@ -18,7 +18,7 @@ InflatonFieldInit::calculate_mode_function(const Config &cfg,
                                            const WhichField which_field)
 {
     // Deals with k=0 case, which is undefined if m=0
-    if (km < InflationUtils::tolerance)
+    if (km < Utils::tolerance)
     {
         return amrex::GpuComplex<amrex::Real>{0., 0.};
     }
@@ -143,10 +143,10 @@ inline void InflatonFieldInit::generate_fourier_realisation(
             // Initialise scalar sector (one random draw)
             if (cfg.scalar_init)
             {
-                amrex::Real draw1 = InflationUtils::to_unit_open(
-                    InflationUtils::splitmix64(cell_key + 0ULL));
-                amrex::Real draw2 = InflationUtils::to_unit_open(
-                    InflationUtils::splitmix64(cell_key + 1ULL));
+                amrex::Real draw1 = Utils::to_unit_open(
+                    Utils::splitmix64(cell_key + 0ULL));
+                amrex::Real draw2 = Utils::to_unit_open(
+                    Utils::splitmix64(cell_key + 1ULL));
 
                 R_dR_k_arrs[bx](i, j, k,
                                 static_cast<int>(WhichField::Amplitude)) =
@@ -174,10 +174,10 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                 {
                     // One draw per polarisation field
                     amrex::Real draw1 =
-                        InflationUtils::to_unit_open(InflationUtils::splitmix64(
+                        Utils::to_unit_open(Utils::splitmix64(
                             cell_key + uint64_t(2 + 2 * p)));
                     amrex::Real draw2 =
-                        InflationUtils::to_unit_open(InflationUtils::splitmix64(
+                        Utils::to_unit_open(Utils::splitmix64(
                             cell_key + uint64_t(3 + 2 * p)));
 
                     hs[p] = calculate_random_field(cfg, iv, draw1, draw2,
@@ -198,10 +198,10 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                     for (int p = 0; p < 3; p++)
                     {
                         hij_k_arrs[bx](i, j, k,
-                                       InflationUtils::look_up_table[l][p]) =
+                                       Utils::look_up_table[l][p]) =
                             (hs[0] * eplus(l, p) + hs[1] * ecross(l, p));
                         Aij_k_arrs[bx](i, j, k,
-                                       InflationUtils::look_up_table[l][p]) =
+                                       Utils::look_up_table[l][p]) =
                             (As[0] * eplus(l, p) + As[1] * ecross(l, p));
                     }
             }

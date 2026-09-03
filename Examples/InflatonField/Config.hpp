@@ -15,7 +15,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 
-#include "InflationUtils.hpp"
+#include "Utils.hpp"
 #include "Potential.hpp"
 #include "TensorTests.hpp"
 

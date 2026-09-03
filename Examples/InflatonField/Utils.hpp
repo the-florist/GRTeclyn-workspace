@@ -11,7 +11,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_REAL.H>
 
-namespace InflationUtils
+namespace Utils
 {
 // Look-up table
 // Used to construct polarisation basis tensors
@@ -39,6 +39,6 @@ to_unit_open(const std::uint64_t bits)
     return (static_cast<amrex::Real>(bits >> 11) + 0.5) *
            (1.0 / 9007199254740992.0);
 }
-} // namespace InflationUtils
+} // namespace Utils
 
 #endif /* INFLATIONUTILS_HPP_ */

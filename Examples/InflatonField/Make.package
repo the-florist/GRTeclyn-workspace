@@ -1,6 +1,6 @@
 GRTECLYN_CEXE_sources += InflatonFieldLevel.cpp Main_InflatonField.cpp 
 
-GRTECLYN_CEXE_headers += InflationUtils.hpp TensorTests.hpp InflationConfig.hpp
+GRTECLYN_CEXE_headers += Utils.hpp TensorTests.hpp Config.hpp
 GRTECLYN_CEXE_headers += InflatonFieldInit.hpp DerivedVariables.hpp
 GRTECLYN_CEXE_headers += InflatonFieldLevel.hpp  DiagnosticVariables.hpp  
 GRTECLYN_CEXE_headers += Potential.hpp  StateVariables.hpp SimulationParameters.hpp
