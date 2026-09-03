@@ -13,12 +13,12 @@
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
 ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
-                                          const amrex::Real km,
+                                          const amrex::Real kmag,
                                           const FieldType field_type,
                                           const WhichField which_field)
 {
     // Deals with k=0 case, which is undefined if m=0
-    if (km < InflatonUtils::tolerance)
+    if (kmag < InflatonUtils::tolerance)
     {
         return amrex::GpuComplex<amrex::Real>{0., 0.};
     }
@@ -27,17 +27,18 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     amrex::Real ms_mag = 0.;
     amrex::Real ms_arg = 0.;
 
-    amrex::Real kpr = km / d_params.H0;
+    amrex::Real kpr = kmag / d_params.H0;
     if (which_field == WhichField::Amplitude) // Position mode funcion
     {
-        ms_mag = sqrt((1.0 / km + d_params.H0 * d_params.H0 / pow(km, 3.)) /
-                      2. / pow(d_params.Mp, 2.));
+        ms_mag =
+            sqrt((1.0 / kmag + d_params.H0 * d_params.H0 / pow(kmag, 3.)) /
+                2. / pow(d_params.Mp, 2.));
         ms_arg =
             atan2((cos(kpr) + kpr * sin(kpr)), (kpr * cos(kpr) - sin(kpr)));
     }
     else // Velocity mode funcion
     {
-        ms_mag = sqrt(km / 2. / pow(d_params.Mp, 2.));
+        ms_mag = sqrt(kmag / 2. / pow(d_params.Mp, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
 
@@ -66,14 +67,14 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
 ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
                                          const InflatonParameters &d_params,
-                                         const amrex::IntVect iv,
+                                         const amrex::IntVect ivec,
                                          const amrex::Real rand_amp,
                                          const amrex::Real rand_phase,
                                          const FieldType field_type,
                                          const WhichField which_field)
 {
     amrex::GpuComplex<amrex::Real> value(0., 0.);
-    amrex::Real kmag = cfg.get_kmag(iv);
+    amrex::Real kmag = cfg.get_kmag(ivec);
     value = calculate_mode_function(d_params, kmag, field_type, which_field);
 
     // Add stochastic perturbations
@@ -290,7 +291,7 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 
 inline void ScalarTensorInit::add_perturbations_to_state(
     amrex::MultiFab &state, amrex::MultiFab &hij_x, amrex::MultiFab &Aij_x,
-    amrex::MultiFab &scalar_fields_x, const int dN)
+    amrex::MultiFab &scalar_fields_x, const int dn_ratio)
 {
     static_assert(c_h33 == c_h11 + 5 && c_A33 == c_A11 + 5,
                   "add_perturbations_to_state assumes c_h11..c_h33 and "
@@ -318,8 +319,8 @@ inline void ScalarTensorInit::add_perturbations_to_state(
         [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept
         {
             const amrex::IntVect iv_ds{i, j, k}; // coarse (state) index
-            const amrex::IntVect iv{i * dN, j * dN,
-                                    k * dN}; // fine (field) index
+            const amrex::IntVect iv{i * dn_ratio, j * dn_ratio,
+                                    k * dn_ratio}; // fine (field) index
 
             if (iv_ds.min() >= 0 && iv_ds.max() < d_params.N)
             {

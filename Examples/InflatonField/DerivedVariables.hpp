@@ -37,7 +37,10 @@ class DerivedVariables
   private:
     InflatonUtils m_utils;
 
-    const InflatonParameters &params() const { return m_utils.m_params; }
+    [[nodiscard]] const InflatonParameters &params() const
+    {
+        return m_utils.m_params;
+    }
 
     void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
                           const amrex::MultiFab &state);
