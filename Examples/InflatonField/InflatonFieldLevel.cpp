@@ -37,7 +37,7 @@ void InflatonFieldLevel::variableSetUp()
     InflatonFieldConstraints::set_up(state_index);
     DerivedVariables::set_up(state_index);
 
-    // Ensure that if the user requests any of the derived 
+    // Ensure that if the user requests any of the derived
     // variables in DerivedVariables, they are NOT using AMR
     // at the same time.
     GRParmParse pp("amr");
@@ -49,12 +49,12 @@ void InflatonFieldLevel::variableSetUp()
     const bool all_requested =
         std::find(derive_plot_vars.begin(), derive_plot_vars.end(), "ALL") !=
         derive_plot_vars.end();
-    
+
     bool derive_requested = false;
     for (const auto &name : DerivedVariables::var_names)
     {
-        if (std::find(derive_plot_vars.begin(), derive_plot_vars.end(),
-                      name) != derive_plot_vars.end())
+        if (std::find(derive_plot_vars.begin(), derive_plot_vars.end(), name) !=
+            derive_plot_vars.end())
         {
             derive_requested = true;
             break;
@@ -64,7 +64,7 @@ void InflatonFieldLevel::variableSetUp()
     if ((derive_requested || all_requested) && max_level != 0)
     {
         amrex::Error("InflatonFieldLevel::variableSetUp, "
-                        "DerivedVariables cannot be used with AMR");
+                     "DerivedVariables cannot be used with AMR");
     }
 }
 

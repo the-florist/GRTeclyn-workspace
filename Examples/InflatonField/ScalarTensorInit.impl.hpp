@@ -50,11 +50,11 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
         ps /= std::sqrt(2. * d_params.epsilon_1);
     }
 
-    if(which_field == WhichField::Amplitude)
+    if (which_field == WhichField::Amplitude)
     {
         ps /= d_params.init_a;
     }
-    else 
+    else
     {
         ps /= std::pow(d_params.init_a, 2.);
     }
@@ -133,13 +133,13 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     // Pi coefficients. half_pi_dR_coeff is the pre-doubled value used inside
     // factor_dR2invLap's own formula; pi_dR_coeff is the (doubled, negated)
     // value that actually multiplies dR.
-    const amrex::Real factor_R2 = -Mp * std::sqrt(epsilon_1 / 2.0) *
-                                  (2.0 * epsilon_1 - dlnGamma / H0) * H0;
+    const amrex::Real factor_R2        = -Mp * std::sqrt(epsilon_1 / 2.0) *
+                                         (2.0 * epsilon_1 - dlnGamma / H0) * H0;
     const amrex::Real half_pi_dR_coeff = -Mp * std::sqrt(epsilon_1 / 2.0);
-    const amrex::Real factor_dR2invLap =
-        half_pi_dR_coeff * H0 * H0 * init_a * init_a * epsilon_1 *
-        (2.0 * epsilon_1 - dlnGamma / H0);
-    const amrex::Real pi_dR_coeff = -2.0 * half_pi_dR_coeff;
+    const amrex::Real factor_dR2invLap = half_pi_dR_coeff * H0 * H0 * init_a *
+                                         init_a * epsilon_1 *
+                                         (2.0 * epsilon_1 - dlnGamma / H0);
+    const amrex::Real pi_dR_coeff      = -2.0 * half_pi_dR_coeff;
 
     // Chi coefficients
     const amrex::Real factor_dR3invLap = -2.0 * H0 * epsilon_1;
@@ -162,7 +162,8 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Phi)) =
                 factor_R1 * r + factor_dR1invLap * dr_over_k2;
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Pi)) =
-                factor_R2 * r + pi_dR_coeff * dr + factor_dR2invLap * dr_over_k2;
+                factor_R2 * r + pi_dR_coeff * dr +
+                factor_dR2invLap * dr_over_k2;
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Chi)) =
                 factor_dR3invLap * dr_over_k2;
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::K)) =
