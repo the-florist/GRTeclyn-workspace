@@ -3,26 +3,21 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef TENSORTESTS_HPP_
-#define TENSORTESTS_HPP_
+#if !defined(INFLATONUTILS_HPP_)
+#error "This file should only be included via InflatonUtils.hpp"
+#endif
 
-#include "Tensor.hpp"
-#include "Utils.hpp"
+#ifndef INFLATONUTILS_IMPL_HPP_
+#define INFLATONUTILS_IMPL_HPP_
 
-#include <AMReX_Math.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Print.H>
-#include <AMReX_Reduce.H>
+/* Tests of Tensor orthonormality */
 
-namespace TensorTests
-{
 // Test that the input tensor field (config space) is trace free (global)
-inline void test_is_trace_free(amrex::MultiFab &field)
+inline void InflatonUtils::test_is_trace_free(amrex::MultiFab &field)
 {
     if (field.nComp() != 6)
     {
-        amrex::Error("TensorTests::test_is_trace_free, "
+        amrex::Error("InflatonUtils::test_is_trace_free, "
                      "input field is not a tensor field");
     }
 
@@ -40,14 +35,14 @@ inline void test_is_trace_free(amrex::MultiFab &field)
 
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 amrex::Math::abs(sum) <= Utils::tolerance,
-                "TensorTests::test_is_trace_free, trace-free test failed");
+                "InflatonUtils::test_is_trace_free, trace-free test failed");
         });
 
     amrex::Gpu::streamSynchronize();
 }
 
 // Test that the input vectors are orthonormal (local)
-inline void test_vector_orthonorm(const amrex::IntVect iv,
+inline void InflatonUtils::test_vector_orthonorm(const amrex::IntVect iv,
                                   const amrex::GpuArray<amrex::Real, 3> mhat,
                                   const amrex::GpuArray<amrex::Real, 3> nhat)
 {
@@ -77,7 +72,7 @@ inline void test_vector_orthonorm(const amrex::IntVect iv,
                 amrex::Print()
                     << l << ", " << mhat[l] << ", " << nhat[l] << "\n";
             }
-            amrex::Error("TensorTests::test_vector_orthonorm: "
+            amrex::Error("InflatonUtils::test_vector_orthonorm: "
                          "Basis vectors are not orthonormal here");
         }
     }
@@ -85,7 +80,7 @@ inline void test_vector_orthonorm(const amrex::IntVect iv,
 
 // Test that the input basis tensors, and their rotated counterparts, are
 // orthonormal
-inline void test_polarisation_tensor_orthonorm(const amrex::IntVect iv,
+inline void InflatonUtils::test_polarisation_tensor_orthonorm(const amrex::IntVect iv,
                                                const Tensor::Rank2 eplus,
                                                const Tensor::Rank2 ecross)
 {
@@ -118,7 +113,7 @@ inline void test_polarisation_tensor_orthonorm(const amrex::IntVect iv,
                     amrex::Print() << l << ", " << p << ": " << eplus(l, p)
                                    << ", " << ecross(l, p) << "\n";
                 }
-            amrex::Error("TensorTests::test_polarisation_tensor_orthonorm: "
+            amrex::Error("InflatonUtils::test_polarisation_tensor_orthonorm: "
                          "polarisation tensors are not orthonormal here");
         }
     }
@@ -172,7 +167,7 @@ inline amrex::Real calculate_total_power(const amrex::cMultiFab &fk,
 
 // Confirm Parseval's theorem holds between a config-space field hx and its
 // Fourier-space counterpart hk (checked before physical normalisation)
-inline void test_parsevals_theorem(const amrex::MultiFab &hx,
+inline void InflatonUtils::test_parsevals_theorem(const amrex::MultiFab &hx,
                                    const amrex::cMultiFab &hk, const int N)
 {
     amrex::Real xsum  = std::pow(hx.norm2(), 2.);
@@ -191,10 +186,10 @@ inline void test_parsevals_theorem(const amrex::MultiFab &hx,
         amrex::Print() << "Integrated power (k): " << ksum << "\n";
         amrex::Print() << "Ratio: " << ksum / xsum << "\n";
         amrex::Print() << "Difference: " << std::abs(ksum - xsum) << "\n";
-        amrex::Error("TensorTests::test_parsevals_theorem, "
+        amrex::Error("InflatonUtils::test_parsevals_theorem, "
                      "Parseval's theorem fails here.");
     }
 }
-} // namespace TensorTests
+}
 
-#endif /* TENSORTESTS_HPP_ */
+#endif /* INFLATONUTILS_IMPL_HPP_ */

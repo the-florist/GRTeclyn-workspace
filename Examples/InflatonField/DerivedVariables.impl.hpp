@@ -243,8 +243,8 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
 
     // Confirm Parseval's theorem holds between config and Fourier space
     // (before applying the physical normalisation)
-    TensorTests::test_parsevals_theorem(hs, hs_k, m_inflaton_methods.N);
-    TensorTests::test_parsevals_theorem(R, R_k, m_inflaton_methods.N);
+    InflatonUtils::test_parsevals_theorem(hs, hs_k, m_params.N);
+    InflatonUtils::test_parsevals_theorem(R, R_k, m_params.N);
 
     // Apply physical normalisation
     hs.mult(m_inflaton_methods.calculate_norm());

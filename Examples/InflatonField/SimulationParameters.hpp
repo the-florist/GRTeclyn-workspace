@@ -6,7 +6,7 @@
 #ifndef SIMULATIONPARAMETERS_HPP_
 #define SIMULATIONPARAMETERS_HPP_
 
-#include "Config.hpp"
+#include "ScalarTensorInit.hpp"
 #include "Potential.hpp"
 
 class SimulationParameters
@@ -16,7 +16,7 @@ class SimulationParameters
 
     static void check_params()
     {
-        Config::params_t::check_params();
+        ScalarTensorInit::params_t::check_params();
         Potential::check_params();
     }
 };
