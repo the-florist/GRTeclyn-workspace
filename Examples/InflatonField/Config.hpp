@@ -102,13 +102,11 @@ struct Config
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             N_fine >= N, "Config::check_params, N_fine must be >= N");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            N_coarse <= N,
-            "Config::check_params, N_coarse must be <= N");
+            N_coarse <= N, "Config::check_params, N_coarse must be <= N");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             L != 0., "Config::check_params, L must be non-zero");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            Delta != 0.,
-            "Config::check_params, Delta must be non-zero");
+            Delta != 0., "Config::check_params, Delta must be non-zero");
 
         for (int d = 1; d < static_cast<int>(ncell.size()); d++)
         {

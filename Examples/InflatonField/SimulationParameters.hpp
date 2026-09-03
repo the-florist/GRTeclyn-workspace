@@ -14,10 +14,10 @@ class SimulationParameters
   public:
     SimulationParameters() = delete;
 
-    static void check_params() 
-    { 
-      Config::params_t::check_params();
-      Potential::params_t::check_params(); 
+    static void check_params()
+    {
+        Config::params_t::check_params();
+        Potential::params_t::check_params();
     }
 };
 

@@ -6,8 +6,8 @@
 #ifndef INFLATIONEXTRACTION_HPP_
 #define INFLATIONEXTRACTION_HPP_
 
-#include "FilesystemTools.hpp"
 #include "Config.hpp"
+#include "FilesystemTools.hpp"
 #include "SmallDataIO.hpp"
 
 #include <AMReX_FFT.H>

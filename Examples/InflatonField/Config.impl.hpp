@@ -75,9 +75,8 @@ Config::calculate_basis_vectors(const amrex::IntVect iv) const
     {
         // Unreachable: (i, j, k) == (0, 0, 0) only when iv == {0,0,0}, which is
         // handled by the zero-mode branch above.
-        AMREX_ASSERT_WITH_MESSAGE(false,
-                                  "Config::calculate_basis_vectors, "
-                                  "Fourier grid point not covered.");
+        AMREX_ASSERT_WITH_MESSAGE(false, "Config::calculate_basis_vectors, "
+                                         "Fourier grid point not covered.");
     }
 
     // Apply the internal rotation in the +/x decomposition basis, if requested

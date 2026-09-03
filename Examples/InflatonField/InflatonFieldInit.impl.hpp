@@ -161,9 +161,9 @@ inline void InflatonFieldInit::generate_fourier_realisation(
                                            WhichField::Velocity);
 
                 R_dR_k_arrs[bx](i, j, k, 3) =
-                    (R_dR_k_arrs[bx](i, j, k, 
-                        static_cast<int>(WhichField::Velocity)) 
-                        / std::pow(cfg.get_kmag(iv), 2.));
+                    (R_dR_k_arrs[bx](i, j, k,
+                                     static_cast<int>(WhichField::Velocity)) /
+                     std::pow(cfg.get_kmag(iv), 2.));
             }
 
             // Initialise tensor sector (two random draws)

@@ -6,8 +6,8 @@
 #ifndef INFLATONFIELDINIT_HPP_
 #define INFLATONFIELDINIT_HPP_
 
-#include "GRParmParse.hpp"
 #include "Config.hpp"
+#include "GRParmParse.hpp"
 #include "StateVariables.hpp"
 #include "TensorTests.hpp"
 

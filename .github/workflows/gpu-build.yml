@@ -121,7 +121,8 @@ jobs:
             cuda-nvml-dev-${CUDA_DASHED_VERSION} \
             cuda-nvtx-${CUDA_DASHED_VERSION} \
             libcurand-dev-${CUDA_DASHED_VERSION} \
-            libcusparse-dev-${CUDA_DASHED_VERSION}"
+            libcusparse-dev-${CUDA_DASHED_VERSION} \ 
+            libcufft-dev-${CUDA_DASHED_VERSION}"
           elif [[ "${{ matrix.gpu-backend }}" == "HIP" ]]; then
             PACKAGES="libopenmpi-dev \
             rocm-dev \
@@ -130,7 +131,8 @@ jobs:
             rocrand-dev \
             rocprim-dev \
             rocsparse-dev \
-            hiprand-dev"
+            hiprand-dev \
+            rocfft-dev"
           elif [[ "${{ matrix.gpu-backend }}" == "SYCL" ]]; then
             PACKAGES="intel-oneapi-compiler-dpcpp-cpp-${{ env.ONEAPI_COMP_VERSION }} \
             intel-oneapi-compiler-fortran-${{ env.ONEAPI_COMP_VERSION }} \
