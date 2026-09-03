@@ -7,9 +7,9 @@ grteclyn.output_path = ./
 
 amr.verbose = 1
 
-#ifdef AMREX_USE_GPU
+# Ignored by non-GPU builds (ParmParse has no preprocessor, so this line is
+# always active)
 amrex.use_gpu_aware_mpi = 1
-#endif
 
 # Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
 # <grteclyn.output_path>/checkpoints
@@ -21,22 +21,20 @@ amrex.use_gpu_aware_mpi = 1
 # Number of level-0 time steps between checkpoint files; -1 disables output
 amr.check_int = -1
 # Number of level-0 time steps between plot files; -1 disables output
-amr.plot_int = -1
+amr.plot_int = 5
 
 amr.plot_vars = ALL
-amr.derive_plot_vars = Ham Mom # R hplus hcross
+amr.derive_plot_vars = constraints # InflationFields
 
 #################################################
 # Initial Data parameters
 
 # Change the gravitational constant of the Universe!
-# Default is 1.0, for standard geometric units
-# Current values is 1/sqrt{8\pi} which converts to 
-# Planck units.
-G_Newton = 3.9788735772973834e-06
+# Default is 1.0, for standard geometric units. The value below is
+# 1 / (8 pi * 10^4), i.e. it sets the reduced Planck mass 1/sqrt(8 pi G) to 100.
+scalar_field.G_Newton = 3.9788735772973834e-06
 
 # Background scalar field initial data
-init.read_from_STOIIC = 1
 init.scalar_init = 1
 init.tensor_init = 0
 
@@ -52,7 +50,7 @@ init.background_phi = -4454.965959918723
 init.background_dphi = 0.04472131203809918
 
 # Potential parameters
-potential.scalar_mass = 0.000547813867426198
+scalar_field.scalar_mass = 0.000547813867426198
 
 #################################################
 # Grid parameters
@@ -60,9 +58,10 @@ potential.scalar_mass = 0.000547813867426198
 amr.n_cell = 64 64 64
 geometry.prob_extent = 301.0554983442359 301.0554983442359 301.0554983442359
 
-# Convergence test grid resolution bounds
-# init.N_coarse = 32
-# init.N_fine = 64
+# Convergence test grid resolution bounds. Note that, unlike the other
+# initialisation parameters, these are read from the top-level table.
+# N_coarse = 32
+# N_fine = 64
 
 amr.max_level = 0 # There are (max_level+1) grids, so min is zero
 
