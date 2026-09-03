@@ -30,9 +30,8 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     amrex::Real kpr = kmag / d_params.H0;
     if (which_field == WhichField::Amplitude) // Position mode funcion
     {
-        ms_mag =
-            sqrt((1.0 / kmag + d_params.H0 * d_params.H0 / pow(kmag, 3.)) /
-                2. / pow(d_params.Mp, 2.));
+        ms_mag = sqrt((1.0 / kmag + d_params.H0 * d_params.H0 / pow(kmag, 3.)) /
+                      2. / pow(d_params.Mp, 2.));
         ms_arg =
             atan2((cos(kpr) + kpr * sin(kpr)), (kpr * cos(kpr) - sin(kpr)));
     }
@@ -159,8 +158,8 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
                 return;
             } // Skip the zero mode
 
-            const auto r_val       = r_dr_arrs[bx](i, j, k, r_comp);
-            const auto dr_val      = r_dr_arrs[bx](i, j, k, dr_comp);
+            const auto r_val      = r_dr_arrs[bx](i, j, k, r_comp);
+            const auto dr_val     = r_dr_arrs[bx](i, j, k, dr_comp);
             const auto dr_over_k2 = dr_val / std::pow(cfg.get_kmag(iv), 2.);
 
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Phi)) =

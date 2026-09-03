@@ -112,9 +112,9 @@ struct InflatonUtils
         AMREX_ASSERT(m_params.L > 0 && m_params.Delta > 0);
         const int N_w =
             (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
-        const amrex::Real k_cutoff = std::sqrt(3.) * N_w *
-                                     amrex::Math::pi<amrex::Real>() /
-                                     m_params.L / 5. / 2.;
+        const amrex::Real k_cutoff     = std::sqrt(3.) * N_w *
+                                         amrex::Math::pi<amrex::Real>() /
+                                         m_params.L / 5. / 2.;
         const amrex::Real window_width = m_params.L / m_params.Delta;
         return 0.5 * (1.0 - tanh(window_width * (kmag - k_cutoff)));
     }
