@@ -106,7 +106,7 @@ ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
 }
 
 inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
-    const InflatonUtils & cfg, const InflatonParameters &d_params,
+    const InflatonUtils &cfg, const InflatonParameters &d_params,
     const amrex::cMultiFab &R_and_dR, amrex::cMultiFab &bssn_scalars)
 {
     // Refer to https://arxiv.org/abs/2502.06783 for the derivation of these
@@ -146,18 +146,24 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     const amrex::Real factor_dR4invLap =
         3.0 * init_a * init_a * H0 * H0 * epsilon_1 * epsilon_1;
 
-    constexpr int r_comp          = static_cast<int>(WhichField::Amplitude);
-    constexpr int dr_comp         = static_cast<int>(WhichField::Velocity);
-    
+    constexpr int r_comp  = static_cast<int>(WhichField::Amplitude);
+    constexpr int dr_comp = static_cast<int>(WhichField::Velocity);
+
     const auto &r_dr_arrs = R_and_dR.const_arrays();
     const auto &bssn_arrs = bssn_scalars.arrays();
     amrex::ParallelFor(
         R_and_dR,
         [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k)
         {
+            const amrex::IntVect iv{i, j, k};
+            if (iv == amrex::IntVect{0, 0, 0})
+            {
+                return;
+            } // Skip the zero mode
+
             const auto r          = r_dr_arrs[bx](i, j, k, r_comp);
             const auto dr         = r_dr_arrs[bx](i, j, k, dr_comp);
-            const auto dR_over_k2 = dr / std::pow(cfg.get_kmag(iv), 2.);
+            const auto dr_over_k2 = dr / std::pow(cfg.get_kmag(iv), 2.);
 
             bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Phi)) =
                 factor_R1 * r + factor_dR1invLap * dr_over_k2;

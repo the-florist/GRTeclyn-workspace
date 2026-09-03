@@ -72,7 +72,7 @@ class Potential
     // NOLINTEND(bugprone-easily-swappable-parameters)
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
     compute_background_potential(amrex::Real &V_of_phi, amrex::Real &dVdphi,
                                  const amrex::Real &phi) const
     {
