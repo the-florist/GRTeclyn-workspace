@@ -8,7 +8,9 @@ __(!!) As this example relies on the use of a Fast Fourier Transform (FFT), the 
 
 This page describes how to run the inflaton field example using a parameter file similar to [the default parameter file](https://github.com/the-florist/GRTeclyn-workspace/blob/example/InflatonField/Examples/InflatonField/params.txt) (UPDATEME) given in the base directory. 
 
-First, a few qualifiers on the use of this example...
+First, a few qualifiers on the use of this example. Unlike the other GRTeclyn examples, which evolve compact objects in an asymptotically flat spacetime, this example evolves an expanding cosmological spacetime on a cubic, periodic grid, and requires an FFT library at compile time. Both the initial data and the derived variables are constructed using Fourier transforms taken over the whole domain, so neither can be used with AMR, and the example has only been used with the synchronous gauge, in which the lapse is fixed to unity and the shift vanishes.
+
+There are three further points to bear in mind. The initial data satisfies the constraints, and the extraction separates the scalar and tensor sectors, only at first order, so results are meaningful only for as long as the perturbations remain small. The cut-off scale of the window function is derived assuming the five-point stencil used by the fourth-order spatial derivatives, and is not adjusted if `evolution.spatial_derivative_order` is set to six. Finally, because the perturbations are generated mode by mode in Fourier space, changing the grid resolution also changes the realisation itself unless `N_fine` is set, as described under [Convergence testing](#convergence-testing).
 
 ### Initial data 
 
@@ -120,7 +122,7 @@ mpiexec -n 4 ./InflatonField3d.gnu.MPI.ex params.txt
 There are two groups of parameters which must be changed with particular care in this example.
 The first is `amr.max_level`, which should be left at zero if the example-specific diagnostics are being used. AMR could in principle be used with this example if there is only one level on the initial slice, however this use for this example has never been tested before. For the same reason the grid must be cubic and periodic, so `amr.n_cell` and `geometry.prob_extent` must be equal in all three directions and `geometry.is_periodic` must be set in all three directions. These conditions are checked at start-up.
 
-The second is the gauge. The initial data is by necessity (?) constructed in generalised synchronous gauge, in which the lapse is unity and the shift vanishes. In the default example the evolution preserves this gauge choice, and the gauge driver is switched off entirely by setting
+The second is the gauge. The initial data is by necessity (?) constructed in synchronous gauge, in which the lapse is unity and the shift vanishes. In the default example the evolution preserves this gauge choice, and the gauge driver is switched off entirely by setting
 
 ```
 gauge.lapse_coeff = 0.0
@@ -136,8 +138,6 @@ Because the initial conditions in this example are stochastic, some care is need
 
 `N_fine` fixes the grid on which the realisation is generated. When it is larger than $N$, the random field is constructed at resolution `N_fine` and then sampled down onto the simulation grid, so that every run in the suite is initialised from the same underlying random field regardless of its own resolution. It should therefore be set to the finest resolution in the suite, and must be at least $N$.
 `N_coarse` fixes the cut-off scale $k_s$ of the window function described above. It should be set to the coarsest resolution in the suite, so that the spectrum is cut off at a scale which every run can resolve. In practice we typically choose values of $N$ between 64 and 512.
-
-## Getting extra features
 
 ## Guide to parameters
 
@@ -157,3 +157,15 @@ The parameters below are specific to this example. All other parameters used in 
 * `N_coarse`: The resolution used to set the window function cut-off scale $k_s$. Defaults to $N$, and must be at most $N$. Set this to the coarsest resolution in a convergence test suite.
 
 To use the derived variables associated with this example, add `InflatonFields` to the parameter `amr.derive_plot_vars`. Also, the `ccz4.min_chi` and `ccz4.min_lapse` parameters should be set to very small non-zero values, as $\chi$ is related to the scale factor and so will naturally shrink exponentially in time. We recommend the user use the BSSN formulation without constraint damping, as the use of constraint damping can alter the evolution of the perturbation fields in unpredictable and potentially unphysical ways.
+
+## Getting extra features
+
+The references cited above describe a number of extraction routines which are not included in this public version of the example. The following additional extraction routines are implemented on the `enhancement/re-organising-RandomFields-class` branch:
+
+* Binned power spectra: the spherically averaged power spectrum of each of $\mathcal{R}$, $h_+$ and $h_\times$, binned along an isotropic $k$ axis and printed to a data file at a chosen interval.
+* Higher-order field statistics: the first four moments of each field, that is the mean, standard deviation, skewness and kurtosis, appended to a `field-statistics.dat` file as the simulation progresses.
+* Tensor-to-scalar ratio: the ratio of the integrated power spectrum of each polarisation field to that of $\mathcal{R}$, appended to a `tensor-scalar-ratio.dat` file.
+* Constraint statistics: calculate the mean and standard deviation of the constraints, normalised to demonstrate constraint satisfaction at the approprate order.
+
+These routines can be found on Ericka's personal fork at [github.com/the-florist/GRTeclyn-workspace](https://github.com/the-florist/GRTeclyn-workspace/tree/example/InflatonField).
+To gain access to further functionality, or to request clarification on any points in this documentation page, please contact Yoann Launay (CONTACT DETAILS) or Ericka Florio (CONTACT DETAILS).
