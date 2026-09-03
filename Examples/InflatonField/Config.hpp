@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#ifndef INFLATIONCONFIG_HPP_
-#define INFLATIONCONFIG_HPP_
+#ifndef CONFIG_HPP_
+#define CONFIG_HPP_
 
 #include "GRParmParse.hpp"
 #include "Tensor.hpp"
@@ -23,7 +23,7 @@
 // initialisation. The parameters are read once on the host by fill_params()
 // and the whole struct is then captured by value into the device kernels, so
 // it must stay POD (no amrex::Vector members).
-struct InflationConfig
+struct Config
 {
     // Parameters, populated once on the host by fill_params()
     amrex::Real Mp{1.};
@@ -84,7 +84,7 @@ struct InflationConfig
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             scalar_init == 0 || Pi0 != 0.,
-            "InflationConfig::fill_params, init.background_dphi must be "
+            "Config::fill_params, init.background_dphi must be "
             "non-zero when init.scalar_init is enabled");
         if (Pi0 != 0.)
         {
@@ -98,30 +98,30 @@ struct InflationConfig
                       const amrex::Vector<amrex::Real> &prob_extent) const
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            Mp != 0., "InflationConfig::check_params, Mp must be non-zero");
+            Mp != 0., "Config::check_params, Mp must be non-zero");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            N_fine >= N, "InflationConfig::check_params, N_fine must be >= N");
+            N_fine >= N, "Config::check_params, N_fine must be >= N");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             N_coarse <= N,
-            "InflationConfig::check_params, N_coarse must be <= N");
+            "Config::check_params, N_coarse must be <= N");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            L != 0., "InflationConfig::check_params, L must be non-zero");
+            L != 0., "Config::check_params, L must be non-zero");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             Delta != 0.,
-            "InflationConfig::check_params, Delta must be non-zero");
+            "Config::check_params, Delta must be non-zero");
 
         for (int d = 1; d < static_cast<int>(ncell.size()); d++)
         {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 ncell[d] == ncell[0],
-                "InflationConfig::check_params, grid must be cubic "
+                "Config::check_params, grid must be cubic "
                 "(amr.n_cell must be equal in all directions)");
         }
         for (int d = 1; d < static_cast<int>(prob_extent.size()); d++)
         {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 prob_extent[d] == prob_extent[0],
-                "InflationConfig::check_params, domain must be cubic "
+                "Config::check_params, domain must be cubic "
                 "(geometry.prob_extent must be equal in all directions)");
         }
     }
@@ -260,6 +260,6 @@ struct InflationConfig
     inline void apply_nyquist_conditions(amrex::cMultiFab &field);
 };
 
-#include "InflationConfig.impl.hpp"
+#include "Config.impl.hpp"
 
-#endif /* INFLATIONCONFIG_HPP_ */
+#endif /* CONFIG_HPP_ */

@@ -7,7 +7,7 @@
 #define INFLATIONEXTRACTION_HPP_
 
 #include "FilesystemTools.hpp"
-#include "InflationConfig.hpp"
+#include "Config.hpp"
 #include "SmallDataIO.hpp"
 
 #include <AMReX_FFT.H>
@@ -34,7 +34,7 @@ class InflationExtraction
                            const int *bcrec, int level);
 
   private:
-    InflationConfig m_inflaton_methods;
+    Config m_inflaton_methods;
 
     void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
                           const amrex::MultiFab &state);

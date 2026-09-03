@@ -138,7 +138,7 @@ inline void InflationExtraction::extract_hs_and_R(amrex::MultiFab &hs,
     const auto &R_k_arrs     = R_k.arrays();
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationConfig cfg = m_inflaton_methods;
+    const Config cfg = m_inflaton_methods;
 
     amrex::ParallelFor(
         gij_k,

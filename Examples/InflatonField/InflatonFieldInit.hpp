@@ -7,7 +7,7 @@
 #define INFLATONFIELDINIT_HPP_
 
 #include "GRParmParse.hpp"
-#include "InflationConfig.hpp"
+#include "Config.hpp"
 #include "StateVariables.hpp"
 #include "TensorTests.hpp"
 
@@ -17,7 +17,7 @@
 class InflatonFieldInit
 {
   protected:
-    InflationConfig m_inflaton_methods;
+    Config m_inflaton_methods;
 
   public:
     // Constructor used when initialising stochastic fields
@@ -49,12 +49,12 @@ class InflatonFieldInit
     };
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
-    calculate_mode_function(const InflationConfig &cfg, const amrex::Real km,
+    calculate_mode_function(const Config &cfg, const amrex::Real km,
                             const FieldType field_type,
                             const WhichField which_field);
 
     AMREX_GPU_HOST_DEVICE static amrex::GpuComplex<amrex::Real>
-    calculate_random_field(const InflationConfig &cfg, const amrex::IntVect iv,
+    calculate_random_field(const Config &cfg, const amrex::IntVect iv,
                            const amrex::Real rand_amp,
                            const amrex::Real rand_phase,
                            const FieldType field_type,

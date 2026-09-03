@@ -12,7 +12,7 @@
 
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
+InflatonFieldInit::calculate_mode_function(const Config &cfg,
                                            const amrex::Real km,
                                            const FieldType field_type,
                                            const WhichField which_field)
@@ -55,7 +55,7 @@ InflatonFieldInit::calculate_mode_function(const InflationConfig &cfg,
 
 // Turns analytic PS into GRF and applies window function if requested
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
-InflatonFieldInit::calculate_random_field(const InflationConfig &cfg,
+InflatonFieldInit::calculate_random_field(const Config &cfg,
                                           const amrex::IntVect iv,
                                           const amrex::Real rand_amp,
                                           const amrex::Real rand_phase,
@@ -121,7 +121,7 @@ inline void InflatonFieldInit::generate_fourier_realisation(
     amrex::Print() << "Starting initial condition generation/read in...\n";
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationConfig cfg = m_inflaton_methods;
+    const Config cfg = m_inflaton_methods;
 
     amrex::ParallelFor(
         hij_k,
@@ -244,7 +244,7 @@ inline void InflatonFieldInit::add_perturbations_to_state(
     const auto &scalar_field_x_arrs = scalar_fields_x.const_arrays();
 
     // Slice to the POD base so the kernel captures config by value
-    const InflationConfig cfg = m_inflaton_methods;
+    const Config cfg = m_inflaton_methods;
 
     amrex::ParallelFor(
         state,

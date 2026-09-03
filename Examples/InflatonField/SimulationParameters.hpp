@@ -6,7 +6,7 @@
 #ifndef SIMULATIONPARAMETERS_HPP_
 #define SIMULATIONPARAMETERS_HPP_
 
-#include "InflationConfig.hpp"
+#include "Config.hpp"
 #include "Potential.hpp"
 
 class SimulationParameters
@@ -16,7 +16,7 @@ class SimulationParameters
 
     static void check_params() 
     { 
-      InflationConfig::params_t::check_params();
+      Config::params_t::check_params();
       Potential::params_t::check_params(); 
     }
 };

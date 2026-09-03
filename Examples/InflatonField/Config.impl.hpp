@@ -3,16 +3,16 @@
  * Please refer to LICENSE in GRTeclyn's root directory.
  */
 
-#if !defined(INFLATIONCONFIG_HPP_)
-#error "This file should only be included via InflationConfig.hpp"
+#if !defined(CONFIG_HPP_)
+#error "This file should only be included via Config.hpp"
 #endif
 
-#ifndef INFLATIONCONFIG_IMPL_HPP_
-#define INFLATIONCONFIG_IMPL_HPP_
+#ifndef CONFIG_IMPL_HPP_
+#define CONFIG_IMPL_HPP_
 
 // Calculates both basis vectors required for the polarisation tensors
-AMREX_GPU_HOST_DEVICE inline InflationConfig::BasisVectors
-InflationConfig::calculate_basis_vectors(const amrex::IntVect iv) const
+AMREX_GPU_HOST_DEVICE inline Config::BasisVectors
+Config::calculate_basis_vectors(const amrex::IntVect iv) const
 {
     using Vec = amrex::GpuArray<amrex::Real, 3>;
 
@@ -76,7 +76,7 @@ InflationConfig::calculate_basis_vectors(const amrex::IntVect iv) const
         // Unreachable: (i, j, k) == (0, 0, 0) only when iv == {0,0,0}, which is
         // handled by the zero-mode branch above.
         AMREX_ASSERT_WITH_MESSAGE(false,
-                                  "InflationConfig::calculate_basis_vectors, "
+                                  "Config::calculate_basis_vectors, "
                                   "Fourier grid point not covered.");
     }
 
@@ -100,13 +100,13 @@ InflationConfig::calculate_basis_vectors(const amrex::IntVect iv) const
 }
 
 // Applies above Nyquist conditions to a given MF
-inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
+inline void Config::apply_nyquist_conditions(amrex::cMultiFab &field)
 {
     AMREX_ASSERT(N_fine > 0);
 
     // Slice to the POD base so the kernel captures config by value, not via
     // the (host) this pointer
-    const InflationConfig cfg = *this;
+    const Config cfg = *this;
 
     int num_components = field.nComp();
     for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
@@ -174,4 +174,4 @@ inline void InflationConfig::apply_nyquist_conditions(amrex::cMultiFab &field)
     }
 }
 
-#endif /* INFLATIONCONFIG_IMPL_HPP_ */
+#endif /* CONFIG_IMPL_HPP_ */
