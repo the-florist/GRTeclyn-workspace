@@ -1,0 +1,126 @@
+# See the wiki page for an explanation of the params!
+# https://github.com/GRChombo/GRChombo/wiki/Guide-to-parameters
+
+#################################################
+# Filesystem parameters
+grteclyn.output_path = ./
+
+amr.verbose = 1
+
+#ifdef AMREX_USE_GPU
+amrex.use_gpu_aware_mpi = 1
+#endif
+
+# Plotfiles default to <grteclyn.output_path>/plots and checkpoint files to
+# <grteclyn.output_path>/checkpoints
+# amr.check_file = checkpoints/chk
+# amr.plot_file = plots/plt
+# amr.restart = checkpoints/chk00030
+# amr.file_name_digits = 5
+
+# Number of level-0 time steps between checkpoint files; -1 disables output
+amr.check_int = -1
+# Number of level-0 time steps between plot files; -1 disables output
+amr.plot_int = -1
+
+amr.plot_vars = ALL
+amr.derive_plot_vars = Ham Mom # R hplus hcross
+
+#################################################
+# Initial Data parameters
+
+# Change the gravitational constant of the Universe!
+# Default is 1.0, for standard geometric units
+# Current values is 1/sqrt{8\pi} which converts to 
+# Planck units.
+G_Newton = 3.9788735772973834e-06
+
+# Background scalar field initial data
+init.read_from_STOIIC = 1
+init.scalar_init = 1
+init.tensor_init = 0
+
+init.alpha = 0
+init.random_seed = 3539263
+init.use_rand = 1
+
+# cutoff
+init.use_window = 1
+init.Delta = 1
+
+init.background_phi = -4454.965959918723
+init.background_dphi = 0.04472131203809918
+
+# Potential parameters
+potential.scalar_mass = 0.000547813867426198
+
+#################################################
+# Grid parameters
+
+amr.n_cell = 64 64 64
+geometry.prob_extent = 301.0554983442359 301.0554983442359 301.0554983442359
+
+# Convergence test grid resolution bounds
+# init.N_coarse = 32
+# init.N_fine = 64
+
+amr.max_level = 0 # There are (max_level+1) grids, so min is zero
+
+# Regridding interval in level timesteps; -1 disables regridding
+# Supply one shared value or max_level values, one per coarse-to-fine
+# transition
+amr.regrid_int = -1
+
+# Maximum number of cells along each side of a grid box
+amr.max_grid_size = 32
+# Grid box side lengths must be divisible by this value
+amr.blocking_factor = 16
+# Minimum fraction of tagged cells required in generated grids
+# amr.grid_eff = 0.7
+
+# Number of cells by which tagged regions are grown
+amr.n_error_buf = 0
+# Proper-nesting width is n_proper * max(1, blocking_factor / 2) coarse cells
+# amr.n_proper = 1
+
+#################################################
+# Boundary condition parameters
+
+# Periodic directions: 0 = false, 1 = true
+geometry.is_periodic = 1 1 1
+
+#################################################
+# Evolution parameters
+
+# dt is dx * dt_multiplier on each grid level
+evolution.dt_multiplier = 0.1
+evolution.stop_time = 10.0
+# evolution.max_steps = 1000000
+
+# Spatial derivative order (only affects the CCZ4 RHS)
+evolution.spatial_derivative_order = 4
+
+evolution.nan_check = true
+
+# Lapse evolution
+gauge.lapse_advec_coeff = 0.0 # 1.0
+gauge.lapse_coeff = 0.0
+gauge.lapse_power = 1.0 # 1.0
+
+# Shift evolution
+gauge.shift_advec_coeff = 0.0 # Usually no advection for beta
+gauge.shift_Gamma_coeff = 0.0 #0.75
+gauge.eta = 0.0 # 1.0 # eta of gamma driver, should be of order ~1/M_ADM of spacetime
+
+# CCZ4 parameters
+ccz4.formulation = 1 # 1 for BSSN, 0 for CCZ4
+ccz4.kappa1 = 0.
+ccz4.kappa2 = 0.
+ccz4.kappa3 = 0.
+ccz4.covariantZ4 = 0 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
+
+# coefficient for KO numerical dissipation
+evolution.sigma = 0.0
+
+ccz4.min_chi = 1.e-30
+ccz4.min_lapse = 1.e-30
