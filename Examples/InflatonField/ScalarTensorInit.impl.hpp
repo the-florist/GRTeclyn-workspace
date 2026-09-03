@@ -214,6 +214,70 @@ inline void ScalarTensorInit::generate_fourier_realisation(
     // cfg.epsilon_2, the Hubble parameter is cfg.H0 and Mp is cfg.Mp.
     // All possible parameters are found in the Config.hpp file.
 
+    // Refer to https://arxiv.org/abs/2502.06783 for the derivation of these initial conditions.
+    // 0: phi, 1:Pi, 2: chi and 3: K
+    
+    // Some useful background quantities for the initial conditions
+    
+    // γ =  2.0 * epsilon1 * Mpl * Mpl;
+    // d(ln γ)/dt using Klein-Gordon: φ̈ = -3Hφ̇ - V'(φ)
+    BackgroundVars<double> bg_vars{av_phi};
+    double V_bg, Vprime;
+    Potential potential(simParams().potential_params);
+    potential.compute_potential(V_bg, Vprime, bg_vars);
+    double init_Pi = cfg.Mp*cfg.H0*std::sqrt(2.0_rt*cfg.epsilon1);
+    double dlnGamma = 2.0 * (-3.0 * cfg.H0 - Vprime / init_Pi + cfg.H0 * cfg.epsilon_1);
+    double init_a = 1.0;
+
+    // Phi ICs
+    double factor_R1 = cfg.Mp*std::sqrt(2.0*cfg.epsilon_1);
+    double factor_dR1invLap = factor_R1*cfg.epsilon_1*cfg.H0*init_a*init_a;
+    //// R
+    R_dR_k.mult(factor_R1, 0, 1, 0);
+    //// Rdot/k^2
+    R_dR_k.mult(factor_dR1invLap, 2, 1, 0);
+
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 0, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 0, 1, 0);
+
+    // Pi ICs
+    double factor_R2 = -cfg.Mp*std::sqrt(cfg.epsilon_1/2.0)*(2.0*cfg.epsilon_1-cfg.dlnGamma/cfg.H0)*cfg.H0;
+    double factor_dR2 = -cfg.Mp*std::sqrt(cfg.epsilon_1/2.0);
+    double factor_dR2invLap = factor_dR2*cfg.H0*cfg.H0*init_a*init_a*cfg.epsilon_1*(2.0*cfg.epsilon_1-cfg.dlnGamma/cfg.H0);
+    factor_dR2*= -2.0;
+    
+    //// R
+    R_dR_k.mult(factor_R2/factor_R1, 0, 1, 0);
+    //// dR
+    R_dR_k.mult(factor_dR2, 1, 1, 0);
+    //// dR//k^2
+    R_dR_k.mult(factor_dR2invLap/factor_dR1invLap, 2, 1, 0);
+
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 1, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 1, 1, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 1, 1, 0);
+
+    // X ICs
+    double factor_dR3invLap = -2.0*cfg.H0*cfg.epsilon_1;
+    //// dR//k^2
+    R_dR_k.mult(factor_dR3invLap/factor_dR2invLap, 2, 1, 0);
+        
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 2, 1, 0);
+
+    // K ICs
+    double factor_R4 = 3.0*cfg.H0*cfg.epsilon_1;
+    double factor_dR4invLap = 3.0*init_a*init_a*cfg.H0*cfg.H0*cfg.epsilon_1*cfg.epsilon_1;
+    //// R
+    R_dR_k.mult(factor_R4/factor_R2, 0, 1, 0);
+    //// Rdot/k^2
+    R_dR_k.mult(factor_dR4invLap/factor_dR3invLap, 2, 1, 0);
+    
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 3, 1, 0);
+    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 3, 1, 0);
+
+    // Fill boundaries?
+    // scalar_fields_k.FillBoundary(0, scalar_fields_k.nComp(), geom.periodicity());
+
     // Apply the DC and Nyquist symmetry conditions
     m_inflaton_methods.apply_nyquist_conditions(hij_k);
     m_inflaton_methods.apply_nyquist_conditions(Aij_k);
