@@ -124,7 +124,7 @@ jobs:
           echo "build_args=${BUILD_CONFIG}" >> $GITHUB_OUTPUT
         elif [[ "${{ matrix.comp }}" == "llvm" ]]; then
           sudo update-alternatives --install /usr/bin/clang++ clang++ \
-              /usr/bin/clang++-${{ matrix.comp-version }} 1000
+              libfftw3-dev /usr/bin/clang++-${{ matrix.comp-version }} 1000
           clang++ --version
           echo "ompi_cxx=clang++" >> $GITHUB_OUTPUT
           # Use the LLD linker with LLVM
