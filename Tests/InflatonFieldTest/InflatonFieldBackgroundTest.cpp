@@ -7,6 +7,7 @@
 #include <AMReX.H>
 #include <AMReX_Math.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 
 // Doctest includes
@@ -138,6 +139,11 @@ void run_inflaton_field_background_test()
                 }
                 break;
             }
+            // With a single-box grid under MPI, only one rank owns the box;
+            // every other rank's `state` is still all-zero here, so a
+            // sum-reduction reconstructs the true values everywhere without
+            // needing to know which rank owns the box.
+            amrex::ParallelDescriptor::ReduceRealSum(state.data(), NUM_VARS);
         }
 
         // RHS operator: fill the grid uniformly with the given homogeneous
@@ -184,6 +190,8 @@ void run_inflaton_field_background_test()
                 }
                 break;
             }
+            // See the analogous comment on `state` above.
+            amrex::ParallelDescriptor::ReduceRealSum(rhs.data(), NUM_VARS);
             return rhs;
         };
 

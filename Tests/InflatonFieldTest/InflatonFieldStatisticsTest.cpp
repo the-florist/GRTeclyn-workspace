@@ -6,6 +6,7 @@
 // AMReX includes
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Reduce.H>
 
@@ -91,11 +92,18 @@ void run_inflaton_field_statistics_test()
                 return {x, x * x, x * x * x, x * x * x * x};
             });
 
+        // reduce_data.value() is local to this rank. With a single-box grid
+        // under MPI, only one rank owns the box, so every other rank's local
+        // sums are exactly zero (the Sum identity); reduce across ranks to
+        // get the true totals everywhere.
         const ReduceTuple moments = reduce_data.value();
-        const amrex::Real sum_1   = amrex::get<0>(moments);
-        const amrex::Real sum_2   = amrex::get<1>(moments);
-        const amrex::Real sum_3   = amrex::get<2>(moments);
-        const amrex::Real sum_4   = amrex::get<3>(moments);
+        amrex::Real sums[4] = {amrex::get<0>(moments), amrex::get<1>(moments),
+                               amrex::get<2>(moments), amrex::get<3>(moments)};
+        amrex::ParallelDescriptor::ReduceRealSum(sums, 4);
+        const amrex::Real sum_1 = sums[0];
+        const amrex::Real sum_2 = sums[1];
+        const amrex::Real sum_3 = sums[2];
+        const amrex::Real sum_4 = sums[3];
 
         const amrex::Real num_samples = std::pow(num_cells, 3);
 
