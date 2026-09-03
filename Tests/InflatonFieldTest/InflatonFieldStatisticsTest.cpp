@@ -19,8 +19,8 @@
 // Test header
 #include "InflatonFieldStatisticsTest.hpp"
 
-// Class under test (pulls in InflationConfig, Potential, StateVariables, ...)
-#include "InflatonFieldInit.hpp"
+// Class under test (pulls in InflatonUtils, Potential, StateVariables, ...)
+#include "ScalarTensorInit.hpp"
 
 void run_inflaton_field_statistics_test()
 {
@@ -32,9 +32,9 @@ void run_inflaton_field_statistics_test()
     {
         constexpr int num_cells = 32;
 
-        // Populate the parameter table that InflationConfig and Potential read.
-        // Only the tensor sector is exercised: the scalar sector is not yet
-        // wired into the state, so it would produce zero perturbations.
+        // Populate the parameter table that InflatonParameters and Potential
+        // read. Only the tensor sector is exercised: the scalar sector is not
+        // yet wired into the state, so it would produce zero perturbations.
         {
             amrex::ParmParse pp;
             pp.addarr("amr.n_cell",
@@ -51,9 +51,8 @@ void run_inflaton_field_statistics_test()
             init_pp.add("background_phi", 1.0);
         }
         {
-            amrex::ParmParse potential_pp("potential");
-            potential_pp.add("type", 1);
-            potential_pp.add("param_1", 0.1);
+            amrex::ParmParse scalar_field_pp("scalar_field");
+            scalar_field_pp.add("scalar_mass", 0.1);
         }
 
         // Build a single-box 32^3 grid.
@@ -71,7 +70,7 @@ void run_inflaton_field_statistics_test()
         state.setVal(0.0);
 
         // Generate the stochastic initial perturbations.
-        InflatonFieldInit initialiser;
+        ScalarTensorInit initialiser;
         initialiser.init(state);
 
         // Accumulate the first four raw moments of a tensor perturbation

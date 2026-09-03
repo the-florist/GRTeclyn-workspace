@@ -71,9 +71,8 @@ void run_inflaton_field_background_test()
             init_pp.add("background_dphi", slow_roll_phidot);
         }
         {
-            amrex::ParmParse potential_pp("potential");
-            potential_pp.add("type", 1); // quadratic
-            potential_pp.add("scalar_mass", scalar_mass);
+            amrex::ParmParse scalar_field_pp("scalar_field");
+            scalar_field_pp.add("scalar_mass", scalar_mass);
         }
         {
             // BSSN formulation with all damping/dissipation off.

@@ -9,6 +9,7 @@ t/
 *.[oa]
 TAGS
 ipo_out.optrpt
+.docs-env
 
 # editors
 .vscode
