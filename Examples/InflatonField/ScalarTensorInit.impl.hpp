@@ -105,75 +105,70 @@ ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
     return value;
 }
 
-AMREX_GPU_HOST_DEVICE inline void 
-ScalarTensorInit::convert_R_to_BSSN_scalars(const InflatonUtils &cfg,
-                                            const InflatonParameters &params,
-                                            amrex::cMultiFab &R_and_dR,
-                                            amrex::cMultiFab &bssn_scalars)
+inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
+    const InflatonUtils & /*cfg*/, const InflatonParameters &d_params,
+    const amrex::cMultiFab &R_and_dR, amrex::cMultiFab &bssn_scalars)
 {
-    // Refer to https://arxiv.org/abs/2502.06783 
-    // for the derivation of these initial conditions.
-    // bssn_scalars can be indexed by the BSSNFields enum 
-    // 0: phi, 1:Pi, 2: chi and 3: K
-    
-    // Some useful background quantities for the initial conditions
-    // γ =  2.0 * epsilon1 * Mpl * Mpl;
-    // d(ln γ)/dt using Klein-Gordon: φ̈ = -3Hφ̇ - V'(φ) 
+    // Refer to https://arxiv.org/abs/2502.06783 for the derivation of these
+    // initial conditions. R_and_dR is indexed by WhichField (0: R, 1: dR)
+    // plus a third component (2) holding dR/k^2. bssn_scalars is indexed by
+    // the BSSNFields enum (0: Phi, 1: Pi, 2: Chi, 3: K).
+    constexpr int r_comp          = static_cast<int>(WhichField::Amplitude);
+    constexpr int dr_comp         = static_cast<int>(WhichField::Velocity);
+    constexpr int dr_over_k2_comp = 2;
 
-    amrex::Real H0 = params.H0;
-    amrex::Real epsilon_1 = params.epsilon_1;
-    amrex::Real epsilon_2 = params.epsilon_2;
-    amrex::Real Mp = params.Mp;
-    amrex::Real init_a = params.init_a;
+    const amrex::Real H0        = d_params.H0;
+    const amrex::Real epsilon_1 = d_params.epsilon_1;
+    const amrex::Real epsilon_2 = d_params.epsilon_2;
+    const amrex::Real Mp        = d_params.Mp;
+    const amrex::Real init_a    = d_params.init_a;
 
-    dROverKSquared = 2;
-    amrex::Real dlnGamma = H0 * epsilon_2;
+    const amrex::Real dlnGamma = H0 * epsilon_2;
 
-    // Phi ICs
-    amrex::Real factor_R1 = Mp*std::sqrt(2.0*epsilon_1);
-    amrex::Real factor_dR1invLap = factor_R1*epsilon_1*H0*init_a*init_a;
-    //// R
-    R_dR_k.mult(factor_R1, 0, 1, 0);
-    //// Rdot/k^2
-    R_dR_k.mult(factor_dR1invLap, 2, 1, 0);
+    // Phi coefficients
+    const amrex::Real factor_R1 = Mp * std::sqrt(2.0 * epsilon_1);
+    const amrex::Real factor_dR1invLap =
+        factor_R1 * epsilon_1 * H0 * init_a * init_a;
 
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 0, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 0, 1, 0);
+    // Pi coefficients. half_pi_dR_coeff is the pre-doubled value used inside
+    // factor_dR2invLap's own formula; pi_dR_coeff is the (doubled, negated)
+    // value that actually multiplies dR.
+    const amrex::Real factor_R2 = -Mp * std::sqrt(epsilon_1 / 2.0) *
+                                  (2.0 * epsilon_1 - dlnGamma / H0) * H0;
+    const amrex::Real half_pi_dR_coeff = -Mp * std::sqrt(epsilon_1 / 2.0);
+    const amrex::Real factor_dR2invLap =
+        half_pi_dR_coeff * H0 * H0 * init_a * init_a * epsilon_1 *
+        (2.0 * epsilon_1 - dlnGamma / H0);
+    const amrex::Real pi_dR_coeff = -2.0 * half_pi_dR_coeff;
 
-    // Pi ICs
-    amrex::Real factor_R2 = -Mp*std::sqrt(epsilon_1/2.0)*(2.0*epsilon_1-dlnGamma/H0)*H0;
-    amrex::Real factor_dR2 = -Mp*std::sqrt(epsilon_1/2.0);
-    amrex::Real factor_dR2invLap = factor_dR2*H0*H0*init_a*init_a*epsilon_1*(2.0*epsilon_1-dlnGamma/H0);
-    factor_dR2*= -2.0;
-    
-    //// R
-    R_dR_k.mult(factor_R2/factor_R1, 0, 1, 0);
-    //// dR
-    R_dR_k.mult(factor_dR2, 1, 1, 0);
-    //// dR//k^2
-    R_dR_k.mult(factor_dR2invLap/factor_dR1invLap, 2, 1, 0);
+    // Chi coefficients
+    const amrex::Real factor_dR3invLap = -2.0 * H0 * epsilon_1;
 
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 1, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 1, 1, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 1, 1, 0);
+    // K coefficients
+    const amrex::Real factor_R4 = 3.0 * H0 * epsilon_1;
+    const amrex::Real factor_dR4invLap =
+        3.0 * init_a * init_a * H0 * H0 * epsilon_1 * epsilon_1;
 
-    // X ICs
-    amrex::Real factor_dR3invLap = -2.0*H0*epsilon_1;
-    //// dR//k^2
-    R_dR_k.mult(factor_dR3invLap/factor_dR2invLap, 2, 1, 0);
-        
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 2, 1, 0);
+    const auto &r_dr_arrs = R_and_dR.const_arrays();
+    const auto &bssn_arrs = bssn_scalars.arrays();
+    amrex::ParallelFor(
+        R_and_dR,
+        [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k)
+        {
+            const auto r          = r_dr_arrs[bx](i, j, k, r_comp);
+            const auto dr         = r_dr_arrs[bx](i, j, k, dr_comp);
+            const auto dr_over_k2 = r_dr_arrs[bx](i, j, k, dr_over_k2_comp);
 
-    // K ICs
-    amrex::Real factor_R4 = 3.0*H0*epsilon_1;
-    amrex::Real factor_dR4invLap = 3.0*init_a*init_a*H0*H0*epsilon_1*epsilon_1;
-    //// R
-    R_dR_k.mult(factor_R4/factor_R2, 0, 1, 0);
-    //// Rdot/k^2
-    R_dR_k.mult(factor_dR4invLap/factor_dR3invLap, 2, 1, 0);
-    
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 0, 3, 1, 0);
-    amrex::MultiFab::Add(scalar_fields_k, R_dR_k, 2, 3, 1, 0);
+            bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Phi)) =
+                factor_R1 * r + factor_dR1invLap * dr_over_k2;
+            bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Pi)) =
+                factor_R2 * r + pi_dR_coeff * dr + factor_dR2invLap * dr_over_k2;
+            bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::Chi)) =
+                factor_dR3invLap * dr_over_k2;
+            bssn_arrs[bx](i, j, k, static_cast<int>(BSSNFields::K)) =
+                factor_R4 * r + factor_dR4invLap * dr_over_k2;
+        });
+    amrex::Gpu::streamSynchronize();
 }
 
 inline void ScalarTensorInit::generate_fourier_realisation(
