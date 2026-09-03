@@ -17,7 +17,7 @@ class SimulationParameters
     static void check_params()
     {
         Config::params_t::check_params();
-        Potential::params_t::check_params();
+        Potential::check_params();
     }
 };
 
