@@ -26,6 +26,24 @@ class ScalarTensorInit
 
     void init(amrex::MultiFab &state);
 
+    // nvcc requires the enclosing function of an extended __device__ lambda
+    // to have public access, so the kernel-launching functions below must be
+    // public even though they are implementation details of init().
+    void convert_R_to_BSSN_scalars(const InflatonUtils &cfg,
+                                   const InflatonParameters &d_params,
+                                   const amrex::cMultiFab &R_and_dR,
+                                   amrex::cMultiFab &bssn_scalars);
+
+    void generate_fourier_realisation(amrex::cMultiFab &hij_k,
+                                      amrex::cMultiFab &Aij_k,
+                                      amrex::cMultiFab &scalar_fields_k);
+
+    void add_perturbations_to_state(amrex::MultiFab &state,
+                                    amrex::MultiFab &hij_x,
+                                    amrex::MultiFab &Aij_x,
+                                    amrex::MultiFab &scalar_fields_x,
+                                    const int dN);
+
   private:
     enum class FieldType
     {
@@ -57,21 +75,6 @@ class ScalarTensorInit
                            const amrex::Real rand_phase,
                            const FieldType field_type,
                            const WhichField which_field);
-
-    void convert_R_to_BSSN_scalars(const InflatonUtils &cfg,
-                                   const InflatonParameters &d_params,
-                                   const amrex::cMultiFab &R_and_dR,
-                                   amrex::cMultiFab &bssn_scalars);
-
-    void generate_fourier_realisation(amrex::cMultiFab &hij_k,
-                                      amrex::cMultiFab &Aij_k,
-                                      amrex::cMultiFab &scalar_fields_k);
-
-    void add_perturbations_to_state(amrex::MultiFab &state,
-                                    amrex::MultiFab &hij_x,
-                                    amrex::MultiFab &Aij_x,
-                                    amrex::MultiFab &scalar_fields_x,
-                                    const int dN);
 };
 
 #include "ScalarTensorInit.impl.hpp"
