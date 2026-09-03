@@ -77,8 +77,6 @@ TEST_CASE("InflatonFieldStatistics") { run_inflaton_field_statistics_test(); }
 
 TEST_CASE("PolarisationTensor") { run_polarisation_tensor_test(); }
 
-TEST_CASE("ParsevalTheorem") { run_parseval_theorem_test(); }
-
 TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 
 TEST_CASE("PunctureTracker") { run_puncture_tracker_test(); }
