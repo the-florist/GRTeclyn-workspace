@@ -34,6 +34,9 @@ class DerivedVariables
                            const amrex::Geometry &geomdata, amrex::Real time,
                            const int *bcrec, int level);
 
+    void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
+                          const amrex::MultiFab &state);
+
   private:
     InflatonUtils m_utils;
 
@@ -41,9 +44,6 @@ class DerivedVariables
     {
         return m_utils.m_params;
     }
-
-    void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
-                          const amrex::MultiFab &state);
 };
 
 #include "DerivedVariables.impl.hpp"
