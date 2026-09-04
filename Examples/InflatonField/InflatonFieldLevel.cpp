@@ -34,7 +34,7 @@ void InflatonFieldLevel::variableSetUp()
 {
     BL_PROFILE("InflatonFieldLevel::variableSetUp()");
     state_variable_set_up();
-    InflatonFieldConstraints::set_up(state_index, true);
+    InflatonFieldConstraints::set_up(state_index, true, true);
     DerivedVariables::set_up(state_index);
 
     // Ensure that if the user requests any of the derived

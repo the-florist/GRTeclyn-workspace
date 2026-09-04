@@ -191,14 +191,17 @@ Constraints::store_vars(const constraints_t &out,
     }
 }
 
-void Constraints::set_up(int a_state_index, bool a_calc_mom_norm)
+void Constraints::set_up(int a_state_index, bool a_calc_mom_norm,
+                         bool a_calc_abs_terms)
 {
-    s_calc_mom_norm = a_calc_mom_norm;
-    int num_ghosts  = 2; // no advection terms so only need 2 ghost cells
+    s_calc_mom_norm  = a_calc_mom_norm;
+    s_calc_abs_terms = a_calc_abs_terms;
+    int num_ghosts   = 2; // no advection terms so only need 2 ghost cells
 
-    const auto &comp_names = (s_calc_mom_norm) ? var_names_norm : var_names;
-    auto &derive_lst       = amrex::AmrLevel::get_derive_lst();
-    const auto &desc_lst   = amrex::AmrLevel::get_desc_lst();
+    const auto &comp_names =
+        select_var_names(s_calc_mom_norm, s_calc_abs_terms);
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
     derive_lst.add(
         name, amrex::IndexType::TheCellType(),
@@ -219,18 +222,12 @@ void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
 {
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
-    int iham               = dcomp;
 
-    // When the momentum norm is requested the derive record holds a single
-    // "Mom" component, so the interval must have length one for store_vars()
-    // to write sqrt(Mom_i Mom^i) rather than the three components separately.
-    const Interval imom = s_calc_mom_norm
-                              ? Interval(dcomp + 1, dcomp + 1)
-                              : Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+    const auto layout = select_component_layout(dcomp);
+    AMREX_ALWAYS_ASSERT(ncomp == layout.ncomp);
 
-    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size());
-
-    Constraints constraints(geomdata.CellSize(0), iham, imom);
+    Constraints constraints(geomdata.CellSize(0), layout.c_Ham, layout.c_Moms,
+                            layout.c_Ham_abs_terms, layout.c_Moms_abs_terms);
 
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),

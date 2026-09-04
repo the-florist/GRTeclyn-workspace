@@ -38,6 +38,26 @@ class Constraints
     static inline const amrex::Vector<std::string> var_names_norm = {"Ham",
                                                                      "Mom"};
 
+    /// Variable names when the absolute terms are stored instead of the
+    /// constraints themselves
+    static inline const amrex::Vector<std::string> var_names_abs_terms = {
+        "Ham_abs_terms", "Mom1_abs_terms", "Mom2_abs_terms", "Mom3_abs_terms"};
+
+    static inline const amrex::Vector<std::string> var_names_norm_abs_terms = {
+        "Ham_abs_terms", "Mom_abs_terms"};
+
+    //! Returns the plotfile component names for the requested layout
+    static const amrex::Vector<std::string> &
+    select_var_names(bool a_calc_mom_norm, bool a_calc_abs_terms)
+    {
+        if (a_calc_abs_terms)
+        {
+            return a_calc_mom_norm ? var_names_norm_abs_terms
+                                   : var_names_abs_terms;
+        }
+        return a_calc_mom_norm ? var_names_norm : var_names;
+    }
+
     /// Struct for Constraints
     struct constraints_t
     {
@@ -71,7 +91,8 @@ class Constraints
     /// Adds the constraints to the derive list
     /// Call in variableSetUp()
     AMREX_FORCE_INLINE static void set_up(int a_state_index,
-                                          bool a_calc_mom_norm = false);
+                                          bool a_calc_mom_norm  = false,
+                                          bool a_calc_abs_terms = false);
 
     // Has signature of DeriveFuncMF so that it can be stored in the derive_lst
     AMREX_FORCE_INLINE static void
@@ -84,6 +105,48 @@ class Constraints
     static inline bool s_calc_mom_norm =
         false; // set to true with set_up() to store just sqrt(Mom1^2 + Mom2^2 +
                // Mom3^2) instead of Mom1, Mom2, Mom3 separately
+
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    static inline bool s_calc_abs_terms =
+        false; // set to true with set_up() to store the absolute terms of the
+               // constraints instead of the constraints themselves
+
+    //! The Ham/Mom indices for the layout registered by set_up(), given the
+    //! first output component. Shared by Constraints::compute_mf and
+    //! ConstraintsWithMatter::compute_mf so the two cannot drift apart.
+    struct component_layout_t
+    {
+        int c_Ham{-1};
+        Interval c_Moms{};
+        int c_Ham_abs_terms{-1};
+        Interval c_Moms_abs_terms{};
+        int ncomp{0};
+    };
+
+    static component_layout_t select_component_layout(int dcomp)
+    {
+        // The momentum interval must have length one when the norm is
+        // requested, so that store_vars() writes sqrt(Mom_i Mom^i) into the
+        // single "Mom" component rather than the three components separately.
+        const Interval moms = s_calc_mom_norm
+                                  ? Interval(dcomp + 1, dcomp + 1)
+                                  : Interval(dcomp + 1, dcomp + GR_SPACEDIM);
+
+        component_layout_t layout;
+        // Exactly one of each pair may be set; see the constructor asserts.
+        if (s_calc_abs_terms)
+        {
+            layout.c_Ham_abs_terms  = dcomp;
+            layout.c_Moms_abs_terms = moms;
+        }
+        else
+        {
+            layout.c_Ham  = dcomp;
+            layout.c_Moms = moms;
+        }
+        layout.ncomp = 1 + moms.size();
+        return layout;
+    }
     FourthOrderDerivatives m_deriv;
     int m_c_Ham;
     Interval m_c_Moms;
