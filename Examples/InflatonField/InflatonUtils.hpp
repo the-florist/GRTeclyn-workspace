@@ -28,17 +28,6 @@ struct InflatonUtils
 
     /* Constexpr objects */
 
-    // Look-up table
-    // Used to construct polarisation basis tensors
-    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays) std::array::operator[] is
-    // not device-callable in nvcc builds, but this table is indexed from
-    // AMREX_GPU_DEVICE kernels, so it must stay a plain C array.
-    static constexpr int look_up_table[3][3]{
-        {0, 1, 2},
-        {1, 3, 4},
-        {2, 4, 5}
-    };
-    // NOLINTEND(cppcoreguidelines-avoid-c-arrays)
     static constexpr amrex::Real tolerance = 1.e-12;
 
     /* Device-callable functions */

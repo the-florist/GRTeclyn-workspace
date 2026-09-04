@@ -269,12 +269,10 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                 for (int l = 0; l < 3; l++)
                     for (int p = 0; p < 3; p++)
                     {
-                        hij_k_arrs[bx](i, j, k,
-                                       InflatonUtils::look_up_table[l][p]) =
+                        hij_k_arrs[bx](i, j, k, sym_var_idx(l, p)) =
                             (h_mode_function[0] * eplus(l, p) +
                              h_mode_function[1] * ecross(l, p));
-                        Aij_k_arrs[bx](i, j, k,
-                                       InflatonUtils::look_up_table[l][p]) =
+                        Aij_k_arrs[bx](i, j, k, sym_var_idx(l, p)) =
                             (A_mode_function[0] * eplus(l, p) +
                              A_mode_function[1] * ecross(l, p));
                     }
