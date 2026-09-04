@@ -34,7 +34,7 @@ struct InflatonParameters
     amrex::Real Pi0{0.};           //!< Background Pi value
     amrex::Real V_background{0.};  //!< Background potential value
     amrex::Real dV_background{0.}; //!< Background potential phi derivative
-    amrex::Real H0{0.};            //!< Initial Hubble parameter
+    amrex::Real H_0{0.};           //!< Initial Hubble parameter
     amrex::Real epsilon_1{0.};     //!< First slow-roll parameter
     amrex::Real epsilon_2{0.};     //!< Second slow-roll parameter
     amrex::Real init_a{1.};        //!< Initial scale factor (almost always 1)
@@ -75,7 +75,7 @@ struct InflatonParameters
         Potential potential;
         potential.compute_background_potential(V_background, dV_background,
                                                phi0);
-        H0 = calculate_H0(G_Newton, Pi0, V_background);
+        H_0 = calculate_H0(G_Newton, Pi0, V_background);
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             scalar_init == 0 || Pi0 != 0.,
@@ -83,9 +83,9 @@ struct InflatonParameters
             "non-zero when init.scalar_init is enabled");
         if (Pi0 != 0.)
         {
-            epsilon_1 = std::pow(Pi0 / H0, 2.) / 2. / std::pow(Mp, 2.);
-            epsilon_2 = 6. + dV_background / Pi0 / H0 -
-                        std::pow(Pi0 / H0, 2.) / std::pow(Mp, 2.);
+            epsilon_1 = std::pow(Pi0 / H_0, 2.) / 2. / std::pow(Mp, 2.);
+            epsilon_2 = 6. + dV_background / Pi0 / H_0 -
+                        std::pow(Pi0 / H_0, 2.) / std::pow(Mp, 2.);
         }
     }
 

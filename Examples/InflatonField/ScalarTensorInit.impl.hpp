@@ -27,11 +27,12 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     amrex::Real ms_mag = 0.;
     amrex::Real ms_arg = 0.;
 
-    amrex::Real kpr = kmag / d_params.H0;
+    amrex::Real kpr = kmag / d_params.H_0;
     if (which_field == WhichField::Amplitude) // Position mode funcion
     {
-        ms_mag = sqrt((1.0 / kmag + d_params.H0 * d_params.H0 / pow(kmag, 3.)) /
-                      2. / pow(d_params.Mp, 2.));
+        ms_mag =
+            sqrt((1.0 / kmag + d_params.H_0 * d_params.H_0 / pow(kmag, 3.)) /
+                 2. / pow(d_params.Mp, 2.));
         ms_arg =
             atan2((cos(kpr) + kpr * sin(kpr)), (kpr * cos(kpr) - sin(kpr)));
     }
@@ -111,37 +112,37 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     // plus a third component (2) holding dR/k^2. bssn_scalars is indexed by
     // the BSSNFields enum (0: Phi, 1: Pi, 2: Chi, 3: K).
 
-    const amrex::Real H0        = d_params.H0;
+    const amrex::Real H_0       = d_params.H_0;
     const amrex::Real epsilon_1 = d_params.epsilon_1;
     const amrex::Real epsilon_2 = d_params.epsilon_2;
     const amrex::Real Mp        = d_params.Mp;
     const amrex::Real init_a    = d_params.init_a;
 
-    const amrex::Real dlnGamma = H0 * epsilon_2;
+    const amrex::Real dlnGamma = H_0 * epsilon_2;
 
     // Phi coefficients
     const amrex::Real factor_R1 = Mp * std::sqrt(2.0 * epsilon_1);
     const amrex::Real factor_dR1invLap =
-        factor_R1 * epsilon_1 * H0 * std::pow(init_a, 2.);
+        factor_R1 * epsilon_1 * H_0 * std::pow(init_a, 2.);
 
     // Pi coefficients. half_pi_dR_coeff is the pre-doubled value used inside
     // factor_dR2invLap's own formula; pi_dR_coeff is the (doubled, negated)
     // value that actually multiplies dR.
-    const amrex::Real factor_R2        = -Mp * std::sqrt(epsilon_1 / 2.0) *
-                                         (2.0 * epsilon_1 - dlnGamma / H0) * H0;
+    const amrex::Real factor_R2 = -Mp * std::sqrt(epsilon_1 / 2.0) *
+                                  (2.0 * epsilon_1 - dlnGamma / H_0) * H_0;
     const amrex::Real half_pi_dR_coeff = -Mp * std::sqrt(epsilon_1 / 2.0);
-    const amrex::Real factor_dR2invLap = half_pi_dR_coeff * std::pow(H0, 2.) *
+    const amrex::Real factor_dR2invLap = half_pi_dR_coeff * std::pow(H_0, 2.) *
                                          std::pow(init_a, 2.) * epsilon_1 *
-                                         (2.0 * epsilon_1 - dlnGamma / H0);
+                                         (2.0 * epsilon_1 - dlnGamma / H_0);
     const amrex::Real pi_dR_coeff      = -2.0 * half_pi_dR_coeff;
 
     // Chi coefficients
-    const amrex::Real factor_dR3invLap = -2.0 * H0 * epsilon_1;
+    const amrex::Real factor_dR3invLap = -2.0 * H_0 * epsilon_1;
 
     // K coefficients
-    const amrex::Real factor_R4 = 3.0 * H0 * epsilon_1;
+    const amrex::Real factor_R4 = 3.0 * H_0 * epsilon_1;
     const amrex::Real factor_dR4invLap =
-        3.0 * init_a * init_a * H0 * H0 * epsilon_1 * epsilon_1;
+        3.0 * init_a * init_a * H_0 * H_0 * epsilon_1 * epsilon_1;
 
     constexpr int r_comp  = static_cast<int>(WhichField::Amplitude);
     constexpr int dr_comp = static_cast<int>(WhichField::Velocity);

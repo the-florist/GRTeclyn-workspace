@@ -67,7 +67,7 @@ struct InflatonUtils
     {
         AMREX_ASSERT(m_params.N_fine > 0);
         return (m_params.N_fine / 2 -
-                     amrex::Math::abs(m_params.N_fine / 2 - indx));
+                amrex::Math::abs(m_params.N_fine / 2 - indx));
     }
 
     // For calculation of polarisation tensors
@@ -84,7 +84,8 @@ struct InflatonUtils
     }
 
     // Find the magnitude of the Fourier wavevector at this point
-    AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real get_kmag(amrex::IntVect ivec) const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real
+    get_kmag(amrex::IntVect ivec) const
     {
         AMREX_ASSERT(m_params.L > 0);
         const int k_1 = ivec[0];
@@ -162,7 +163,7 @@ struct InflatonUtils
         // Hermitian symmetry inversion on k_2 and k, with sign on the last two
         // indices. (!!) The FT implemented in AMReX symmetrises across the i
         // index, so k_1>= 0 always.
-        const auto k_1= static_cast<amrex::Real>(ivec[0]);
+        const auto k_1 = static_cast<amrex::Real>(ivec[0]);
         const auto k_2 =
             static_cast<amrex::Real>(invert_index_with_sign(ivec[1]));
         const auto k_3 =
@@ -185,11 +186,12 @@ struct InflatonUtils
             }
             else
             {
-                const amrex::Real i2j2 = k_1 * k_1+ k_2 * k_2;
-                const amrex::Real i_j   = std::sqrt(i2j2);
-                const amrex::Real norm   = std::sqrt(i2j2 * (i2j2 + k_3 * k_3));
-                mhat                   = Vec{k_2 / i_j, -k_1/ i_j, 0.};
-                nhat = Vec{(k_1* k_3) / norm, (k_2 * k_3) / norm, -i2j2 / norm};
+                const amrex::Real i2j2 = k_1 * k_1 + k_2 * k_2;
+                const amrex::Real i_j  = std::sqrt(i2j2);
+                const amrex::Real norm = std::sqrt(i2j2 * (i2j2 + k_3 * k_3));
+                mhat                   = Vec{k_2 / i_j, -k_1 / i_j, 0.};
+                nhat =
+                    Vec{(k_1 * k_3) / norm, (k_2 * k_3) / norm, -i2j2 / norm};
             }
         }
 
@@ -203,8 +205,8 @@ struct InflatonUtils
             else
             {
                 const amrex::Real j_k = std::sqrt(k_2 * k_2 + k_3 * k_3);
-                mhat                 = Vec{-1., 0., 0.};
-                nhat                 = Vec{0., -k_3 / j_k, k_2 / j_k};
+                mhat                  = Vec{-1., 0., 0.};
+                nhat                  = Vec{0., -k_3 / j_k, k_2 / j_k};
             }
         }
 
@@ -284,8 +286,7 @@ struct InflatonUtils
                     {
                         const int n_half = cfg.m_params.N_fine / 2;
                         if ((k > n_half && j == n_half) ||
-                            (k == 0 && j > n_half) ||
-                            (k > n_half && j == 0) ||
+                            (k == 0 && j > n_half) || (k > n_half && j == 0) ||
                             (k == n_half && j > n_half))
                         {
                             for (int comp = 0; comp < num_components; comp++)
