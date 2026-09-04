@@ -113,7 +113,7 @@ struct InflatonParameters
         for (int dim = 1; dim < static_cast<int>(prob_extent.size()); dim++)
         {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                prob_extent[d] == prob_extent[0],
+                prob_extent[dim] == prob_extent[0],
                 "Config::check_params, domain must be cubic "
                 "(geometry.prob_extent must be equal in all directions)");
         }
