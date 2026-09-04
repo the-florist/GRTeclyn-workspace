@@ -103,14 +103,14 @@ struct InflatonParameters
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             Delta != 0., "Config::check_params, Delta must be non-zero");
 
-        for (int d = 1; d < static_cast<int>(ncell.size()); d++)
+        for (int dim = 1; dim < static_cast<int>(ncell.size()); dim++)
         {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                ncell[d] == ncell[0],
+                ncell[dim] == ncell[0],
                 "Config::check_params, grid must be cubic "
                 "(amr.n_cell must be equal in all directions)");
         }
-        for (int d = 1; d < static_cast<int>(prob_extent.size()); d++)
+        for (int dim = 1; dim < static_cast<int>(prob_extent.size()); dim++)
         {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 prob_extent[d] == prob_extent[0],
@@ -121,10 +121,10 @@ struct InflatonParameters
 
     // Helper function that stores our form of the Friedmann equations
     AMREX_GPU_HOST_DEVICE static amrex::Real
-    calculate_H0(amrex::Real G_Newton, amrex::Real pi_dot, amrex::Real V)
+    calculate_H0(amrex::Real G_Newton, amrex::Real pi_dot, amrex::Real V_of_phi)
     {
         return sqrt((8. * amrex::Math::pi<amrex::Real>() * G_Newton / 3.) *
-                    (0.5 * pow(pi_dot, 2.) + V));
+                    (0.5 * pow(pi_dot, 2.) + V_of_phi));
     }
 };
 
