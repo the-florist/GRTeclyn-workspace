@@ -72,6 +72,8 @@ TEST_CASE("EMTensor"
     run_emtensor_test();
 }
 
+TEST_CASE("InflatonFieldBackground") { run_inflaton_field_background_test(); }
+
 TEST_CASE("InflatonFieldStatistics") { run_inflaton_field_statistics_test(); }
 
 TEST_CASE("PolarisationTensor") { run_polarisation_tensor_test(); }
