@@ -45,7 +45,7 @@ void run_inflaton_field_background_test()
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv);
     {
-        const amrex::Real pi_value = amrex::Math::pi<amrex::Real>();
+        const auto pi_value = amrex::Math::pi<amrex::Real>();
 
         // Quadratic inflation in the slow-roll regime: super-Planckian field
         // amplitude and a light mass.
