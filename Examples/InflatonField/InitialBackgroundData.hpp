@@ -7,8 +7,11 @@
 #define INITIALBACKGROUNDDATA_HPP_
 
 #include "Coordinates.hpp"
+#include "GRParmParse.hpp"
+#include "Potential.hpp"
 #include "StateVariables.hpp"
 
+#include <AMReX_Array4.H>
 #include <AMReX_Math.H>
 
 // template <class potential_t>
@@ -17,8 +20,8 @@ class InitialBackgroundData
   public:
     struct params_t
     {
-        amrex::Real phi0; //!< Amplitude of k=0 mode of initial SF
-        amrex::Real Pi0;  //!< Amplitude of initial SF velocity
+        amrex::Real phi0{0.}; //!< Amplitude of k=0 mode of initial SF
+        amrex::Real Pi0{0.};  //!< Amplitude of initial SF velocity
         amrex::Real G_Newton = 1.0;
 
         void fill_params()
@@ -49,7 +52,8 @@ class InitialBackgroundData
         state_cell[c_phi] = m_params.phi0;
         state_cell[c_Pi]  = m_params.Pi0;
 
-        data_t V_val, dV_val;
+        data_t V_val;
+        data_t dV_val;
         m_potential.compute_background_potential(V_val, dV_val, m_params.phi0);
 
         amrex::Real H0 = sqrt(
@@ -60,7 +64,7 @@ class InitialBackgroundData
 
   protected:
     params_t m_params;
-    const Potential m_potential;
+    Potential m_potential;
 };
 
 #endif /* INITIALBACKGROUNDDATA_HPP_ */

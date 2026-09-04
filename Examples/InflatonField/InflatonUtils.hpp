@@ -13,6 +13,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Print.H>
 
+#include <numbers>
+
 #include "InflatonParameters.hpp"
 
 // Trivially-copyable configuration and methods for the stochastic inflaton
@@ -28,10 +30,8 @@ struct InflatonUtils
 
     // Look-up table
     // Used to construct polarisation basis tensors
-    static constexpr int look_up_table[3][3]{
-        {0, 1, 2},
-        {1, 3, 4},
-        {2, 4, 5}
+    static constexpr std::array<std::array<int, 3>, 3> look_up_table{
+        {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}
     };
     static constexpr amrex::Real tolerance = 1.e-12;
 
@@ -56,22 +56,22 @@ struct InflatonUtils
     }
 
     // Nyquist condition
-    AMREX_GPU_HOST_DEVICE inline int flip_index(const int indx) const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] int flip_index(const int indx) const
     {
         AMREX_ASSERT(m_params.N_fine > 0);
         return amrex::Math::abs(m_params.N_fine - indx);
     }
 
     // Nyquist condition and calculation of kmag
-    AMREX_GPU_HOST_DEVICE inline int invert_index(const int indx) const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] int invert_index(const int indx) const
     {
         AMREX_ASSERT(m_params.N_fine > 0);
-        return (int)(m_params.N_fine / 2 -
+        return (m_params.N_fine / 2 -
                      amrex::Math::abs(m_params.N_fine / 2 - indx));
     }
 
     // For calculation of polarisation tensors
-    AMREX_GPU_HOST_DEVICE inline int
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] int
     invert_index_with_sign(const int indx) const
     {
         AMREX_ASSERT(m_params.N_fine > 0);
@@ -79,40 +79,37 @@ struct InflatonUtils
         {
             return indx;
         }
-        else
-        {
-            return amrex::Math::abs(m_params.N_fine / 2 - indx) -
-                   m_params.N_fine / 2;
-        }
+        return amrex::Math::abs(m_params.N_fine / 2 - indx) -
+               m_params.N_fine / 2;
     }
 
     // Find the magnitude of the Fourier wavevector at this point
-    AMREX_GPU_HOST_DEVICE inline amrex::Real get_kmag(amrex::IntVect iv) const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real get_kmag(amrex::IntVect ivec) const
     {
         AMREX_ASSERT(m_params.L > 0);
-        const int i = iv[0];
-        const int j = invert_index(iv[1]);
-        const int k = invert_index(iv[2]);
-        return std::sqrt(i * i + j * j + k * k) * 2. *
+        const int k_1 = ivec[0];
+        const int k_2 = invert_index(ivec[1]);
+        const int k_3 = invert_index(ivec[2]);
+        return std::sqrt(k_1 * k_1 + k_2 * k_2 + k_3 * k_3) * 2. *
                amrex::Math::pi<amrex::Real>() / m_params.L;
     }
 
     // Physical FFT normalisation, shared by the init and extraction classes.
     // CHANGE WITH CARE
-    inline amrex::Real calculate_norm() const
+    [[nodiscard]] amrex::Real calculate_norm() const
     {
         AMREX_ASSERT(m_params.L > 0);
         return std::pow(
             std::sqrt(2. * amrex::Math::pi<amrex::Real>()) / m_params.L, 3.);
     }
 
-    AMREX_GPU_HOST_DEVICE inline amrex::Real
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real
     calculate_window_function(const amrex::Real kmag) const
     {
         AMREX_ASSERT(m_params.L > 0 && m_params.Delta > 0);
         const int N_w =
             (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
-        const amrex::Real k_cutoff     = std::sqrt(3.) * N_w *
+        const amrex::Real k_cutoff     = std::numbers::sqrt3 * N_w *
                                          amrex::Math::pi<amrex::Real>() /
                                          m_params.L / 5. / 2.;
         const amrex::Real window_width = m_params.L / m_params.Delta;
@@ -134,20 +131,22 @@ struct InflatonUtils
     };
 
     //! Computes both polarisation tensors for this mode in one call
-    AMREX_GPU_HOST_DEVICE inline PolarisationTensors
-    calculate_polarisation_tensors(const amrex::IntVect iv) const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] PolarisationTensors
+    calculate_polarisation_tensors(const amrex::IntVect ivec) const
     {
         // Find basis vectors
-        const auto [mhat, nhat] = calculate_basis_vectors(iv);
+        const auto [mhat, nhat] = calculate_basis_vectors(ivec);
 
         PolarisationTensors pol;
         for (int l = 0; l < 3; l++)
+        {
             for (int p = 0; p < 3; p++)
             {
                 // Assemble the polarisation tensors
                 pol.eplus(l, p)  = mhat[l] * mhat[p] - nhat[l] * nhat[p];
                 pol.ecross(l, p) = mhat[l] * nhat[p] + nhat[l] * mhat[p];
             }
+        }
 
         return pol;
     }
@@ -155,61 +154,61 @@ struct InflatonUtils
     /* Host-only functions */
 
     // Calculates both basis vectors required for the polarisation tensors
-    AMREX_GPU_HOST_DEVICE inline BasisVectors
-    calculate_basis_vectors(const amrex::IntVect iv) const
+    AMREX_GPU_HOST_DEVICE [[nodiscard]] BasisVectors
+    calculate_basis_vectors(const amrex::IntVect ivec) const
     {
         using Vec = amrex::GpuArray<amrex::Real, 3>;
 
-        // Hermitian symmetry inversion on j and k, with sign on the last two
+        // Hermitian symmetry inversion on k_2 and k, with sign on the last two
         // indices. (!!) The FT implemented in AMReX symmetrises across the i
-        // index, so i >= 0 always.
-        const amrex::Real i = static_cast<amrex::Real>(iv[0]);
-        const amrex::Real j =
-            static_cast<amrex::Real>(invert_index_with_sign(iv[1]));
-        const amrex::Real k =
-            static_cast<amrex::Real>(invert_index_with_sign(iv[2]));
+        // index, so k_1>= 0 always.
+        const auto k_1= static_cast<amrex::Real>(ivec[0]);
+        const auto k_2 =
+            static_cast<amrex::Real>(invert_index_with_sign(ivec[1]));
+        const auto k_3 =
+            static_cast<amrex::Real>(invert_index_with_sign(ivec[2]));
 
         // Default is the zero mode: mhat = nhat = 0, tensors have no average
         Vec mhat{0., 0., 0.};
         Vec nhat{0., 0., 0.};
 
-        if (iv == amrex::IntVect{0, 0, 0})
+        if (ivec == amrex::IntVect{0, 0, 0})
         { /* zero mode: leave as zero */
         }
 
-        else if (i != 0.)
+        else if (k_1 != 0.)
         {
-            if (j == 0. && k == 0.)
+            if (k_2 == 0. && k_3 == 0.)
             {
                 mhat = Vec{0., 1., 0.};
                 nhat = Vec{0., 0., 1.};
             }
             else
             {
-                const amrex::Real i2j2 = i * i + j * j;
-                const amrex::Real ij   = std::sqrt(i2j2);
-                const amrex::Real n    = std::sqrt(i2j2 * (i2j2 + k * k));
-                mhat                   = Vec{j / ij, -i / ij, 0.};
-                nhat = Vec{(i * k) / n, (j * k) / n, -i2j2 / n};
+                const amrex::Real i2j2 = k_1 * k_1+ k_2 * k_2;
+                const amrex::Real i_j   = std::sqrt(i2j2);
+                const amrex::Real norm   = std::sqrt(i2j2 * (i2j2 + k_3 * k_3));
+                mhat                   = Vec{k_2 / i_j, -k_1/ i_j, 0.};
+                nhat = Vec{(k_1* k_3) / norm, (k_2 * k_3) / norm, -i2j2 / norm};
             }
         }
 
-        else if (j != 0.) // i == 0
+        else if (k_2 != 0.) // k_1== 0
         {
-            if (k == 0.)
+            if (k_3 == 0.)
             {
                 mhat = Vec{0., 0., 1.};
                 nhat = Vec{1., 0., 0.};
             }
             else
             {
-                const amrex::Real jk = std::sqrt(j * j + k * k);
+                const amrex::Real j_k = std::sqrt(k_2 * k_2 + k_3 * k_3);
                 mhat                 = Vec{-1., 0., 0.};
-                nhat                 = Vec{0., -k / jk, j / jk};
+                nhat                 = Vec{0., -k_3 / j_k, k_2 / j_k};
             }
         }
 
-        else if (k != 0.) // i == 0, j == 0
+        else if (k_3 != 0.) // k_1== 0, k_2 == 0
         {
             mhat = Vec{1., 0., 0.};
             nhat = Vec{0., 1., 0.};
@@ -232,7 +231,8 @@ struct InflatonUtils
                 m_params.alpha * amrex::Math::pi<amrex::Real>() / 180.;
             const amrex::Real cos_alpha = std::cos(alpha_rad);
             const amrex::Real sin_alpha = std::sin(alpha_rad);
-            Vec mhat_rot, nhat_rot;
+            Vec mhat_rot;
+            Vec nhat_rot;
             for (int l = 0; l < 3; l++)
             {
                 mhat_rot[l] = cos_alpha * mhat[l] + sin_alpha * nhat[l];
@@ -242,11 +242,11 @@ struct InflatonUtils
             nhat = nhat_rot;
         }
 
-        return {mhat, nhat};
+        return {.mhat = mhat, .nhat = nhat};
     }
 
     // Applies above Nyquist conditions to a given MF
-    inline void apply_nyquist_conditions(amrex::cMultiFab &field)
+    void apply_nyquist_conditions(amrex::cMultiFab &field)
     {
         AMREX_ASSERT(m_params.N_fine > 0);
 
@@ -258,12 +258,12 @@ struct InflatonUtils
         for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
         {
             // The geometry for this MPI rank
-            const amrex::Box &bx = mfi.fabbox();
+            const amrex::Box &fabbox = mfi.fabbox();
             amrex::Array4<amrex::GpuComplex<amrex::Real>> const &field_ptr =
                 field.array(mfi);
 
             amrex::ParallelFor(
-                bx,
+                fabbox,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                 {
                     amrex::IntVect iv = {i, j, k};
@@ -282,9 +282,11 @@ struct InflatonUtils
 
                     else if (i == 0 || i == cfg.m_params.N_fine / 2)
                     {
-                        const int nh = cfg.m_params.N_fine / 2;
-                        if ((k > nh && j == nh) || (k == 0 && j > nh) ||
-                            (k > nh && j == 0) || (k == nh && j > nh))
+                        const int n_half = cfg.m_params.N_fine / 2;
+                        if ((k > n_half && j == n_half) ||
+                            (k == 0 && j > n_half) ||
+                            (k > n_half && j == 0) ||
+                            (k == n_half && j > n_half))
                         {
                             for (int comp = 0; comp < num_components; comp++)
                             {
@@ -299,7 +301,7 @@ struct InflatonUtils
                             }
                         }
 
-                        else if (j > nh)
+                        else if (j > n_half)
                         {
                             for (int comp = 0; comp < num_components; comp++)
                             {
