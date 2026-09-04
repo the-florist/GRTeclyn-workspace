@@ -29,14 +29,14 @@ void DerivedVariables::set_up(int a_state_index)
 /* Main functions */
 
 // Extract R and hs in configuration space from the BSSN variables
-inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
-                                               amrex::MultiFab &R,
+inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs_x,
+                                               amrex::MultiFab &R_x,
                                                const amrex::MultiFab &state)
 {
     // Extract amrex::MultiFab ingredients from state
     amrex::BoxArray sba            = state.boxArray();
     amrex::DistributionMapping sdm = state.DistributionMap();
-    if (sba != hs.boxArray() || sdm != hs.DistributionMap())
+    if (sba != hs_x.boxArray() || sdm != hs_x.DistributionMap())
     {
         amrex::Error("DerivedVariables::extract_hs_and_R "
                      "source and output BA or SDM do not match");
@@ -203,7 +203,7 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
                     for (auto &k_comp : iv_k)
                     {
                         k_comp *= 2. * amrex::Math::pi<amrex::Real>() /
-                                  cfg.m_params.L;
+                                  cfg.m_params.box_length;
                     }
                     amrex::GpuComplex<amrex::Real> Phi = 0;
 
@@ -236,12 +236,12 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs,
     m_utils.apply_nyquist_conditions(R_k);
 
     // Fourier transform
-    mode_fn_fft.backward(hs_k, hs);
-    R_fft.backward(R_k, R);
+    mode_fn_fft.backward(hs_k, hs_x);
+    R_fft.backward(R_k, R_x);
 
     // Apply physical normalisation
-    hs.mult(m_utils.calculate_norm());
-    R.mult(m_utils.calculate_norm());
+    hs_x.mult(m_utils.calculate_norm());
+    R_x.mult(m_utils.calculate_norm());
 }
 
 // Put R and hs into plotfiles

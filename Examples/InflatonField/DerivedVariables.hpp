@@ -34,7 +34,7 @@ class DerivedVariables
                            const amrex::Geometry &geomdata, amrex::Real time,
                            const int *bcrec, int level);
 
-    void extract_hs_and_R(amrex::MultiFab &hs, amrex::MultiFab &R,
+    void extract_hs_and_R(amrex::MultiFab &hs_x, amrex::MultiFab &R_x,
                           const amrex::MultiFab &state);
 
   private:

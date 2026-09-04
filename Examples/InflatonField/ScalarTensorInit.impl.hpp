@@ -32,13 +32,13 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     {
         ms_mag =
             sqrt((1.0 / kmag + d_params.H_0 * d_params.H_0 / pow(kmag, 3.)) /
-                 2. / pow(d_params.Mp, 2.));
+                 2. / pow(d_params.planck_mass, 2.));
         ms_arg =
             atan2((cos(kpr) + kpr * sin(kpr)), (kpr * cos(kpr) - sin(kpr)));
     }
     else // Velocity mode funcion
     {
-        ms_mag = sqrt(kmag / 2. / pow(d_params.Mp, 2.));
+        ms_mag = sqrt(kmag / 2. / pow(d_params.planck_mass, 2.));
         ms_arg = -atan2(cos(kpr), sin(kpr));
     }
 
@@ -112,25 +112,26 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     // plus a third component (2) holding dR/k^2. bssn_scalars is indexed by
     // the BSSNFields enum (0: Phi, 1: Pi, 2: Chi, 3: K).
 
-    const amrex::Real H_0       = d_params.H_0;
-    const amrex::Real epsilon_1 = d_params.epsilon_1;
-    const amrex::Real epsilon_2 = d_params.epsilon_2;
-    const amrex::Real Mp        = d_params.Mp;
-    const amrex::Real init_a    = d_params.init_a;
+    const amrex::Real H_0         = d_params.H_0;
+    const amrex::Real epsilon_1   = d_params.epsilon_1;
+    const amrex::Real epsilon_2   = d_params.epsilon_2;
+    const amrex::Real planck_mass = d_params.planck_mass;
+    const amrex::Real init_a      = d_params.init_a;
 
     const amrex::Real dlnGamma = H_0 * epsilon_2;
 
     // Phi coefficients
-    const amrex::Real factor_R1 = Mp * std::sqrt(2.0 * epsilon_1);
+    const amrex::Real factor_R1 = planck_mass * std::sqrt(2.0 * epsilon_1);
     const amrex::Real factor_dR1invLap =
         factor_R1 * epsilon_1 * H_0 * std::pow(init_a, 2.);
 
     // Pi coefficients. half_pi_dR_coeff is the pre-doubled value used inside
     // factor_dR2invLap's own formula; pi_dR_coeff is the (doubled, negated)
     // value that actually multiplies dR.
-    const amrex::Real factor_R2 = -Mp * std::sqrt(epsilon_1 / 2.0) *
+    const amrex::Real factor_R2 = -planck_mass * std::sqrt(epsilon_1 / 2.0) *
                                   (2.0 * epsilon_1 - dlnGamma / H_0) * H_0;
-    const amrex::Real half_pi_dR_coeff = -Mp * std::sqrt(epsilon_1 / 2.0);
+    const amrex::Real half_pi_dR_coeff =
+        -planck_mass * std::sqrt(epsilon_1 / 2.0);
     const amrex::Real factor_dR2invLap = half_pi_dR_coeff * std::pow(H_0, 2.) *
                                          std::pow(init_a, 2.) * epsilon_1 *
                                          (2.0 * epsilon_1 - dlnGamma / H_0);
@@ -369,19 +370,19 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
     amrex::DistributionMapping sdm = state.DistributionMap();
 
     // If coarse graining is requested, set up the coarse grid Ns
-    int n_eff = N;
-    int dN    = 1;
+    int n_eff             = N;
+    int coarsening_factor = 1;
     if (N_fine != N)
     {
-        n_eff = N_fine;
-        dN    = N_fine / N;
+        n_eff             = N_fine;
+        coarsening_factor = N_fine / N;
     }
 
     // Set up the problem domain in Fourier space
     // And impose that MPI ranks only slice along the i index (for Nyquist
     // conditions)
     amrex::IntVect domain_low(0, 0, 0);
-    amrex::BoxArray xba = (N_fine != 0 ? sba.refine(dN) : sba);
+    amrex::BoxArray xba = (N_fine != 0 ? sba.refine(coarsening_factor) : sba);
 
     amrex::IntVect k_domain_high(n_eff / 2, n_eff - 1, n_eff - 1);
     amrex::Box k_domain(domain_low, k_domain_high);
@@ -424,7 +425,8 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
     scalar_fft.backward(scalar_fields_k, scalar_fields_x);
 
     // Add perturbations to state
-    add_perturbations_to_state(state, hij_x, Aij_x, scalar_fields_x, dN);
+    add_perturbations_to_state(state, hij_x, Aij_x, scalar_fields_x,
+                               coarsening_factor);
 }
 
 #endif /* SCALARTENSORINIT_IMPL_HPP_ */

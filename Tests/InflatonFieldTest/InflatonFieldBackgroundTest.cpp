@@ -45,7 +45,7 @@ void run_inflaton_field_background_test()
     // NOLINTNEXTLINE(bugprone-casting-through-void) // Open MPI triggers this
     amrex::Initialize(amrex_argc, amrex_argv);
     {
-        const amrex::Real pi = amrex::Math::pi<amrex::Real>();
+        const amrex::Real pi_value = amrex::Math::pi<amrex::Real>();
 
         // Quadratic inflation in the slow-roll regime: super-Planckian field
         // amplitude and a light mass.
@@ -57,7 +57,7 @@ void run_inflaton_field_background_test()
         // 3 H phidot = -V' gives a constant slow-roll velocity for a quadratic
         // potential.
         const amrex::Real slow_roll_phidot =
-            -scalar_mass / std::sqrt(12. * pi * g_newton);
+            -scalar_mass / std::sqrt(12. * pi_value * g_newton);
 
         // Populate the parameter table read by InitialBackgroundData, the
         // Potential, the ScalarField matter and the CCZ4 RHS / gauge.
@@ -212,13 +212,17 @@ void run_inflaton_field_background_test()
 
         for (int step = 0; step < num_steps; ++step)
         {
-            const StateVector k1 = evaluate_rhs(state);
-            const StateVector k2 = evaluate_rhs(axpy(state, k1, 0.5 * dt));
-            const StateVector k3 = evaluate_rhs(axpy(state, k2, 0.5 * dt));
-            const StateVector k4 = evaluate_rhs(axpy(state, k3, dt));
+            const StateVector rk4_k1 = evaluate_rhs(state);
+            const StateVector rk4_k2 =
+                evaluate_rhs(axpy(state, rk4_k1, 0.5 * dt));
+            const StateVector rk4_k3 =
+                evaluate_rhs(axpy(state, rk4_k2, 0.5 * dt));
+            const StateVector rk4_k4 = evaluate_rhs(axpy(state, rk4_k3, dt));
             for (int n = 0; n < NUM_VARS; ++n)
             {
-                state[n] += dt / 6. * (k1[n] + 2. * k2[n] + 2. * k3[n] + k4[n]);
+                state[n] +=
+                    dt / 6. *
+                    (rk4_k1[n] + 2. * rk4_k2[n] + 2. * rk4_k3[n] + rk4_k4[n]);
             }
         }
 
@@ -237,7 +241,7 @@ void run_inflaton_field_background_test()
         const amrex::Real potential_slow_roll =
             0.5 * scalar_mass * scalar_mass * phi_slow_roll * phi_slow_roll;
         const amrex::Real hubble_slow_roll =
-            std::sqrt(8. * pi * g_newton / 3. * potential_slow_roll);
+            std::sqrt(8. * pi_value * g_newton / 3. * potential_slow_roll);
 
         INFO("phi: code = " << phi_code << ", slow-roll = " << phi_slow_roll
                             << "; H: code = " << hubble_code
@@ -250,7 +254,7 @@ void run_inflaton_field_background_test()
         // The exact Friedmann (Hamiltonian) constraint,
         // H^2 = (8 pi G / 3)(1/2 Pi^2 + V), must hold throughout the evolution.
         const amrex::Real friedmann_rhs =
-            8. * pi * g_newton / 3. *
+            8. * pi_value * g_newton / 3. *
             (0.5 * pi_code * pi_code + potential_code);
         CHECK(std::abs(hubble_code * hubble_code - friedmann_rhs) <
               1.e-3 * hubble_code * hubble_code);

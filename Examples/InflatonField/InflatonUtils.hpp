@@ -82,33 +82,34 @@ struct InflatonUtils
     AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real
     get_kmag(amrex::IntVect ivec) const
     {
-        AMREX_ASSERT(m_params.L > 0);
+        AMREX_ASSERT(m_params.box_length > 0);
         const int k_1 = ivec[0];
         const int k_2 = invert_index(ivec[1]);
         const int k_3 = invert_index(ivec[2]);
         return std::sqrt(k_1 * k_1 + k_2 * k_2 + k_3 * k_3) * 2. *
-               amrex::Math::pi<amrex::Real>() / m_params.L;
+               amrex::Math::pi<amrex::Real>() / m_params.box_length;
     }
 
     // Physical FFT normalisation, shared by the init and extraction classes.
     // CHANGE WITH CARE
     [[nodiscard]] amrex::Real calculate_norm() const
     {
-        AMREX_ASSERT(m_params.L > 0);
-        return std::pow(
-            std::sqrt(2. * amrex::Math::pi<amrex::Real>()) / m_params.L, 3.);
+        AMREX_ASSERT(m_params.box_length > 0);
+        return std::pow(std::sqrt(2. * amrex::Math::pi<amrex::Real>()) /
+                            m_params.box_length,
+                        3.);
     }
 
     AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real
     calculate_window_function(const amrex::Real kmag) const
     {
-        AMREX_ASSERT(m_params.L > 0 && m_params.Delta > 0);
+        AMREX_ASSERT(m_params.box_length > 0 && m_params.Delta > 0);
         const int N_w =
             (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
         const amrex::Real k_cutoff     = std::numbers::sqrt3 * N_w *
                                          amrex::Math::pi<amrex::Real>() /
-                                         m_params.L / 5. / 2.;
-        const amrex::Real window_width = m_params.L / m_params.Delta;
+                                         m_params.box_length / 5. / 2.;
+        const amrex::Real window_width = m_params.box_length / m_params.Delta;
         return 0.5 * (1.0 - tanh(window_width * (kmag - k_cutoff)));
     }
 

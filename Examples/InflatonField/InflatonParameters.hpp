@@ -16,10 +16,10 @@
 struct InflatonParameters
 {
     // Parameters, populated once on the host by fill_params()
-    amrex::Real Mp{1.};    //!< Planck mass
-    amrex::Real L{0.};     //!< Grid length [Mp^(-1)]
-    amrex::Real Delta{1.}; //!< Window function width
-    amrex::Real alpha{0.}; //!< Polarisation basis angle
+    amrex::Real planck_mass{1.}; //!< Planck mass
+    amrex::Real box_length{0.};  //!< Grid length [Mp^(-1)]
+    amrex::Real Delta{1.};       //!< Window function width
+    amrex::Real alpha{0.};       //!< Polarisation basis angle
 
     int N{0};                 //!< Grid resolution
     int N_fine{0};            //!< Finest resolution (convergence tests only)
@@ -53,12 +53,12 @@ struct InflatonParameters
         pp.query("N_coarse", N_coarse);
         amrex::Vector<amrex::Real> prob_extent;
         pp.getarr("geometry.prob_extent", prob_extent);
-        L = prob_extent[0];
+        box_length = prob_extent[0];
 
         // Read and set physical units
         amrex::Real G_Newton = 1.;
         pp.query("scalar_field.G_Newton", G_Newton);
-        Mp = 1. / std::sqrt(G_Newton);
+        planck_mass = 1. / std::sqrt(G_Newton);
 
         // Read initialisation parameters
         GRParmParse init_pp("init");
@@ -83,9 +83,10 @@ struct InflatonParameters
             "non-zero when init.scalar_init is enabled");
         if (Pi0 != 0.)
         {
-            epsilon_1 = std::pow(Pi0 / H_0, 2.) / 2. / std::pow(Mp, 2.);
+            epsilon_1 =
+                std::pow(Pi0 / H_0, 2.) / 2. / std::pow(planck_mass, 2.);
             epsilon_2 = 6. + dV_background / Pi0 / H_0 -
-                        std::pow(Pi0 / H_0, 2.) / std::pow(Mp, 2.);
+                        std::pow(Pi0 / H_0, 2.) / std::pow(planck_mass, 2.);
         }
     }
 
@@ -93,13 +94,15 @@ struct InflatonParameters
                       const amrex::Vector<amrex::Real> &prob_extent) const
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            Mp != 0., "Config::check_params, Mp must be non-zero");
+            planck_mass != 0.,
+            "Config::check_params, planck_mass must be non-zero");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             N_fine >= N, "Config::check_params, N_fine must be >= N");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             N_coarse <= N, "Config::check_params, N_coarse must be <= N");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            L != 0., "Config::check_params, L must be non-zero");
+            box_length != 0.,
+            "Config::check_params, box_length must be non-zero");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             Delta != 0., "Config::check_params, Delta must be non-zero");
 
