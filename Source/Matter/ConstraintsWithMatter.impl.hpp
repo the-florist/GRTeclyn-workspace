@@ -79,12 +79,13 @@ void ConstraintsWithMatter<matter_t>::set_up(int a_state_index,
                                              bool a_calc_mom_norm)
 {
 
-    int num_ghosts = 2;
+    s_calc_mom_norm = a_calc_mom_norm;
+    int num_ghosts  = 2;
 
     auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
     const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
-    const auto &comp_names = (a_calc_mom_norm) ? Constraints::var_names_norm
+    const auto &comp_names = (s_calc_mom_norm) ? Constraints::var_names_norm
                                                : Constraints::var_names;
     // Add Constraints to the derive list
     derive_lst.add(
@@ -107,10 +108,16 @@ void ConstraintsWithMatter<matter_t>::compute_mf(
 
     amrex::Real dx = geomdata.CellSize(0);
     int iham       = dcomp; // Ham
-    Interval imom =
-        Interval(dcomp + 1, dcomp + AMREX_SPACEDIM); // Mom1, Mom2, Mom3
 
-    AMREX_ALWAYS_ASSERT(ncomp == (1 + AMREX_SPACEDIM));
+    // When the momentum norm is requested the derive record holds a single
+    // "Mom" component, so the interval must have length one for store_vars()
+    // to write sqrt(Mom_i Mom^i) rather than the three components separately.
+    const Interval imom = s_calc_mom_norm
+                              ? Interval(dcomp + 1, dcomp + 1) // Mom
+                              : Interval(dcomp + 1,
+                                         dcomp + AMREX_SPACEDIM); // Mom1..Mom3
+
+    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size());
 
     ConstraintsWithMatter<matter_t> constraints(dx, iham, imom);
 

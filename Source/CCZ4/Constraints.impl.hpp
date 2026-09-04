@@ -220,7 +220,16 @@ void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
     const auto &out_arrays = out_mf.arrays();
     const auto &src_arrays = src_mf.const_arrays();
     int iham               = dcomp;
-    Interval imom          = Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+
+    // When the momentum norm is requested the derive record holds a single
+    // "Mom" component, so the interval must have length one for store_vars()
+    // to write sqrt(Mom_i Mom^i) rather than the three components separately.
+    const Interval imom = s_calc_mom_norm
+                              ? Interval(dcomp + 1, dcomp + 1)
+                              : Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
+
+    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size());
+
     Constraints constraints(geomdata.CellSize(0), iham, imom);
 
     amrex::ParallelFor(
