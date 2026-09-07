@@ -115,6 +115,7 @@ void InflatonFieldLevel::initData()
 
     ScalarTensorInit random_field_initialiser;
     random_field_initialiser.init(state_new);
+    state_new.FillBoundary(geom.periodicity());
 
     if (m_evolution_spatial_derivative_order == 4)
     {
