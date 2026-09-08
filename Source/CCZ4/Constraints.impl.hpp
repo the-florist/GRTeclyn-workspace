@@ -13,6 +13,7 @@
 #include "Constraints.hpp"
 
 // AMReX includes
+#include <AMReX_Algorithm.H>
 #include <AMReX_AmrLevel.H>
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -27,17 +28,19 @@ Constraints::Constraints(amrex::Real dx, int a_c_Ham, const Interval &a_c_Moms,
       m_cosmological_constant(cosmological_constant)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        (a_c_Ham >= 0 && a_c_Ham_abs_terms < 0) ||
-            (a_c_Ham < 0 && a_c_Ham_abs_terms >= 0),
-        "must calculate one of either Ham or Ham_abs_terms");
+        a_c_Ham >= 0 || a_c_Ham_abs_terms >= 0,
+        "must calculate at least one of Ham or Ham_abs_terms");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        a_c_Moms.size() * a_c_Moms_abs_terms.size() <= 0,
-        "must choose at most one of Mom or Mom_abs_terms");
-    const auto &moms_interval =
-        (a_c_Moms.size() > 0) ? a_c_Moms : a_c_Moms_abs_terms;
-    if (moms_interval.size() > 0)
+        a_c_Moms.size() > 0 || a_c_Moms_abs_terms.size() > 0,
+        "must calculate at least one of Mom or Mom_abs_terms");
+    if (a_c_Moms.size() > 0)
     {
-        AMREX_ALWAYS_ASSERT(moms_interval.size() == (s_calc_mom_norm ? 1 : 3));
+        AMREX_ALWAYS_ASSERT(a_c_Moms.size() == (s_calc_mom_norm ? 1 : 3));
+    }
+    if (a_c_Moms_abs_terms.size() > 0)
+    {
+        AMREX_ALWAYS_ASSERT(a_c_Moms_abs_terms.size() ==
+                            (s_calc_mom_norm ? 1 : 3));
     }
 }
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -74,6 +77,28 @@ Constraints::operator()(int ix, int iy, int iz,
     // TODO: Simplify this storing so less choice but more readable
     const auto constraint_cell_data = constraints.cellData(ix, iy, iz);
     store_vars(out, constraint_cell_data);
+}
+
+AMREX_GPU_DEVICE void
+Constraints::compute_absrel(int ix, int iy, int iz,
+                            const amrex::Array4<amrex::Real> &constraints,
+                            int c_Ham_absrel, int c_Mom_absrel) const
+{
+    // Floor to avoid division by (near-)zero, e.g. in exact-vacuum/flat
+    // regions where every term in the constraint equations vanishes
+    constexpr amrex::Real min_abs_terms = 1.0e-30;
+
+    const auto cell_data = constraints.cellData(ix, iy, iz);
+
+    const amrex::Real Ham           = cell_data[m_c_Ham];
+    const amrex::Real Ham_abs_terms = cell_data[m_c_Ham_abs_terms];
+    cell_data[c_Ham_absrel] =
+        std::abs(Ham) / amrex::max(Ham_abs_terms, min_abs_terms);
+
+    const amrex::Real Mom           = cell_data[m_c_Moms.begin()];
+    const amrex::Real Mom_abs_terms = cell_data[m_c_Moms_abs_terms.begin()];
+    cell_data[c_Mom_absrel] =
+        std::abs(Mom) / amrex::max(Mom_abs_terms, min_abs_terms);
 }
 
 AMREX_GPU_DEVICE
@@ -191,14 +216,29 @@ Constraints::store_vars(const constraints_t &out,
     }
 }
 
-void Constraints::set_up(int a_state_index, bool a_calc_mom_norm)
+void Constraints::set_up(int a_state_index, bool a_calc_mom_norm,
+                         bool a_calc_abs_terms)
 {
-    s_calc_mom_norm = a_calc_mom_norm;
-    int num_ghosts  = 2; // no advection terms so only need 2 ghost cells
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !a_calc_abs_terms || a_calc_mom_norm,
+        "Constraints::set_up: a_calc_abs_terms requires a_calc_mom_norm, "
+        "since the relative constraint needs the Mom-norm layout");
 
-    const auto &comp_names = (s_calc_mom_norm) ? var_names_norm : var_names;
-    auto &derive_lst       = amrex::AmrLevel::get_derive_lst();
-    const auto &desc_lst   = amrex::AmrLevel::get_desc_lst();
+    s_calc_mom_norm  = a_calc_mom_norm;
+    s_calc_abs_terms = a_calc_abs_terms;
+    int num_ghosts   = 2; // no advection terms so only need 2 ghost cells
+
+    amrex::Vector<std::string> comp_names =
+        (s_calc_mom_norm) ? var_names_norm : var_names;
+    if (s_calc_abs_terms)
+    {
+        comp_names.insert(comp_names.end(), var_names_abs_terms_norm.begin(),
+                          var_names_abs_terms_norm.end());
+        comp_names.insert(comp_names.end(), var_names_relative.begin(),
+                          var_names_relative.end());
+    }
+    auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
+    const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
     derive_lst.add(
         name, amrex::IndexType::TheCellType(),
@@ -228,14 +268,36 @@ void Constraints::compute_mf(amrex::MultiFab &out_mf, int dcomp, int ncomp,
                               ? Interval(dcomp + 1, dcomp + 1)
                               : Interval(dcomp + 1, dcomp + AMREX_SPACEDIM);
 
-    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size());
+    const bool calc_abs_terms = s_calc_abs_terms;
 
-    Constraints constraints(geomdata.CellSize(0), iham, imom);
+    int iham_abs        = -1;
+    Interval imom_abs;
+    int iham_absrel = -1;
+    int imom_absrel = -1;
+    if (calc_abs_terms)
+    {
+        iham_abs    = imom.end() + 1;
+        imom_abs    = Interval(iham_abs + 1, iham_abs + 1);
+        iham_absrel = imom_abs.end() + 1;
+        imom_absrel = iham_absrel + 1;
+    }
+
+    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size() + (calc_abs_terms ? 4 : 0));
+
+    Constraints constraints(geomdata.CellSize(0), iham, imom, iham_abs,
+                            imom_abs);
 
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
-        { constraints(ix, iy, iz, out_arrays[box_no], src_arrays[box_no]); });
+        {
+            constraints(ix, iy, iz, out_arrays[box_no], src_arrays[box_no]);
+            if (calc_abs_terms)
+            {
+                constraints.compute_absrel(ix, iy, iz, out_arrays[box_no],
+                                           iham_absrel, imom_absrel);
+            }
+        });
 }
 
 #endif /* CONSTRAINTS_IMPL_HPP_ */

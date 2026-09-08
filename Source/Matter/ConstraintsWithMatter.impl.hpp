@@ -76,17 +76,34 @@ ConstraintsWithMatter<matter_t>::operator()(
 
 template <class matter_t>
 void ConstraintsWithMatter<matter_t>::set_up(int a_state_index,
-                                             bool a_calc_mom_norm)
+                                             bool a_calc_mom_norm,
+                                             bool a_calc_abs_terms)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !a_calc_abs_terms || a_calc_mom_norm,
+        "ConstraintsWithMatter::set_up: a_calc_abs_terms requires "
+        "a_calc_mom_norm, since the relative constraint needs the Mom-norm "
+        "layout");
 
-    s_calc_mom_norm = a_calc_mom_norm;
-    int num_ghosts  = 2;
+    s_calc_mom_norm  = a_calc_mom_norm;
+    s_calc_abs_terms = a_calc_abs_terms;
+    int num_ghosts   = 2;
 
     auto &derive_lst     = amrex::AmrLevel::get_derive_lst();
     const auto &desc_lst = amrex::AmrLevel::get_desc_lst();
 
-    const auto &comp_names = (s_calc_mom_norm) ? Constraints::var_names_norm
-                                               : Constraints::var_names;
+    amrex::Vector<std::string> comp_names = (s_calc_mom_norm)
+                                                ? Constraints::var_names_norm
+                                                : Constraints::var_names;
+    if (s_calc_abs_terms)
+    {
+        comp_names.insert(comp_names.end(),
+                          Constraints::var_names_abs_terms_norm.begin(),
+                          Constraints::var_names_abs_terms_norm.end());
+        comp_names.insert(comp_names.end(),
+                          Constraints::var_names_relative.begin(),
+                          Constraints::var_names_relative.end());
+    }
     // Add Constraints to the derive list
     derive_lst.add(
         Constraints::name, amrex::IndexType::TheCellType(),
@@ -117,14 +134,36 @@ void ConstraintsWithMatter<matter_t>::compute_mf(
                               : Interval(dcomp + 1,
                                          dcomp + AMREX_SPACEDIM); // Mom1..Mom3
 
-    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size());
+    const bool calc_abs_terms = s_calc_abs_terms;
 
-    ConstraintsWithMatter<matter_t> constraints(dx, iham, imom);
+    int iham_abs        = -1;
+    Interval imom_abs;
+    int iham_absrel = -1;
+    int imom_absrel = -1;
+    if (calc_abs_terms)
+    {
+        iham_abs    = imom.end() + 1;
+        imom_abs    = Interval(iham_abs + 1, iham_abs + 1);
+        iham_absrel = imom_abs.end() + 1;
+        imom_absrel = iham_absrel + 1;
+    }
+
+    AMREX_ALWAYS_ASSERT(ncomp == 1 + imom.size() + (calc_abs_terms ? 4 : 0));
+
+    ConstraintsWithMatter<matter_t> constraints(dx, iham, imom, iham_abs,
+                                                imom_abs);
 
     amrex::ParallelFor(
         out_mf, out_mf.nGrowVect(),
         [=] AMREX_GPU_DEVICE(int box_no, int ix, int iy, int iz) noexcept
-        { constraints(ix, iy, iz, out_arrays[box_no], src_arrays[box_no]); });
+        {
+            constraints(ix, iy, iz, out_arrays[box_no], src_arrays[box_no]);
+            if (calc_abs_terms)
+            {
+                constraints.compute_absrel(ix, iy, iz, out_arrays[box_no],
+                                           iham_absrel, imom_absrel);
+            }
+        });
 }
 
 #endif /* CONSTRAINTSWITHMATTER_IMPL_HPP_ */
