@@ -97,7 +97,7 @@ struct InflatonUtils
         AMREX_ASSERT(m_params.box_length > 0);
         return std::pow(std::sqrt(2. * amrex::Math::pi<amrex::Real>()) /
                             m_params.box_length,
-                        3.);
+                        3./2.);
     }
 
     AMREX_GPU_HOST_DEVICE [[nodiscard]] amrex::Real
@@ -106,11 +106,13 @@ struct InflatonUtils
         AMREX_ASSERT(m_params.box_length > 0 && m_params.Delta > 0);
         const int N_w =
             (m_params.N_coarse != 0) ? m_params.N_coarse : m_params.N;
-        const amrex::Real k_cutoff     = std::numbers::sqrt3 * N_w *
-                                         amrex::Math::pi<amrex::Real>() /
-                                         m_params.box_length / 5. / 2.;
-        const amrex::Real window_width = m_params.box_length / m_params.Delta;
-        return 0.5 * (1.0 - tanh(window_width * (kmag - k_cutoff)));
+        // const amrex::Real k_cutoff     = std::numbers::sqrt3 * N_w *
+        //                                  amrex::Math::pi<amrex::Real>() /
+        //                                  m_params.box_length / 5. / 2.;
+        // const amrex::Real window_width = m_params.box_length / m_params.Delta;
+        // return 0.5 * (1.0 - tanh(window_width * (kmag - k_cutoff)));
+        const amrex::Real k_cutoff =  amrex::Math::pi<amrex::Real>() * N_w /  m_params.box_length / 2.0;
+        return (kmag < k_cutoff) ? 1.0 : 0.0;
     }
 
     //! An orthonormal pair of polarisation basis vectors for a Fourier mode
