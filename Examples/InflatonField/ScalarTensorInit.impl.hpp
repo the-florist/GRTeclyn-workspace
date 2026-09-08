@@ -118,7 +118,7 @@ inline void ScalarTensorInit::convert_R_to_BSSN_scalars(
     const amrex::Real planck_mass = d_params.planck_mass;
     const amrex::Real init_a      = d_params.init_a;
 
-    const amrex::Real dlnGamma = H_0 * epsilon_2;
+    const amrex::Real dlnGamma = - H_0 * epsilon_2; 
 
     // Phi coefficients
     const amrex::Real factor_R1 = planck_mass * std::sqrt(2.0 * epsilon_1);

@@ -85,8 +85,7 @@ struct InflatonParameters
         {
             epsilon_1 =
                 std::pow(Pi0 / H_0, 2.) / 2. / std::pow(planck_mass, 2.);
-            epsilon_2 = 6. + dV_background / Pi0 / H_0 -
-                        std::pow(Pi0 / H_0, 2.) / std::pow(planck_mass, 2.);
+            epsilon_2 = 6. + 2. * dV_background / Pi0 / H_0 - 2. * epsilon_1;
         }
     }
 
