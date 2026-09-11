@@ -7,6 +7,7 @@
 
 #include "AlgebraicConstraintsEnforcer.hpp"
 #include "CCZ4RHSWithMatter.hpp"
+#include "Constraints.hpp"
 #include "ConstraintsWithMatter.hpp"
 #include "EMTensor.hpp"
 #include "FixedGridsTagger.hpp"
@@ -22,6 +23,7 @@
 
 // // Problem specific includes
 #include "DerivedVariables.hpp"
+#include "InflationExtraction.hpp"
 #include "InitialBackgroundData.hpp"
 #include "Potential.hpp"
 #include "ScalarField.hpp"
@@ -298,4 +300,66 @@ void InflatonFieldLevel::tag_cells(amrex::TagBoxArray &a_tag_box_array,
 void InflatonFieldLevel::specific_post_timestep()
 {
     BL_PROFILE("InflatonFieldLevel::specific_post_timestep()");
+
+    // The spectral diagnostics Fourier transform the whole domain, so they
+    // are only meaningful on the single-level grid this example runs on.
+    if (level != 0)
+    {
+        return;
+    }
+
+    InflationExtraction::params_t extraction_params;
+    extraction_params.fill_params();
+
+    if (extraction_params.calc_background_means == 0 &&
+        extraction_params.calc_binned_power_spectrum == 0 &&
+        extraction_params.calc_higher_order_statistics == 0)
+    {
+        return;
+    }
+
+    const amrex::MultiFab &state_new = get_new_data(state_index);
+    const amrex::Real cur_time       = get_state_data(state_index).curTime();
+    const amrex::Real dt             = parent->dtLevel(level);
+
+    const bool first_step = (parent->levelSteps(level) <= 1);
+
+    InflationExtraction extraction(extraction_params, dt, cur_time,
+                                   /* restart_time = */ 0., first_step);
+    extraction.extract(state_new);
+
+    if (extraction_params.calc_higher_order_statistics == 0)
+    {
+        return;
+    }
+
+    const amrex::DeriveRec *constraints_rec =
+        amrex::AmrLevel::get_derive_lst().get(Constraints::name);
+    if (constraints_rec == nullptr)
+    {
+        return;
+    }
+
+    const int num_constraints = constraints_rec->numDerive();
+    amrex::Vector<std::string> constraint_names;
+    constraint_names.reserve(num_constraints);
+    for (int comp = 0; comp < num_constraints; comp++)
+    {
+        constraint_names.push_back(constraints_rec->variableName(comp));
+    }
+
+    amrex::MultiFab constraints_mf(state_new.boxArray(),
+                                   state_new.DistributionMap(), num_constraints,
+                                   0, amrex::MFInfo(), Factory());
+    constraints_mf.setVal(0.0);
+    derive(Constraints::name, cur_time, constraints_mf, 0);
+
+    SmallDataIO constraints_file(
+        extraction_params.data_path + "constraint-statistics", dt, cur_time,
+        /* restart_time = */ 0., SmallDataIO::APPEND, first_step, ".dat");
+    constraints_file.remove_duplicate_time_data();
+
+    const amrex::Vector<int> constraint_moments{1, 2};
+    extraction.print_moment(constraints_mf, constraint_names,
+                            constraint_moments, constraints_file);
 }
