@@ -117,6 +117,13 @@ void InflatonFieldLevel::initData()
     ScalarTensorInit random_field_initialiser;
     random_field_initialiser.init(state_new);
 
+    // init() only writes the valid region; without this, ghost cells at
+    // grid-to-grid (and periodic domain) boundaries are left stale from the
+    // earlier background-only fill, corrupting the finite-difference
+    // stencils right at those seams. Matches ISTORIZ's AddAllStochastic,
+    // which ends with the equivalent FillBoundary call.
+    state_new.FillBoundary(Geom().periodicity());
+
     if (m_evolution_spatial_derivative_order == 4)
     {
         const GammaCalculator<FourthOrderDerivatives> gamma_calculator(
