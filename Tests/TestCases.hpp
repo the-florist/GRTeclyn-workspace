@@ -22,6 +22,7 @@
 #include "EMTensorTest.hpp"
 #include "InflatonFieldBackgroundTest.hpp"
 #include "InflatonFieldStatisticsTest.hpp"
+#include "ParsevalTheoremTest.hpp"
 #include "ParticleInterpolatorUnitTest.hpp"
 #include "PolarisationTensorTest.hpp"
 #include "PositiveChiAndLapseUnitTest.hpp"
@@ -77,6 +78,8 @@ TEST_CASE("InflatonFieldBackground") { run_inflaton_field_background_test(); }
 TEST_CASE("InflatonFieldStatistics") { run_inflaton_field_statistics_test(); }
 
 TEST_CASE("PolarisationTensor") { run_polarisation_tensor_test(); }
+
+TEST_CASE("ParsevalTheorem") { run_parseval_theorem_test(); }
 
 TEST_CASE("PositiveChiAndLapse") { run_positive_chi_and_lapse_unit_test(); }
 

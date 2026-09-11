@@ -8,6 +8,7 @@
 
 #include "BaseParameterChecker.hpp"
 #include "GRParmParse.hpp"
+#include "InflationExtraction.hpp"
 #include "InflatonUtils.hpp"
 #include "Potential.hpp"
 
@@ -33,6 +34,8 @@ class SimulationParameters
         utils.m_params.check_params(ncell, prob_extent);
 
         Potential::params_t::check_params();
+
+        InflationExtraction::params_t::check_params();
     }
 };
 

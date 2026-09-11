@@ -14,30 +14,18 @@
 
 #include <string>
 
-//! Inflationary potentials for the stochastic scalar/tensor initial data.
-/*!
-    Seven models are available, selected by the string parameter
-    `potential.type`. Each model reads only the parameters it needs, all of
-    them named (earlier versions of this example used a positional
-    `potential.param_1` ... `potential.param_5` scheme keyed off an integer
-    type code; the mapping from those legacy codes is given against each
-    enumerator below).
-*/
 class Potential
 {
   public:
-    //! Available potential models. The legacy integer code that selected each
-    //! model in the previous parameter scheme is noted for translating old
-    //! parameter files.
     enum class Type
     {
-        Quadratic,             //!< legacy type 1
-        QuadraticBump,         //!< legacy type 4
-        USR,                   //!< legacy type 8
-        Monodromy,             //!< legacy type 9
-        Punctuated,            //!< legacy type 10
-        InvertedQuadraticBump, //!< legacy type 11
-        QuadraticStep          //!< legacy type 12
+        Quadratic,
+        QuadraticBump,
+        USR,
+        Monodromy,
+        Punctuated,
+        InvertedQuadraticBump,
+        QuadraticStep
     };
 
     struct params_t
@@ -47,23 +35,17 @@ class Potential
         amrex::Real scalar_mass{1.0}; //!< Inflaton mass, read from
                                       //!< scalar_field.scalar_mass
 
-        //! Gaussian/tanh feature parameters. Used by QuadraticBump,
-        //! InvertedQuadraticBump, QuadraticStep and Monodromy.
         amrex::Real feature_amplitude{0.};
         amrex::Real feature_location{0.};
         amrex::Real feature_width{1.};
         amrex::Real feature_period{1.}; //!< Monodromy only
 
-        //! USR (Prokopec) model parameters, see arXiv:2507.04114
         amrex::Real usr_lambda{0.};
         amrex::Real usr_v{0.};
 
-        //! Punctuated inflation parameters, see arXiv:0809.3915
         int punctuated_n{2};
         amrex::Real punctuated_lambda{0.};
 
-        //! Translate the `potential.type` string into an enumerator.
-        //! Returns false if the name is not recognised.
         static bool type_from_string(const std::string &name, Type &type)
         {
             if (name == "quadratic")
