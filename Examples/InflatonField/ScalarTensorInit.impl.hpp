@@ -290,6 +290,53 @@ inline void ScalarTensorInit::generate_fourier_realisation(
     m_utils.apply_nyquist_conditions(scalar_fields_k);
 }
 
+inline amrex::Real ScalarTensorInit::find_precision_loss(
+    const amrex::MultiFab &field, const int comp, const amrex::Real background)
+{
+    amrex::ReduceOps<amrex::ReduceOpMin> reduce_op;
+    amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    for (amrex::MFIter mfi(field); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box &box = mfi.validbox();
+        auto const &field_arr = field.const_array(mfi);
+
+        reduce_op.eval(
+            box, reduce_data,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple
+            { return {amrex::Math::abs(field_arr(i, j, k, comp))}; });
+    }
+
+    // reduce_data.value() is local to this rank
+    amrex::Real min_abs_val = amrex::get<0>(reduce_data.value());
+    amrex::ParallelDescriptor::ReduceRealMin(min_abs_val);
+
+    // A perturbation that vanishes somewhere costs no precision there, and
+    // log10(0) is not representable, so there is nothing to report
+    if (min_abs_val == 0. || background == 0.)
+    {
+        return 0.;
+    }
+
+    const int field_exponent =
+        static_cast<int>(std::round(std::log10(min_abs_val)));
+    const int background_exponent =
+        static_cast<int>(std::round(std::log10(std::abs(background))));
+
+    if (background_exponent + field_exponent > 0)
+    {
+        amrex::Print() << "background = " << background
+                       << ", smallest perturbation = " << min_abs_val << "\n";
+        amrex::Print() << "exponents: " << background_exponent << ", "
+                       << field_exponent << "\n";
+        amrex::Error("ScalarTensorInit::find_precision_loss, "
+                     "field may be non-perturbative.");
+    }
+
+    return std::pow(10., background_exponent + field_exponent);
+}
+
 inline void ScalarTensorInit::add_perturbations_to_state(
     amrex::MultiFab &state, amrex::MultiFab &hij_x, amrex::MultiFab &Aij_x,
     amrex::MultiFab &scalar_fields_x, const int dn_ratio)
@@ -302,6 +349,25 @@ inline void ScalarTensorInit::add_perturbations_to_state(
     hij_x.mult(m_utils.calculate_norm());
     Aij_x.mult(m_utils.calculate_norm());
     scalar_fields_x.mult(m_utils.calculate_norm());
+
+    // Check that the scalar perturbations can still be recovered from the
+    // background they are about to be added to. This is done on the
+    // normalised fields, immediately before they reach the state.
+    if (params().scalar_init != 0)
+    {
+        amrex::Print() << "ScalarTensorInit::add_perturbations_to_state, "
+                          "precision lost in phi is "
+                       << find_precision_loss(scalar_fields_x,
+                                              static_cast<int>(BSSNFields::Phi),
+                                              params().phi0)
+                       << "\n";
+        amrex::Print() << "ScalarTensorInit::add_perturbations_to_state, "
+                          "precision lost in chi is "
+                       << find_precision_loss(scalar_fields_x,
+                                              static_cast<int>(BSSNFields::Chi),
+                                              1.0)
+                       << "\n";
+    }
 
     // Convert to BSSN variables using the BSSN-CPT dictionary
     Aij_x.mult(-0.5);

@@ -47,6 +47,9 @@ class ScalarTensorInit
                                     amrex::MultiFab &scalar_fields_x,
                                     const int dn_ratio);
 
+    amrex::Real find_precision_loss(const amrex::MultiFab &field, int comp,
+                                    amrex::Real background);
+
   private:
     enum class FieldType
     {
