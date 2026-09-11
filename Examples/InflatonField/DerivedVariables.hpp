@@ -10,8 +10,10 @@
 #include "InflatonUtils.hpp"
 #include "SmallDataIO.hpp"
 
+#include <AMReX_AmrLevel.H>
 #include <AMReX_FFT.H>
 #include <AMReX_GpuContainers.H>
+#include <AMReX_Interpolater.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
 
@@ -35,7 +37,9 @@ class DerivedVariables
                            const int *bcrec, int level);
 
     void extract_hs_and_R(amrex::MultiFab &hs_x, amrex::MultiFab &R_x,
-                          const amrex::MultiFab &state);
+                          const amrex::MultiFab &state,
+                          amrex::cMultiFab *hs_k_out = nullptr,
+                          amrex::cMultiFab *R_k_out  = nullptr);
 
   private:
     InflatonUtils m_utils;

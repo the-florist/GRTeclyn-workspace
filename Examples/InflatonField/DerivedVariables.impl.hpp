@@ -6,7 +6,7 @@
 #ifndef DERIVEDVARIABLES_IMPL_HPP_
 #define DERIVEDVARIABLES_IMPL_HPP_
 
-void DerivedVariables::set_up(int a_state_index)
+inline void DerivedVariables::set_up(int a_state_index)
 {
     int num_ghosts = 0;
 
@@ -31,7 +31,9 @@ void DerivedVariables::set_up(int a_state_index)
 // Extract R and hs in configuration space from the BSSN variables
 inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs_x,
                                                amrex::MultiFab &R_x,
-                                               const amrex::MultiFab &state)
+                                               const amrex::MultiFab &state,
+                                               amrex::cMultiFab *hs_k_out,
+                                               amrex::cMultiFab *R_k_out)
 {
     // Extract amrex::MultiFab ingredients from state
     amrex::BoxArray sba            = state.boxArray();
@@ -234,6 +236,20 @@ inline void DerivedVariables::extract_hs_and_R(amrex::MultiFab &hs_x,
     // Prepare to IFT the polarisation fields and R field
     m_utils.apply_nyquist_conditions(hs_k);
     m_utils.apply_nyquist_conditions(R_k);
+
+    // Hand the Fourier-space fields back if the caller wants to bin their
+    // power spectra. This has to happen before the inverse transform and
+    // before the physical normalisation is applied below.
+    if (hs_k_out != nullptr)
+    {
+        hs_k_out->define(kba, kdm, hs_k.nComp(), 0);
+        amrex::Copy(*hs_k_out, hs_k, 0, 0, hs_k.nComp(), 0);
+    }
+    if (R_k_out != nullptr)
+    {
+        R_k_out->define(kba, kdm, R_k.nComp(), 0);
+        amrex::Copy(*R_k_out, R_k, 0, 0, R_k.nComp(), 0);
+    }
 
     // Fourier transform
     mode_fn_fft.backward(hs_k, hs_x);
