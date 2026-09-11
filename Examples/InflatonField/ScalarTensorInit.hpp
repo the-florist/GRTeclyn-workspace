@@ -13,6 +13,34 @@
 #include <AMReX_FFT.H>
 #include <AMReX_GpuContainers.H>
 
+#include <vector>
+
+// GPU-callable linear interpolator over a tabulated complex spectrum
+// (modulus/phase interpolation, matching ISTORIZ's
+// ComplexLinearInterpolator). Only holds raw device pointers, so it is
+// trivially copyable and safe to capture by value into a device lambda; the
+// amrex::Gpu::DeviceVector storage it points into must outlive its use (see
+// ScalarTensorInit::generate_fourier_realisation).
+struct ComplexLinearInterpolator
+{
+    const double *k  = nullptr;
+    const double *re = nullptr;
+    const double *im = nullptr;
+    int n            = 0;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::GpuComplex<amrex::Real>
+    operator()(amrex::Real x) const;
+};
+
+// Copies k/re/im into device-visible storage owned by the caller (d_k/d_re/
+// d_im, which must stay alive for as long as the returned interpolator is
+// used) and returns a GPU-callable functor.
+inline ComplexLinearInterpolator make_complex_linear_interpolator(
+    const std::vector<double> &k, const std::vector<double> &re,
+    const std::vector<double> &im, amrex::Gpu::DeviceVector<double> &d_k,
+    amrex::Gpu::DeviceVector<double> &d_re,
+    amrex::Gpu::DeviceVector<double> &d_im);
+
 class ScalarTensorInit
 {
   protected:
@@ -22,6 +50,17 @@ class ScalarTensorInit
     {
         return m_utils.m_params;
     }
+
+    // Host-only STOIIC_GR/ISTORIZ spectrum table (init.use_stoiic_spectra).
+    // Kept out of InflatonParameters/InflatonUtils, which are captured by
+    // value into device lambdas and must stay POD.
+    std::vector<double> m_spectra_k;
+    std::vector<double> m_spectra_re_R;
+    std::vector<double> m_spectra_im_R;
+    std::vector<double> m_spectra_re_dR;
+    std::vector<double> m_spectra_im_dR;
+
+    void load_stoiic_spectra();
 
   public:
     // Constructor used when initialising stochastic fields
@@ -78,7 +117,9 @@ class ScalarTensorInit
                            const amrex::Real rand_amp,
                            const amrex::Real rand_phase,
                            const FieldType field_type,
-                           const WhichField which_field);
+                           const WhichField which_field,
+                           const ComplexLinearInterpolator &interp_R,
+                           const ComplexLinearInterpolator &interp_dR);
 };
 
 #include "ScalarTensorInit.impl.hpp"

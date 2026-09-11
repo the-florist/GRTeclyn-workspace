@@ -10,6 +10,83 @@
 #ifndef SCALARTENSORINIT_IMPL_HPP_
 #define SCALARTENSORINIT_IMPL_HPP_
 
+// Table lookup by binary search + modulus/phase linear interpolation,
+// mirroring ISTORIZ's ComplexLinearInterpolator::operator() exactly (same
+// convention: below the table -> 0, above the table -> 0, exactly on the
+// first point -> that point's value).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::GpuComplex<amrex::Real>
+ComplexLinearInterpolator::operator()(amrex::Real x) const
+{
+    int lo = 0;
+    int hi = n;
+    while (lo < hi)
+    {
+        int mid = lo + (hi - lo) / 2;
+        if (k[mid] < x) { lo = mid + 1; }
+        else { hi = mid; }
+    }
+    int idx = lo;
+
+    if (idx == 0)
+    {
+        if (n == 0 || x < k[0]) { return {0., 0.}; }
+        return {re[0], im[0]};
+    }
+    if (idx == n) { return {0., 0.}; }
+
+    const double x0 = k[idx - 1];
+    const double x1 = k[idx];
+    const double modulus0 =
+        std::sqrt(re[idx - 1] * re[idx - 1] + im[idx - 1] * im[idx - 1]);
+    const double modulus1 = std::sqrt(re[idx] * re[idx] + im[idx] * im[idx]);
+    const double phase0   = std::atan2(im[idx - 1], re[idx - 1]);
+    const double phase1   = std::atan2(im[idx], re[idx]);
+    const double t        = (x - x0) / (x1 - x0);
+    const double modulus  = modulus0 + (modulus1 - modulus0) * t;
+    const double phase    = phase0 + (phase1 - phase0) * t;
+    return {modulus * std::cos(phase), modulus * std::sin(phase)};
+}
+
+inline ComplexLinearInterpolator make_complex_linear_interpolator(
+    const std::vector<double> &k, const std::vector<double> &re,
+    const std::vector<double> &im, amrex::Gpu::DeviceVector<double> &d_k,
+    amrex::Gpu::DeviceVector<double> &d_re,
+    amrex::Gpu::DeviceVector<double> &d_im)
+{
+    d_k.resize(k.size());
+    d_re.resize(re.size());
+    d_im.resize(im.size());
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, k.begin(), k.end(), d_k.begin());
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, re.begin(), re.end(),
+                     d_re.begin());
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, im.begin(), im.end(),
+                     d_im.begin());
+    return ComplexLinearInterpolator{d_k.data(), d_re.data(), d_im.data(),
+                                     static_cast<int>(k.size())};
+}
+
+// Reads the same init_k/re_R_k/im_R_k/re_dR_k/im_dR_k keys STOIIC_GR writes
+// for ISTORIZ (stochastic_universe.py's edit_params_sim), so the two
+// pipelines can be pointed at the same params file. Host-only: called once
+// from init(), before generate_fourier_realisation() builds the device-side
+// interpolators from these vectors.
+inline void ScalarTensorInit::load_stoiic_spectra()
+{
+    GRParmParse pp;
+    pp.queryarr("init_k", m_spectra_k);
+    pp.queryarr("re_R_k", m_spectra_re_R);
+    pp.queryarr("im_R_k", m_spectra_im_R);
+    pp.queryarr("re_dR_k", m_spectra_re_dR);
+    pp.queryarr("im_dR_k", m_spectra_im_dR);
+
+    if (m_spectra_k.empty())
+    {
+        amrex::Warning("ScalarTensorInit::load_stoiic_spectra, "
+                       "init.use_stoiic_spectra is set but init_k/re_R_k/"
+                       "im_R_k/re_dR_k/im_dR_k were not found or empty");
+    }
+}
+
 // Returns analytic power spectrum in modulus/argument form
 AMREX_GPU_HOST_DEVICE inline amrex::GpuComplex<amrex::Real>
 ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
@@ -71,15 +148,32 @@ ScalarTensorInit::calculate_random_field(const InflatonUtils &cfg,
                                          const amrex::Real rand_amp,
                                          const amrex::Real rand_phase,
                                          const FieldType field_type,
-                                         const WhichField which_field)
+                                         const WhichField which_field,
+                                         const ComplexLinearInterpolator &interp_R,
+                                         const ComplexLinearInterpolator &interp_dR)
 {
     amrex::GpuComplex<amrex::Real> value(0., 0.);
     amrex::Real kmag = cfg.get_kmag(ivec);
-    value = calculate_mode_function(d_params, kmag, field_type, which_field);
+    // The STOIIC_GR/ISTORIZ table only covers the scalar (R/dR) sector; the
+    // tensor sector always uses the analytic mode function.
+    if (d_params.use_stoiic_spectra != 0 && field_type == FieldType::Scalar)
+    {
+        value = (which_field == WhichField::Amplitude) ? interp_R(kmag)
+                                                        : interp_dR(kmag);
+    }
+    else
+    {
+        value = calculate_mode_function(d_params, kmag, field_type, which_field);
+    }
 
     // Add stochastic perturbations
-    // Make one random draw for the amplitude and phase individually
-    amrex::Real rand_mod = sqrt(-2. * log(rand_amp));
+    // Make one random draw for the amplitude and phase individually.
+    // rand_mod*e^{i*rand_arg} is a standard complex Gaussian via Box-Muller
+    // (real/imag parts each ~N(0,1), so E[|z|^2]=2); the sqrt(-1*...) here
+    // (rather than sqrt(-2*...)) rescales it to E[|z|^2]=1, i.e. one unit of
+    // stochastic power per stored Fourier mode, matching the envelope/
+    // calculate_norm() normalization convention.
+    amrex::Real rand_mod = sqrt(-1. * log(rand_amp));
     amrex::Real rand_arg = 2. * amrex::Math::pi<amrex::Real>() * rand_phase;
 
     // Multiply amplitude by Rayleigh draw
@@ -201,6 +295,20 @@ inline void ScalarTensorInit::generate_fourier_realisation(
     const InflatonUtils cfg           = m_utils;
     const InflatonParameters d_params = params();
 
+    // Device-visible storage backing interp_R/interp_dR below; must stay
+    // alive until the ParallelFor launched below has completed (mirrors
+    // ISTORIZ's make_complex_linear_interpolator usage). Built even when
+    // use_stoiic_spectra is off, as empty (n=0) interpolators that are never
+    // called.
+    amrex::Gpu::DeviceVector<double> d_spectra_k_R, d_re_R, d_im_R,
+        d_spectra_k_dR, d_re_dR, d_im_dR;
+    const ComplexLinearInterpolator interp_R = make_complex_linear_interpolator(
+        m_spectra_k, m_spectra_re_R, m_spectra_im_R, d_spectra_k_R, d_re_R,
+        d_im_R);
+    const ComplexLinearInterpolator interp_dR = make_complex_linear_interpolator(
+        m_spectra_k, m_spectra_re_dR, m_spectra_im_dR, d_spectra_k_dR, d_re_dR,
+        d_im_dR);
+
     amrex::ParallelFor(
         hij_k,
         [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k)
@@ -230,13 +338,15 @@ inline void ScalarTensorInit::generate_fourier_realisation(
                                 static_cast<int>(WhichField::Amplitude)) =
                     calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                            FieldType::Scalar,
-                                           WhichField::Amplitude);
+                                           WhichField::Amplitude, interp_R,
+                                           interp_dR);
 
                 R_dR_k_arrs[bx](i, j, k,
                                 static_cast<int>(WhichField::Velocity)) =
                     calculate_random_field(cfg, d_params, iv, draw1, draw2,
                                            FieldType::Scalar,
-                                           WhichField::Velocity);
+                                           WhichField::Velocity, interp_R,
+                                           interp_dR);
             }
 
             // Initialise tensor sector (two random draws)
@@ -255,11 +365,11 @@ inline void ScalarTensorInit::generate_fourier_realisation(
 
                     h_mode_function[p] = calculate_random_field(
                         cfg, d_params, iv, draw1, draw2, FieldType::Tensor,
-                        WhichField::Amplitude);
+                        WhichField::Amplitude, interp_R, interp_dR);
 
                     A_mode_function[p] = calculate_random_field(
                         cfg, d_params, iv, draw1, draw2, FieldType::Tensor,
-                        WhichField::Velocity);
+                        WhichField::Velocity, interp_R, interp_dR);
                 }
 
                 // Construct polarisation tensors from basis vectors
@@ -417,6 +527,11 @@ inline void ScalarTensorInit::init(amrex::MultiFab &state)
         x_domain, amrex::FFT::Info().setBatchSize(scalar_fields_k.nComp()));
 
     // Generate stochastic initial data
+    if (params().use_stoiic_spectra)
+    {
+        amrex::Print() << "Loading STOIIC spectra from input file...\n";
+        load_stoiic_spectra();
+    }
     generate_fourier_realisation(hij_k, Aij_k, scalar_fields_k);
 
     // Do the Fourier transform

@@ -30,6 +30,11 @@ struct InflatonParameters
     int tensor_init{0}; //!< Add tensor perturbations (1) or not (0)
     int use_window{0};  //!< Apply window function to initial spectrum
 
+    //!< Use the STOIIC_GR/ISTORIZ init_k/re_R_k/im_R_k/re_dR_k/im_dR_k
+    //!< spectrum table (read by ScalarTensorInit::load_stoiic_spectra())
+    //!< instead of the analytic mode function, for the scalar sector only.
+    int use_stoiic_spectra{0};
+
     amrex::Real phi0{0.};          //!< Background scalar field value
     amrex::Real Pi0{0.};           //!< Background Pi value
     amrex::Real V_background{0.};  //!< Background potential value
@@ -58,13 +63,15 @@ struct InflatonParameters
         // Read and set physical units
         amrex::Real G_Newton = 1.;
         pp.query("scalar_field.G_Newton", G_Newton);
-        planck_mass = 1. / std::sqrt(G_Newton);
+        planck_mass =
+            1. / std::sqrt(8.0 * amrex::Math::pi<amrex::Real>() * G_Newton);
 
         // Read initialisation parameters
         GRParmParse init_pp("init");
         init_pp.query("scalar_init", scalar_init);
         init_pp.query("tensor_init", tensor_init);
         init_pp.query("use_window", use_window);
+        init_pp.query("use_stoiic_spectra", use_stoiic_spectra);
         init_pp.query("alpha", alpha);
         init_pp.query("Delta", Delta);
         init_pp.query("random_seed", random_seed);
