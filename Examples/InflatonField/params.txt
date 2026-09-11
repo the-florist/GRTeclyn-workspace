@@ -51,6 +51,34 @@ init.background_dphi = 0.04472131203809918
 # Potential parameters
 scalar_field.scalar_mass = 0.000547813867426198
 
+# Which potential model to evaluate. One of:
+#   quadratic                (legacy potential.type = 1)
+#   quadratic_bump           (legacy potential.type = 4)
+#   usr                      (legacy potential.type = 8)
+#   monodromy                (legacy potential.type = 9)
+#   punctuated               (legacy potential.type = 10)
+#   inverted_quadratic_bump  (legacy potential.type = 11)
+#   quadratic_step           (legacy potential.type = 12)
+# Only the parameters belonging to the selected model are read.
+potential.type = quadratic
+
+# Gaussian/tanh feature, used by quadratic_bump, inverted_quadratic_bump,
+# quadratic_step and monodromy
+# potential.feature_amplitude = 0.0
+# potential.feature_location  = 0.0
+# potential.feature_width     = 1.0
+
+# Monodromy only
+# potential.feature_period = 1.0
+
+# USR model (arXiv:2507.04114)
+# potential.usr_lambda = 0.0
+# potential.usr_v      = 0.0
+
+# Punctuated inflation (arXiv:0809.3915)
+# potential.punctuated_n      = 2
+# potential.punctuated_lambda = 0.0
+
 #################################################
 # Grid parameters
 
@@ -122,3 +150,28 @@ evolution.sigma = 0.0
 
 ccz4.min_chi = 1.e-30
 ccz4.min_lapse = 1.e-30
+
+#################################################
+# Extraction parameters
+#
+# Diagnostics on the comoving curvature perturbation R and the tensor
+# polarisation fields h+ and hx, written into extraction.path as data files.
+# These are separate from the plotfile output of the same fields, which is
+# controlled by amr.derive_plot_vars = InflationFields.
+
+extraction.path = data/
+
+# Volume-averaged background quantities (scalar field, its momentum, the scale
+# factor, the Hubble rate and the lapse), appended to means-file.dat every step
+extraction.calc_background_means = 1
+
+# Binned isotropic power spectra, one file per field per output time
+extraction.calc_binned_power_spectrum = 0
+extraction.spec_interval = 100
+
+# Time series of the statistical moments of each field. moments_to_print must
+# be a strictly ascending subset of {1, 2, 3, 4}, meaning mean, standard
+# deviation, skewness and kurtosis respectively. The tensor-to-scalar ratio is
+# written whenever moment 2 is requested.
+extraction.calc_higher_order_statistics = 0
+extraction.moments_to_print = 1 2
