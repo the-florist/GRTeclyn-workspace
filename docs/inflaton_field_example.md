@@ -139,6 +139,16 @@ Because the initial conditions in this example are stochastic, some care is need
 `N_fine` fixes the grid on which the realisation is generated. When it is larger than $N$, the random field is constructed at resolution `N_fine` and then sampled down onto the simulation grid, so that every run in the suite is initialised from the same underlying random field regardless of its own resolution. It should therefore be set to the finest resolution in the suite, and must be at least $N$.
 `N_coarse` fixes the cut-off scale $k_s$ of the window function described above. It should be set to the coarsest resolution in the suite, so that the spectrum is cut off at a scale which every run can resolve. In practice we typically choose values of $N$ between 64 and 512.
 
+### Example inputs from arXiv:2502.06783
+
+The directory `Examples/InflatonField/paper_examples` contains inputs for the three scenarios of [arXiv:2502.06783](https://arxiv.org/abs/2502.06783): quadratic, inflection-point (ultra-slow-roll) and strong resonance (monodromy) inflation. Each comes at 64³ in a small box and at 256³ in the box of the paper, with scalar perturbations only (`params_<scenario>_N<N>.txt`) or with tensor perturbations as well (`params_<scenario>_N<N>_tensor.txt`). The scalar mode functions are taken from a [STOIIC_GR](https://github.com/YL-codehub/STOIIC_GR) table, which the parameter files include from `paper_examples/spectra`, so run them from the example directory:
+
+```bash
+mpiexec -n 8 ./InflatonField3d.gnu.MPI.ex paper_examples/params_quadratic_N64.txt
+```
+
+The [README](https://github.com/GRTLCollaboration/GRTeclyn/tree/main/Examples/InflatonField/paper_examples/README.md) in that directory lists the set-ups, their cost and how to regenerate them.
+
 ## Guide to parameters
 
 The parameters below are specific to this example. All other parameters used in `params.txt` are shared with the other examples and are described in the [Parameters guide](parameters.md).
@@ -147,6 +157,8 @@ The parameters below are specific to this example. All other parameters used in 
 * `init.background_phi`: The value of the initial inflaton field mean in units of $M_p$.
 * `init.background_dphi`: The value of the initial inflaton field derivative, $\Pi = \partial_t\phi$.
 * `scalar_field.scalar_mass`: The value of the inflaton mass in units of $M_p$.
+* `potential.type`: The inflaton potential, one of `quadratic` (the default), `quadratic_bump`, `usr`, `monodromy`, `punctuated`, `inverted_quadratic_bump` and `quadratic_step`. Each reads its own `potential.*` parameters, listed in `params.txt` and `Potential.hpp`.
+* `init.use_stoiic_spectra`: Set to `1` to take the scalar mode functions from the `init_k`, `re_R_k`, `im_R_k`, `re_dR_k` and `im_dR_k` arrays written by STOIIC_GR, instead of the analytic slow-roll ones. The tensor modes always use the analytic Bunch-Davies mode functions.
 * `init.scalar_init`: Whether to add scalar perturbations to the background. Set to `1` to enable and `0` to disable.
 * `init.tensor_init`: Whether to add gravitational-wave perturbations to the background. Set to `1` to enable and `0` to disable.
 * `init.random_seed`: The seed used to generate the random draws.
