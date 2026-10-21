@@ -82,9 +82,11 @@ runs it grows to about 50% once domain walls form, as discussed in the paper.
   N_w = 2σLH/π (122, 81 and 46). The monodromy box is the paper one at both
   sizes.
 * Output: about 20 plotfiles per run with all evolved variables, the
-  constraints and the `InflationFields` (R, h₊, hₓ). Checkpoints are off
-  (`amr.check_int = -1`); see the comment in the files to turn them on for
-  the long 256³ runs.
+  constraints and the `InflationFields` (R, h₊, hₓ). At 256³ each plotfile
+  is about 4.5 GB, i.e. about 100 GB per run: restrict `amr.plot_vars` (e.g.
+  `amr.plot_vars = chi K phi Pi`) or raise `amr.plot_int` to save disk.
+  Checkpoints are off (`amr.check_int = -1`); see the comment in the files
+  to turn them on for the long 256³ runs.
 
 ## Regenerating the inputs
 
