@@ -11,12 +11,16 @@
 #define SCALARTENSORINIT_IMPL_HPP_
 
 // Table lookup by binary search + modulus/phase linear interpolation,
-// mirroring ISTORIZ's ComplexLinearInterpolator::operator() exactly (same
-// convention: below the table -> 0, above the table -> 0, exactly on the
-// first point -> that point's value).
+// mirroring ISTORIZ's ComplexLinearInterpolator::operator() (same
+// convention: below the table -> 0, above the table -> 0, on an end point ->
+// that point's value). The table's k values and the grid's are computed
+// separately, so a grid mode on an end point can differ from it by a few
+// ulps; it is still treated as that point rather than dropped.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::GpuComplex<amrex::Real>
 ComplexLinearInterpolator::operator()(amrex::Real x) const
 {
+    constexpr amrex::Real end_tolerance = 1.e-10;
+
     int lo = 0;
     int hi = n;
     while (lo < hi)
@@ -29,10 +33,14 @@ ComplexLinearInterpolator::operator()(amrex::Real x) const
 
     if (idx == 0)
     {
-        if (n == 0 || x < k[0]) { return {0., 0.}; }
+        if (n == 0 || x < k[0] * (1. - end_tolerance)) { return {0., 0.}; }
         return {re[0], im[0]};
     }
-    if (idx == n) { return {0., 0.}; }
+    if (idx == n)
+    {
+        if (x > k[n - 1] * (1. + end_tolerance)) { return {0., 0.}; }
+        return {re[n - 1], im[n - 1]};
+    }
 
     const double x0 = k[idx - 1];
     const double x1 = k[idx];
