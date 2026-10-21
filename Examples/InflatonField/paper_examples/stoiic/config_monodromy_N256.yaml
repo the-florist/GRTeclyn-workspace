@@ -1,0 +1,45 @@
+# STOIIC_GR config for the GRTeclyn InflatonField example params_monodromy_N256*.txt
+# (arXiv:2502.06783). Uses STOIIC's ISTORIZ writer (params_file2, stoiic = -1:
+# all modes at initialisation); make_params.py translates its dparams.txt to
+# GRTeclyn keys. Run from the STOIIC_GR root with
+#   python3 main.py --n 256 --nsim 256 --sn 32 --cfg <path to this file without .yaml, relative to input/>
+mode: 'perturbations'
+model:
+  potential: 'axion_monodromy2'
+  end_time: 12
+scales:
+  # Box size in 1/H(draw time) units. Paper value.
+  length: 16
+  # The UV cutoff sigma*aH is applied in GRTeclyn by its sharp window at
+  # pi*N_w/(2L); the spectra table only needs to cover it, so cut it at 1.1 sigma.
+  sigma_R: 4.95
+  sigma_dR: 4.95
+  Mp: 100 # defining our units
+draw:
+  time: 5
+  rayleigh: True
+
+plot:
+  bg: True
+  potential: True
+  pdf: False
+  classicality: False
+  spectra: False
+
+write:
+  bg: True
+  spectra: True
+  sim:
+    software: "ISTORIZ"
+    input_file: "params_file2"
+    duration: 7
+    checkpoints: 0
+    small_chk_global: 500
+    small_chk_spec: 30
+    gauge: 'geodesic'
+    dt_multiplier: 0.025
+    puncture_mu: 0.0
+    damping: False
+    sigma: 4.5
+    sto_backreaction: 0
+    stoiic: -1.0
