@@ -68,7 +68,7 @@ void ScalarFieldLevel::variableSetUp()
         &amrex::cell_quartic_interp);
 
     // We only need the spatial metric to find the polarisation fields
-    derive_lst.addComponent("TensorPolarisation", desc_lst, State_Type, 0, NUM_VARS);
+    derive_lst.addComponent("TensorPolarisations", desc_lst, State_Type, 0, NUM_VARS);
 }
 
 // Things to do at each advance step, after the RK4 is calculated
@@ -378,7 +378,7 @@ void ScalarFieldLevel::derive(const std::string &name, amrex::Real time,
         }
         else if (name=="TensorPolarisations")
         {
-            RandomField random_field_derive(simParams().random_field_params);
+            RandomField random_field_derive(simParams().random_field_params, simParams().potential_params);
             random_field_derive.derive(src_mf, multifab, dcomp);
         }
         else
@@ -427,7 +427,7 @@ void ScalarFieldLevel::specificPostTimeStep(amrex::Real dt, amrex::Real restart_
     means_file.write_time_data_line({phi_avg, Pi_avg, scale_fact_avg, Hubble_fact_avg, lapse_avg});
 
     // Extract the spectra and field statistics
-    RandomField random_field_extractor(simParams().random_field_params);
+    RandomField random_field_extractor(simParams().random_field_params, simParams().potential_params);
     random_field_extractor.extract(state_new, simParams().data_path, dt, cur_time, restart_time, first_step);
 
     // Make a file object for constraint statistics

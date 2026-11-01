@@ -70,6 +70,8 @@ class RandomField
             int num_orders;                       //!< Number of moments to print (required by vector read-in)
             Vector<int> orders;                   //!< Moment orders to print for extracted fields
             int print_mode_functions = 0;
+            int gauge_transform_order = 1;        //!< Order of the synchronous -> comoving gauge transformation (1 or 2)
+            int dealias_products = 0;             //!< Apply the 2/3 rule to fields entering second-order products
 
             // STOIIC read-in structures
             Vector<Real> init_k;                  //!< ks printed by STOIIC, at which Fourier-space fields are provided
@@ -79,38 +81,11 @@ class RandomField
 
         // Constructor used when initialising stochastic fields
         RandomField(params_t a_params, InitialBackgroundData::params_t bkgd_params, const Potential::params_t potential_params)
-                : m_params(a_params)
+                : m_params(a_params), m_potential_params(potential_params)
         {
             // Compute background potential
             Real V, dV;
-            Potential potential(potential_params);
-            switch (potential_params.type)
-            {
-                case 1:
-                    potential.quadratic(V, dV, bkgd_params.phi0);
-                    break;
-                case 4:
-                    potential.quadratic_bump(V, dV, bkgd_params.phi0);
-                    break;
-                case 9:
-                    potential.monodromy(V, dV, bkgd_params.phi0);
-                    break;
-                case 8:
-                    potential.USR(V, dV, bkgd_params.phi0);
-                    break;
-                case 10:
-                    potential.punctuated(V, dV, bkgd_params.phi0);
-                    break;
-                case 11:
-                    potential.inverted_quadratic_bump(V, dV, bkgd_params.phi0);
-                    break;
-                case 12:
-                    potential.quadratic_step(V, dV, bkgd_params.phi0);
-                    break;
-                default:
-                    Error("RandomField::RandomField, requested " 
-                          "potential type is not implemented.");
-            }
+            evaluate_potential(bkgd_params.phi0, V, dV);
 
             // Compute initial Hubble parameter
             H0 = sqrt((8. * M_PI * bkgd_params.G_Newton/3.)*(0.5*pow(bkgd_params.Pi0, 2.) + V));
@@ -136,8 +111,8 @@ class RandomField
         }
 
         // Constructor used in extraction of diagnostics
-        RandomField(params_t a_params)
-                : m_params(a_params)
+        RandomField(params_t a_params, const Potential::params_t potential_params)
+                : m_params(a_params), m_potential_params(potential_params)
         {
             // Set protected class parameters
             N = m_params.N_readin;
@@ -189,8 +164,10 @@ class RandomField
         int invert_index(const int indx, const int m_N);
         int invert_index_with_sign(const int indx, const int m_N);
         Real get_kmag(IntVect iv, const int m_N);
+        GpuArray<Real, 3> get_kvec(IntVect iv);
         Real window_function(const Real kmag);
         Real find_precision_loss(MultiFab &field, int comp, Real bkgd);
+        void evaluate_potential(const Real phi, Real &V, Real &dV);
 
         std::string make_subdirectory(const std::string base, const std::string dir, const int is_first_step);
         void assign_statistics_data(Vector<std::string> &header_storage, const std::string name, 
@@ -218,11 +195,32 @@ class RandomField
         
         // Extraction routines
         void print_power_spectrum(cMultiFab &field_array, SmallDataIO &power_spec_file, const int component);
-        Real find_field_moment_x(MultiFab &field, const Vector<Real> mean, 
+        Real find_field_moment_x(MultiFab &field, const Vector<Real> mean,
                                  const int moment, const int component);
+
+        // Synchronous -> comoving gauge transformation routines
+        struct extraction_background_t
+        {
+            Real K_bar, alpha_bar, Pi_bar, phi_bar, chi_bar;
+        };
+        static constexpr Real time_shift_tolerance = 0.1; //!< Max of T times a background rate
+        extraction_background_t set_extraction_inputs(const MultiFab &state, MultiFab &gij_x,
+                                                      MultiFab &scalars_x);
+        void extract_from_inputs(const MultiFab &gij_x, const MultiFab &scalars_x,
+                                 const extraction_background_t &bkgd, const std::string data_path,
+                                 const Real dt, const Real cur_time, const Real restart_time,
+                                 const int first_step, const std::string &suffix);
+        void check_time_shift(const Real shift, const std::string &name);
+        void add_second_order_gauge_terms(const MultiFab &state, const extraction_background_t &bkgd,
+                                          MultiFab &gij_x, MultiFab &scalars_x);
+        void check_synchronous_gauge(const MultiFab &state);
+        void make_fourier_layout(BoxArray &kba, DistributionMapping &kdm);
+        template <class op_t>
+        void inverse_fft_of(const cMultiFab &fields_k, const cMultiFab &gen_k, MultiFab &out, op_t op);
 
     protected:
         const params_t m_params;
+        const Potential::params_t m_potential_params;
 };
 
 #include "RandomField.impl.hpp"
