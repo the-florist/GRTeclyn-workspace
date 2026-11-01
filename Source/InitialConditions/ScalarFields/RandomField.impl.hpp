@@ -1092,6 +1092,9 @@ inline void RandomField::derive(const MultiFab &state, MultiFab &out, int dcomp)
     scalars_x.plus(-phi_bar, m_c_phi, 1);
     scalars_x.plus(-chi_bar, m_c_chi, 1);
 
+    // Normalise the conformal factor perturbation, delta chi / chi_bar
+    scalars_x.mult(1./chi_bar, m_c_chi, 1);
+
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
 
@@ -1298,6 +1301,9 @@ inline void RandomField::extract(const MultiFab &state, const std::string data_p
     // Remove background from scalar field
     scalars_x.plus(-phi_bar, m_c_phi, 1);
     scalars_x.plus(-chi_bar, m_c_chi, 1);
+
+    // Normalise the conformal factor perturbation, delta chi / chi_bar
+    scalars_x.mult(1./chi_bar, m_c_chi, 1);
 
     // Undo the normalisation and BSSN-CPT conversion
     for (int l=0; l<3; l++) { gij_x.plus(-1., lut[l][l], 1); }
