@@ -135,13 +135,6 @@ ScalarTensorInit::calculate_mode_function(const InflatonParameters &d_params,
     {
         mode_val /= std::sqrt(2. * d_params.epsilon_1);
     }
-    else
-    {
-        // h_ij = h_+ e^+_ij + h_x e^x_ij with e^l_ij e^l_ij = 2, so each
-        // polarisation has |h_l|^2 = (1/k + H^2/k^3) / Mp^2 = 4 epsilon_1 |R|^2
-        // and the tensor-to-scalar ratio is 16 epsilon_1
-        mode_val *= std::sqrt(2.);
-    }
 
     if (which_field == WhichField::Amplitude)
     {
